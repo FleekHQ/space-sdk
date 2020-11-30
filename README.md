@@ -8,7 +8,7 @@ Space SDK is analogue to [Space Daemon](https://github.com/FleekHQ/space-daemon)
 
 ### Browser
 
-TODO: Package and release to NPM using the bundle made by `webpack`.
+TODO: Package and release to NPM using the bundle made by `webpack` (`yarn build:browser`).
 
 ### Node
 
@@ -42,6 +42,17 @@ Recovers a user key from the vault service and proceeds to log in to Textile Hub
 #### listDirectory(path: string, bucket: string)
 
 Lists the contents of a directory for the given bucket. Requires the user to be logged in.
+
+
+## Contributing
+
+It's easy to get started developing this package. Simply run
+
+`yarn install`
+
+`yarn start`
+
+and a live-reload environment will load up. Check out `./example/index.ts` and `./example/index.html` for adding additional calls.
 
 ## Package Architecture
 
