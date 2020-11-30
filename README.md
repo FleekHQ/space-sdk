@@ -47,7 +47,7 @@ Lists the contents of a directory for the given bucket. Requires the user to be 
 
 This package declares all API methods inside `src/api/index.ts`. It uses the class `SpaceService`, declared in `src/service/index.ts` which wraps the actual logic behind API calls. The module `src/auth` contains the logic behind retrieving API keys, logging into the Textile Hub, creating new keys (TODO), and anything else related to maintaining the user session.
 
-# Auth
+### Auth
 
 Auth works in two steps. First is recovering the user keys and second is using said keys to authorize towards Textile Hub.
 
@@ -73,3 +73,7 @@ internal:
 Given the last query points to the Mirror Bucket, it doesn't need to sync anything, it can simply return the mirror bucket current state as it lives on the hub.
 
 For write operations, simply write to the mirror bucket thread directly. Space Daemon will be constantly listening for updates on that thread and synchronizing its local threads accordingly.
+
+### Important TODOS:
+
+Currently, `NewDBFromAddr` call is failing, which is breaking up the restoration of the `Metathread`. TODOs are left on `src/service/index.ts` with the specific steps to fix.
