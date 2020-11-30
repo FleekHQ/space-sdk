@@ -8,14 +8,13 @@ const testUser = {
 };
 
 const testUserDev = {
-  username: 'spacejs-dev',
+  username: 'spacejs-dev-2',
   uuid: '80500b12-26ae-451f-a24a-873707344a05',
   passphrase: 'Test1234',
 };
 
 const devOpts: SpaceAPIOpts = {
-  hubMultiaddress: '/ip4/54.189.77.235/tcp/4006/p2p/12D3KooWEYHGowTJYj2fA8c17DPD5wTXJ8dpZ4XCuMCtwCxGDVpx',
-  // hubUrl: 'https://hub-dev.space.storage',
+  hubMultiaddress: '/ip4/54.189.77.235/tcp/4006/p2p/12D3KooWEGi5W3CaWYpX81GHBVjVPx85331Gzn34hhgtB3ARJtmQ',
   hubUrl: 'https://hub-dev-2.space.storage',
   sessionDurationInMs: 1000 * 60 * 60 * 24,
   spaceServicesAuthUrl: 'wss://auth-dev.space.storage',
@@ -23,7 +22,7 @@ const devOpts: SpaceAPIOpts = {
   vaultServiceUrl: 'https://vault-dev.space.storage',
 };
 
-const IS_PROD = false;
+const IS_PROD = true;
 let opts = {};
 let user = testUser;
 
@@ -35,13 +34,16 @@ if (!IS_PROD) {
 const api = new SpaceAPI(opts);
 
 window.onload = () => {
-  console.log('Logging in...');
+  console.log('Recovering keys...');
   if (!api.isLoggedIn()) {
-    api.recoverKeysByPassphrase(user.uuid, user.passphrase).then(() => {
-      console.log('Logged in');
-    });
+    api
+      .recoverKeysByPassphrase(user.uuid, user.passphrase)
+      .then(() => {
+        console.log('Logged in');
+      })
+      .catch(e => console.error(e));
   } else {
-    console.log('Already logged in');
+    console.log('User was already logged in');
   }
 };
 

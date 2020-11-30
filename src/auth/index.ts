@@ -1,4 +1,7 @@
+import { Context } from '@textile/context';
+import { createAPISig, APISig, createUserAuth, UserAuth } from '@textile/hub';
 import { Libp2pCryptoIdentity } from '@textile/threads-core';
+import multibase from 'multibase';
 import { ed25519 } from '../utils/keys';
 import { keys } from '@textile/threads-crypto';
 import { Vault } from './vault';
@@ -135,12 +138,13 @@ class SpaceAuth {
             case 'challenge': {
               const buf = Buffer.from(data.value);
               const signed = await identity.sign(buf);
+              const dec = new TextDecoder();
               socket.send(
                 JSON.stringify({
                   action: 'challenge',
                   data: {
-                    sig: Buffer.from(signed).toString('base64'),
                     pubkey: pubKeyStr,
+                    sig: dec.decode(multibase.encode('base32', Buffer.from(signed))),
                   },
                 }),
               );

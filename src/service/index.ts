@@ -1,9 +1,8 @@
-import { Client, ThreadID, Where } from '@textile/hub';
+import { Client, ThreadID, Where, createAPISig } from '@textile/hub';
 import { Context } from '@textile/context';
-import multibase from 'multibase';
 import SpaceAuth from '../auth';
+import * as collections from '../collections';
 import { threads } from '../utils';
-import { ThreadKey } from '@textile/threads-core';
 import { ThreadKeyVariant } from '../utils/types';
 
 class SpaceService {
@@ -17,13 +16,13 @@ class SpaceService {
     this.textileMultiaddress = textileMultiaddress;
   }
 
-  /**
-   * listDirectory
-   */
   public async listDirectory(path: string, bucket: string) {
     const identity = await this.auth.getIdentity();
 
     await this.getMetathread();
+
+    // TODO: Iterate over metathread buckets, find the bucket being queried,
+    // and return it files by querying `${bucket}_mirror` using the correct dbID
   }
 
   private getClient(): Client {
@@ -49,15 +48,8 @@ class SpaceService {
 
   private async getMetathread() {
     await this.restoreMetathread();
-    const identity = await this.auth.getIdentity();
-    const threadId = threads.getDeterministicThreadID(identity);
-    const dbs = await this.getClient().listThreads();
-    console.log(dbs);
-    console.log(threadId.toString());
 
-    // // @ts-ignore (remove once @textile/threads-client updates their @textile/thread-id ref to 0.2.0)
-    // const dbInfo = await this.getClient().getDBInfo(threadId);
-    // console.log(dbInfo);
+    // TODO: Return metathread
   }
 
   private async restoreMetathread() {
@@ -68,23 +60,32 @@ class SpaceService {
     try {
       // @ts-ignore (remove once @textile/threads-client updates their @textile/thread-id ref to 0.2.0)
       await this.getClient().getDBInfo(threadId);
-    } catch {
+    } catch (e) {
+      console.error(e);
       metathreadExists = false;
     }
 
+    // NOTE: this is always being false, as the golang method `getThread` is not implemented on JS side.
+    // TODO: Check if there's other way to see if the metathread is replicated on the hub.
     if (metathreadExists) {
       return;
     }
 
     const hubmaWithThreadId = `${this.textileMultiaddress}/thread/${threadId.toString()}`;
-    debugger;
-
+    // NOTE: Currently failing with `duplicate key error`.
     const tid = await this.getClient().newDBFromAddr(
       hubmaWithThreadId,
       threads.getManagedThreadKey(identity, ThreadKeyVariant.metathreadVariant).toBytes(),
+      [
+        collections.Bucket.getCollectionConfig(),
+        collections.MirrorFile.getCollectionConfig(),
+        collections.ReceivedFile.getCollectionConfig(),
+        collections.SentFile.getCollectionConfig(),
+        collections.SharedPublicKey.getCollectionConfig(),
+      ],
     );
 
-    console.log('tid', tid);
+    // TODO: Return restored metathread
   }
 }
 
