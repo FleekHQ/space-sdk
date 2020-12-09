@@ -1,0 +1,3 @@
+#!/bin/bash
+
+find markdown -type f -name '*.md' -print0 | xargs -0 sed -i "s/from '@textile\/threads'/from '@textile\/hub'/g"

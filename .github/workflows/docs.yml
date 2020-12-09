@@ -1,0 +1,59 @@
+name: Docs
+
+on:
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: 'Update notes'
+        required: false
+
+jobs:
+  deploy:
+    name: Docs
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'skip-ci')"
+
+    steps:
+
+    - name: Checkout
+      uses: actions/checkout@v1
+
+    - name: Cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+    - name: Setup
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12
+        registry-url: https://registry.npmjs.org/
+
+    - name: Install
+      run: npm install
+
+    - name: Boostrap
+      run: npm run bootstrap -- --hoist
+
+    - name: Build
+      run: npm run build
+
+    - name: Docs
+      run: npm run build:docs
+
+    - name: Copy
+      run: |
+          mkdir pages
+          cp -r website/build/\@textile/hub/* pages/
+          touch pages/.nojekyll
+    
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v2
+      env:
+        ACTIONS_DEPLOY_KEY: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+        PUBLISH_BRANCH: gh-pages
+        PUBLISH_DIR: pages

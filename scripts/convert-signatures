@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Simply converts the Signatures to javascript
+# This avoids typescript example check errors.
+sed -i -e ':a;N;$!ba;s/Signature:<\/b>\n\n```typescript/Signature:<\/b>\n\n```javascript/g' $(find ./docs/**.md)
