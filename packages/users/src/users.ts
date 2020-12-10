@@ -34,7 +34,7 @@ interface UsersConfig {
  *
  *
  * @example
- * Initialize a the User API and list their threads.
+ * Initialize Users without identity storage
  * ```typescript
  * import { Users } from '@space/users'
  *
@@ -45,6 +45,20 @@ interface UsersConfig {
  *
  * // authenticate against ws challenge, obtaining storageAuth
  * const user = await users.authenticate(id);
+ * ```
+ *
+ * @example
+ * Initialize Users with BrowserStorage
+ * ```typescript
+ * import { Users, BrowserStorage } from '@space/users'
+ *
+ * const storage = new BrowserStorage();
+ * // error is thrown when identity fails to auth
+ * const onErrorCallback = (err, identity) => { ... };
+ *
+ * // users are automatically restored from stored identities
+ * const users = await Users.withStorage(storage, { endpoint: "users.space.storage" }, onErrorCallback);
+ *
  * ```
  */
 export class Users {
