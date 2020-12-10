@@ -1,13 +1,5 @@
-// import log from 'loglevel'
-import { PrivateKey, Identity } from '@textile/crypto';
-import multibase from 'multibase';
-
-// const logger = log.getLogger('users');
-
-interface UsersConfig {
-  endpoint: string;
-}
-
+import { Identity, PrivateKey } from '@textile/crypto';
+import _ from 'lodash';
 interface TextileStorageAuth {
   key: string;
   token: string;
@@ -19,6 +11,16 @@ interface SpaceUser {
   identity: Identity;
   token: string;
   storageAuth?: TextileStorageAuth;
+}
+
+interface IdentityStorage {
+  list: () => Promise<Identity[]>;
+  add: (identity: Identity) => Promise<void>;
+  remove: (key: string) => Promise<void>;
+}
+
+interface UsersConfig {
+  endpoint: string;
 }
 
 /**
@@ -47,13 +49,43 @@ interface SpaceUser {
  */
 export class Users {
   private config: UsersConfig;
+  private storage?: IdentityStorage;
+  private users: Record<string, SpaceUser>;
 
-  constructor(config: UsersConfig) {
+  constructor(config: UsersConfig, storage?: IdentityStorage) {
     this.config = config;
+    this.storage = storage;
+    this.users = {};
   }
 
-  createIdentity(): Identity {
-    return PrivateKey.fromRandom();
+  static async withStorage(storage: IdentityStorage, config: UsersConfig, onError?: CallableFunction) {
+    const identities = await storage.list();
+    const users = new Users(config, storage);
+    // authenticate identities
+    for (const id of identities) {
+      await users.authenticate(id).catch((e) => onError && onError(e, id));
+    }
+    return users;
+  }
+
+  async createIdentity(): Promise<Identity> {
+    const id = PrivateKey.fromRandom();
+    if (this.storage) {
+      await this.storage.add(id);
+    }
+    return id;
+  }
+
+  list(): SpaceUser[] {
+    return _.values(this.users);
+  }
+
+  async remove(publicKey: string): Promise<void> {
+    if (this.storage) {
+      await this.storage.remove(publicKey);
+    }
+
+    this.users = _.omit(this.users, [publicKey]);
   }
 
   async authenticate(identity: Identity): Promise<SpaceUser> {
@@ -71,7 +103,7 @@ export class Users {
         /** Send a new token request */
         socket.send(
           JSON.stringify({
-            data: { pubkey: publicKey },
+            data: { pubkey: publicKey, version: 2 },
             action: 'token',
           }),
         );
@@ -89,7 +121,7 @@ export class Users {
             /** The server issued a new challenge */
             case 'challenge': {
               /** Convert the challenge json to a Buffer */
-              const buf = Buffer.from(data.value);
+              const buf = Buffer.from(data.value.data);
               /** Use local identity to sign the challenge */
               const signed = await identity.sign(buf);
 
@@ -106,10 +138,7 @@ export class Users {
             case 'token': {
               socket.close();
               const spaceUser = { ...data.value, identity };
-
-              // should we register user like users.push(user)
-              // so we can provide feature for listing signed users / accounts?
-              // or we can leave that for app-specific code
+              this.users[identity.public.toString()] = spaceUser;
               resolve(spaceUser);
               break;
             }
