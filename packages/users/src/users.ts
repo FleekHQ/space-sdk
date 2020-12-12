@@ -1,5 +1,6 @@
 import { Identity, PrivateKey } from '@textile/crypto';
 import _ from 'lodash';
+
 interface TextileStorageAuth {
   key: string;
   token: string;
@@ -7,7 +8,7 @@ interface TextileStorageAuth {
   msg: string;
 }
 
-interface SpaceUser {
+export interface SpaceUser {
   identity: Identity;
   token: string;
   storageAuth?: TextileStorageAuth;
@@ -63,7 +64,9 @@ interface UsersConfig {
  */
 export class Users {
   private config: UsersConfig;
+
   private storage?: IdentityStorage;
+
   private users: Record<string, SpaceUser>;
 
   constructor(config: UsersConfig, storage?: IdentityStorage) {

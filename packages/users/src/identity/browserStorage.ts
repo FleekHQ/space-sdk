@@ -14,9 +14,11 @@ export class BrowserStorage {
 
   async list(): Promise<Identity[]> {
     const ids: Identity[] = [];
-    await this.db.iterate(function (value: string) {
+    await this.db.iterate((value: string) => {
       try {
+        // eslint-disable-next-line no-unused-expressions
         value && ids.push(PrivateKey.fromString(value));
+        // eslint-disable-next-line no-empty
       } catch (e) {}
     });
     return ids;
