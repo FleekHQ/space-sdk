@@ -21,33 +21,32 @@
 // ];
 
 const siteConfig = {
-  title: 'Hub JS Package', // Title for your website.
-  tagline: 'A client for communicating with Textile Hub.',
-  url: 'https://textileio.github.io', // Your website URL
-  baseUrl: '/js-textile/', // Base URL for your project */
+  title: 'Space SDK Package', // Title for your website.
+  tagline: 'A client performin Space Storage actions in the browser.',
+  url: 'https://fleekhq.github.io', // Your website URL
+  baseUrl: '/space-sdk/', // Base URL for your project */
   // For github.io type URLs, you would set the url and baseUrl like:
   //   url: 'https://facebook.github.io',
   //   baseUrl: '/test-site/',
 
   // Used for publishing and more
-  projectName: '@textile/hub',
-  organizationName: 'textile',
+  projectName: '@space/sdk',
+  organizationName: 'FleekHQ',
   // For top-level user or org sites, the organization is still the same.
   // e.g., for the https://JoelMarcey.github.io site, it would be set like...
   //   organizationName: 'JoelMarcey'
 
   // For no header links in the top nav bar -> headerLinks: [],
   headerLinks: [
-    { doc: 'hub.users', label: 'Users' },
-    { doc: 'hub.buckets', label: 'Buckets' },
-    { doc: 'hub.client', label: 'Threads' },
-    { href: 'https://docs.textile.io', label: 'Textile Docs' },
+    { doc: 'sdk.users', label: 'Users' },
+    { doc: 'sdk.userstorage', label: 'Storage' },
+    { href: 'https://docs.fleek.co/space-daemon/overview/', label: 'Space Docs' },
   ],
 
   /* path to images for header/footer */
-  headerIcon: 'img/hex.svg',
-  footerIcon: 'img/hex.svg',
-  favicon: 'img/hex.svg',
+  headerIcon: 'img/space.svg',
+  footerIcon: 'img/space.svg',
+  favicon: 'img/space.svg',
 
   /* Colors for website */
   colors: {
@@ -65,7 +64,7 @@ const siteConfig = {
   ],
 
   // This copyright info is used in /core/Footer.js and blog RSS/Atom feeds.
-  copyright: `Copyright © ${new Date().getFullYear()} Textile`,
+  copyright: `Copyright © ${new Date().getFullYear()} FleekHQ`,
   usePrism: ['jsx'],
   highlight: {
     theme: 'atom-one-dark',
@@ -76,9 +75,9 @@ const siteConfig = {
   ],
   facebookComments: false,
   twitter: 'true',
-  twitterUsername: 'textileio',
-  ogImage: 'img/hex.svg',
-  twitterImage: 'img/hex.svg',
+  twitterUsername: 'spacestorage',
+  ogImage: 'img/space.svg',
+  twitterImage: 'img/space.svg',
   onPageNav: 'separate',
   cleanUrl: true,
   scrollToTop: false,
@@ -88,6 +87,6 @@ const siteConfig = {
   enableUpdateTime: true,
   enableUpdateBy: true,
   docsSideNavCollapsible: false,
-}
+};
 
-module.exports = siteConfig
+module.exports = siteConfig;

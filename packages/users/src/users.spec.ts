@@ -7,6 +7,7 @@ let storageDriver: IdentityStorage;
 
 // nodejs env
 if (process.env.TS_NODE_FILES) {
+  // eslint-disable-next-line global-require
   global.WebSocket = require('ws');
   storageDriver = new FileStorage(`/tmp/${Date.now()}.users.spec.ts`);
 } else {

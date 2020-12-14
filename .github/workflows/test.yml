@@ -11,45 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip-ci')"
 
-    services:
-      ipfs:
-        image: ipfs/go-ipfs:v0.7.0
-        ports:
-          - '4001:4001'
-          - '127.0.0.1:5001:5001'
-          - '8080:8080'
-      mongo:
-        image: mongo:latest
-        ports:
-          - '127.0.0.1:27017:27017'
-      billing:
-        image: textile/textile:billing
-        env:
-          BILLING_ADDR_API: /ip4/0.0.0.0/tcp/10006
-          BILLING_ADDR_MONGO_URI: mongodb://mongo:27017
-          BILLING_ADDR_GATEWAY_HOST: /ip4/0.0.0.0/tcp/8010
-          BILLING_STRIPE_API_KEY: ${{ secrets.STRIPE_API_KEY }}
-        ports:
-          - "127.0.0.1:10006:10006"
-          - "127.0.0.1:8010:8010"
-      textile:
-        image: textile/textile:latest
-        env:
-          HUB_ADDR_API: /ip4/0.0.0.0/tcp/3006
-          HUB_ADDR_API_PROXY: /ip4/0.0.0.0/tcp/3007
-          HUB_ADDR_THREADS_HOST: /ip4/0.0.0.0/tcp/4006
-          HUB_ADDR_GATEWAY_HOST: /ip4/0.0.0.0/tcp/8006
-          HUB_ADDR_MONGO_URI: mongodb://mongo:27017
-          HUB_ADDR_IPFS_API: /dns4/ipfs/tcp/5001
-          HUB_ADDR_BILLING_API: billing:10006
-          HUB_EMAIL_SESSION_SECRET: hubsession
-          HUB_LOG_DEBUG: true
-        ports:
-          - '127.0.0.1:3006:3006'
-          - '3007:3007'
-          - '4006:4006'
-          - '127.0.0.1:8006:8006'
-
     steps:
       - name: Checkout
         uses: actions/checkout@v1
@@ -63,7 +24,7 @@ jobs:
         run: npm install
 
       - name: Boostrap
-        run: npm run bootstrap -- --hoist
+        run: npm run bootstrap
 
       - name: Build All
         run: |
@@ -77,11 +38,11 @@ jobs:
         run: |
           npm run test:browser
 
+      - name: Integrations tests
+        run: npm run test:integration
+
       - name: Test Examples
         run: |
           npm run docs
-          npm run test:docs
+#          npm run test:docs # disabled for now because typescript-docs-verifier not working well with docs
 
-      - name: Dump docker logs on failure
-        if: failure()
-        uses: jwalton/gh-docker-logs@v1

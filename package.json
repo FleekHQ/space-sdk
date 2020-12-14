@@ -1,10 +1,10 @@
 {
-  "name": "@space/app",
+  "name": "@space/sdk",
   "version": "0.0.0",
   "description": "Space SDK",
-  "main": "packages/app",
+  "main": "packages/sdk",
   "scripts": {
-    "docs": "rm -rf docs markdown temp && node scripts/make-docs.js && mkdir -p docs && cp -r markdown/* docs/ && ./scripts/convert-signatures && npm run test:docs",
+    "docs": "rm -rf docs markdown temp && node scripts/make-docs.js && mkdir -p docs && cp -r markdown/* docs/",
     "serve:docs": "npm run docs && cd website && npm run start",
     "build:docs": "npm run docs && cd website && npm install && npm run build",
     "bootstrap": "lerna bootstrap",
@@ -14,10 +14,11 @@
     "build": "lerna run build",
     "lint": "eslint --fix --ext .js,.ts packages/*/src/**/*",
     "outdated": "lerna exec -- npx ncu",
-    "test": "npm run test:node && npm run test:browser && npm run test:docs",
+    "test": "npm run test:node && npm run test:browser",
     "test:docs": "typescript-docs-verifier --input-files=`find docs -type f -name '**.md'`",
     "test:node": "TS_NODE_FILES=true mocha --exit",
     "test:browser": "lerna run --stream test:browser",
+    "test:integration": "polendina --cleanup --timeout 100000 integration_tests/**/*.spec.ts --webpack-config webpack.test.js",
     "space:check": "lerna exec -- npx ncu '/^@space/.*$/'",
     "space:upgrade": "lerna exec -- npx ncu -u '/^@space/.*$/'"
   },
@@ -90,5 +91,9 @@
     "typedoc": "0.17.7",
     "typescript": "^3.7.2",
     "typescript-docs-verifier": "^1.1.2"
-  }
+  },
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
 }

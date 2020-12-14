@@ -42,16 +42,6 @@ jobs:
           github_token: ${{ secrets.github_token }}
           locale: 'US'
 
-  # validate:
-  #   name: Validate
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v1
-
-  #     - name: Run Commitsar
-  #       uses: docker://outillage/commitsar
-
   packages:
     name: Versions
     runs-on: ubuntu-latest
@@ -76,6 +66,6 @@ jobs:
       - name: Install
         run: npm install
       - name: Display
-        run: npm run textile:check
+        run: npm run space:check
       - name: Check
-        run: if [ $(lerna exec -- npx ncu '/^@textile/.*$/' | grep '@textile/' | wc -l) == 0 ]; then echo 'ok'; else exit 1; fi;
+        run: if [ $(lerna exec -- npx ncu '/^@space/.*$/' | grep '@textile/' | wc -l) == 0 ]; then echo 'ok'; else exit 1; fi;

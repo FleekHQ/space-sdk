@@ -34,6 +34,7 @@
     "no-useless-constructor": "off",
     "max-len": ["warn", { "code":  120 } ],
     "mocha/no-mocha-arrows": "off",
+    "import/no-unresolved": "off",
     "import/extensions": [
       "error",
       "ignorePackages",
@@ -52,7 +53,6 @@
         "mocha": true
       },
       "rules": {
-        "import/no-unresolved": "off",
         "import/no-extraneous-dependencies": "off"
       }
     }

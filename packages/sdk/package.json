@@ -1,0 +1,39 @@
+{
+  "name": "@space/sdk",
+  "version": "0.0.1",
+  "description": "Space SDK Library",
+  "main": "dist/index",
+  "types": "dist/index",
+  "files": [
+    "dist/**/!(*.spec).js?(.map)",
+    "dist/**/!(*.spec).d.ts"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "prepublishOnly": "npm run build",
+    "prepare": "npm run build",
+    "prebuild": "npm run clean",
+    "build": "tsc -b tsconfig.json",
+    "clean": "rimraf ./dist ./tsconfig.tsbuildinfo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FleekHQ/space-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/FleekHQ/space-sdk/issues"
+  },
+  "author": "FleekHQ",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^14.14.11",
+    "rimraf": "^3.0.2",
+    "typescript": "^3.9.3"
+  },
+  "dependencies": {
+    "@space/users": "^0.0.1",
+    "@space/storage": "^0.0.1"
+  }
+}

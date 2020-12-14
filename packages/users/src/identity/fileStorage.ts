@@ -5,6 +5,7 @@ import _ from 'lodash';
 // experimental, do not use yet
 export class FileStorage {
   private filename: string;
+
   private identities: Record<string, string>;
 
   constructor(filename: string) {
@@ -17,6 +18,7 @@ export class FileStorage {
   private async write(): Promise<void> {
     return new Promise((resolve, reject) => {
       fs.writeFile(this.filename, JSON.stringify(this.identities), (err) => {
+        // eslint-disable-next-line no-unused-expressions
         err ? reject(err) : resolve();
       });
     });
