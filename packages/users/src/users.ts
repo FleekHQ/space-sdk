@@ -14,7 +14,7 @@ export interface SpaceUser {
   storageAuth?: TextileStorageAuth;
 }
 
-interface IdentityStorage {
+export interface IdentityStorage {
   list: () => Promise<Identity[]>;
   add: (identity: Identity) => Promise<void>;
   remove: (key: string) => Promise<void>;
