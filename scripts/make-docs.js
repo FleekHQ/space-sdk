@@ -10,18 +10,17 @@ const { exec } = require('child_process')
 async function main() {
   await new Promise((resolve, reject) =>
     exec(
-      `npx api-extractor run --local && npx api-documenter markdown -i temp && ./scripts/change-client-imports-to-hub && cp packages/hub/README.md markdown/index.md`,
-      (err, stdout, stderr) => {
-        console.log(stdout)
-        console.error(stderr)
-        if (err) {
-          reject(err)
-        } else {
-          resolve()
-        }
-      },
-    ),
-  )
+    'npx api-extractor run --local && npx api-documenter markdown -i temp && cp README.md markdown/index.md',
+    (err, stdout, stderr) => {
+      console.log(stdout)
+      console.error(stderr)
+      if (err) {
+        reject(err)
+      } else {
+        resolve()
+      }
+    },
+  ));
 
   const dir = './markdown'
   const docFiles = await readdir(dir)
@@ -75,7 +74,7 @@ async function main() {
       if (title === 'hub package') {
         title = 'Package Overview'
       }
-      const header = ['---', `id: ${id}`, `title: ${title}`, `hide_title: true`, '---']
+      const header = ['---', `id: ${id}`, `title: ${title}`, 'hide_title: true', '---']
 
       await writeFile(docPath, header.concat(output).join('\n'))
     } catch (err) {

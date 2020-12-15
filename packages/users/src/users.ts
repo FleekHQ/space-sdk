@@ -1,5 +1,6 @@
 import { Identity, PrivateKey } from '@textile/crypto';
 import _ from 'lodash';
+import 'websocket-polyfill';
 
 interface TextileStorageAuth {
   key: string;
@@ -20,7 +21,7 @@ export interface IdentityStorage {
   remove: (key: string) => Promise<void>;
 }
 
-interface UsersConfig {
+export interface UsersConfig {
   endpoint: string;
 }
 

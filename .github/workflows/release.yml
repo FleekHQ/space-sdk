@@ -34,7 +34,7 @@ jobs:
       run: npm install
 
     - name: Boostrap
-      run: npm run bootstrap -- --hoist
+      run: npm run bootstrap
 
     - name: Build
       run: npm run build
@@ -45,9 +45,9 @@ jobs:
     - name: Copy
       run: |
           mkdir pages
-          cp -r website/build/\@textile/hub/* pages/
+          cp -r website/build/\@space/sdk/* pages/
           touch pages/.nojekyll
-    
+
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v2
       env:
@@ -57,7 +57,7 @@ jobs:
 
     - name: Zip files
       run: zip ${{ github.workflow }}.zip docs/*.md
-    
+
     - name: Upload docs archive
       uses: softprops/action-gh-release@v1
       with:

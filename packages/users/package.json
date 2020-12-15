@@ -31,12 +31,14 @@
   "devDependencies": {
     "@types/node": "^14.14.11",
     "rimraf": "^3.0.2",
-    "typescript": "^3.9.3"
+    "typescript": "^3.9.3",
+    "websocket-polyfill": "^0.0.3"
   },
   "dependencies": {
     "@textile/crypto": "^2.0.0",
     "@types/lodash": "^4.14.165",
     "localforage": "^1.9.0",
-    "lodash": "^4.17.20"
+    "lodash": "^4.17.20",
+    "websocket-polyfill": "^0.0.3"
   }
 }
