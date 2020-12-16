@@ -1,0 +1,163 @@
+# Untracked docs changes
+docs
+compiled-docs
+tsdoc-metadata.json
+
+# System Files
+**/.DS_Store
+
+# Temp Files
+**/.tmp
+**/*.log
+**/*.cpuprofile
+**/*.heapsnapshot
+**/*.threads*
+temp
+
+# Editor Files
+.c9/
+.vscode/
+.idea/
+launch.json
+
+# Private Files
+.env
+.env.*
+.cake_task_cache
+
+# Build Caches
+build/
+bower_components/
+node_modules/
+.next/
+.pnp/
+.pnp.js
+
+# Build Outputs
+markdown
+**/out.*
+**/*.out
+**/*.out.*
+**/out/
+**/output/
+**/dist/
+edition*/
+coffeejs/
+coffee/
+es5/
+es2015/
+esnext/
+tsconfig.tsbuildinfo
+
+# Caches
+.glide/
+.gx/
+__pycache__
+
+# Compiled Object files, Static and Dynamic libs (Shared Objects)
+**/*.o
+**/*.a
+**/*.so
+**/*.pyc
+**/*.dylib
+**/*.dll
+**/*.exe
+**/*.exe~
+**/*.syso
+**/*.test
+**/*.prof
+.ipfs
+.textile*
+
+# Architecture specific extensions/prefixes
+**/*.[568vq]
+
+# Local Development Files
+.ackrc
+.tags*
+*.sw?
+
+# Mobile
+**/*.aar
+**/*.jar
+**/*.framework
+
+# Keys
+**/*.pem
+
+# Swarm
+docker-compose.swarm.yml
+
+# Other
+**/tmp.db
+_obj
+_test
+*.cgo1.go
+*.cgo2.c
+_cgo_defun.c
+_cgo_gotypes.go
+_cgo_export.*
+_testmain.go
+local.properties
+*.keystore
+*.iml
+.nyc_output
+**/stats.json
+
+# Buck
+buck-out/
+.buckd/
+*.keystore
+
+# Gradle
+.gradle
+
+# Android
+*.jks
+android/**/*.settings
+android/**/*.project
+android/**/*.classpath
+
+# Xcode
+ios/Podfile.lock
+ios/Pods/
+DerivedData
+xcuserdata
+*.xccheckout
+*.moved-aside
+*.xcuserstate
+*.xcworkspace
+*.hmap
+*.ipa
+
+# Xcode Advanced
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+
+# Fastlane
+**/fastlane/report.xml
+**/fastlane/Preview.html
+**/fastlane/screenshots
+**/fastlane/test_output
+
+# Bundle Artifact
+*.jsbundle
+sourcemap.js
+
+# Jest
+.jest/
+coverage/
+junit/
+
+# Related to generated docs
+website/package-lock.json
+website/i18n/en.json
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
