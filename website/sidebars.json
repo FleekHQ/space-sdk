@@ -1,0 +1,267 @@
+{
+  "docs": {
+    "Getting Started": [
+      "index",
+      "hub"
+    ],
+    "Users API": [
+      "hub.users"
+    ],
+    "Buckets": [
+      "hub.buckets"
+    ],
+    "Threads": [
+      "hub.client"
+    ],
+    "Filecoin": [
+      "hub.pow"
+    ],
+    "Common Methods & Classes": [
+      "hub.threadid",
+      "hub.createuserauth",
+      "hub.createapisig"
+    ]
+  },
+  "thread-id-docs": {
+    "ThreadID Methods": [
+      "hub.threadid.fromrandom",
+      "hub.threadid.fromstring",
+      "hub.threadid.frombytes",
+      "hub.threadid.tostring",
+      "hub.threadid.tobytes",
+      "hub.threadid.equals",
+      "hub.threadid.isdefined",
+      "hub.threadid.variant",
+      "hub.threadid.version",
+      "hub.threadid.getencoding"
+    ]
+  },
+  "users-docs": {
+    "Users API": [
+      "hub.users.getusage",
+      "hub.users.setupmailbox",
+      "hub.users.getmailboxid",
+      "hub.users.sendmessage",
+      "hub.users.watchinbox",
+      "hub.users.watchsentbox",
+      "hub.users.listsentboxmessages",
+      "hub.users.deletesentboxmessage",
+      "hub.users.listinboxmessages",
+      "hub.users.readinboxmessage",
+      "hub.users.deleteinboxmessage",
+      "hub.users.listthreads",
+      "hub.users.getthread",
+      "hub.users.copyauth",
+      "hub.users.withuserauth",
+      "hub.users.withkeyinfo",
+      "hub.users.gettoken",
+      "hub.users.gettokenchallenge",
+      "hub.users.settoken",
+      "hub.users.withthread"
+    ],
+    "Types": [
+      "hub.getthreadresponse",
+      "hub.inboxlistoptions",
+      "hub.mailboxevent",
+      "hub.mailboxeventtype",
+      "hub.pushpathresult",
+      "hub.sentboxlistoptions",
+      "hub.usermessage",
+      "hub.usageoptions",
+      "hub.getusageresponse"
+    ],
+    "Identity interfaces": [
+      "hub.identity",
+      "hub.identity.public",
+      "hub.identity.sign",
+      "hub.private",
+      "hub.public",
+      "hub.public.bytes",
+      "hub.public.tostring",
+      "hub.public.verify"
+    ],
+    "Private Key Class": [
+      "hub.privatekey",
+      "hub.privatekey.bytes",
+      "hub.privatekey.cansign",
+      "hub.privatekey.decrypt",
+      "hub.privatekey.fromrandom",
+      "hub.privatekey.fromstring",
+      "hub.privatekey.privkey",
+      "hub.privatekey.pubkey",
+      "hub.privatekey.public",
+      "hub.privatekey.sign",
+      "hub.privatekey.seed",
+      "hub.privatekey.tostring",
+      "hub.privatekey.type",
+      "hub.privatekey.fromrawed25519seed"
+    ],
+    "Public Key Class": [
+      "hub.publickey",
+      "hub.publickey.fromrandom",
+      "hub.publickey.fromstring",
+      "hub.publickey.tostring",
+      "hub.publickey.verify",
+      "hub.publickey.encrypt",
+      "hub.publickey.bytes",
+      "hub.publickey.type",
+      "hub.publickey.pubkey"
+    ]
+  },
+  "bucket-docs": {
+    "Buckets": [
+      "hub.buckets.copyauth",
+      "hub.buckets.withuserauth",
+      "hub.buckets.withkeyinfo",
+      "hub.buckets.gettoken",
+      "hub.buckets.gettokenchallenge",
+      "hub.buckets.settoken",
+      "hub.buckets.withthread",
+      "hub.buckets.getorcreate",
+      "hub.buckets.create",
+      "hub.buckets.existing",
+      "hub.buckets.root",
+      "hub.buckets.links",
+      "hub.buckets.list",
+      "hub.buckets.listpath",
+      "hub.buckets.listpathflat",
+      "hub.buckets.listipfspath",
+      "hub.buckets.open",
+      "hub.buckets.pushpath",
+      "hub.buckets.pushoptions",
+      "hub.buckets.pushpathaccessroles",
+      "hub.buckets.pullpath",
+      "hub.buckets.pullpathaccessroles",
+      "hub.buckets.pullipfspath",
+      "hub.buckets.remove",
+      "hub.buckets.removepath",
+      "hub.buckets.setpath"
+    ],
+    "Experimental": [
+      "hub.archive",
+      "hub.archiveinfo",
+      "hub.buckets.archiveinfo",
+      "hub.archivedealinfo",
+      "hub.buckets.archivestatus",
+      "hub.archivestatus",
+      "hub.statuscode"
+    ],
+    "Types": [
+      "hub.getorcreateoptions",
+      "hub.getorcreateresponse",
+      "hub.createoptions",
+      "hub.createresponse",
+      "hub.links",
+      "hub.path",
+      "hub.pathaccessrole",
+      "hub.pathitem",
+      "hub.root",
+      "hub.buckmetadata"
+    ]
+  },
+  "client-docs": {
+    "Client": [
+      "hub.client.withuserauth",
+      "hub.client.withkeyinfo",
+      "hub.client.gettoken",
+      "hub.client.gettokenchallenge",
+      "hub.client.settoken",
+      "hub.client.newdb",
+      "hub.client.open",
+      "hub.client.deletedb",
+      "hub.client.getdbinfo",
+      "hub.client.joinfrominfo",
+      "hub.client.newdbfromaddr",
+      "hub.client.randomidentity",
+      "hub.client.listen",
+      "hub.client.listdbs",
+      "hub.client.newcollection",
+      "hub.client.newcollectionfromobject",
+      "hub.client.deletecollection",
+      "hub.client.updatecollection",
+      "hub.client.getcollectionindexes",
+      "hub.client.getcollectioninfo",
+      "hub.client.listcollections",
+      "hub.client.create",
+      "hub.client.save",
+      "hub.client.delete",
+      "hub.client.find",
+      "hub.client.findbyid",
+      "hub.client.has",
+      "hub.client.readtransaction",
+      "hub.client.writetransaction"
+    ],
+    "WriteTransaction": [
+      "hub.writetransaction",
+      "hub.writetransaction.create",
+      "hub.writetransaction.delete",
+      "hub.writetransaction.find",
+      "hub.writetransaction.findbyid",
+      "hub.writetransaction.has",
+      "hub.writetransaction.save",
+      "hub.writetransaction.start",
+      "hub.writetransaction.discard"
+    ],
+    "ReadTransaction": [
+      "hub.readtransaction",
+      "hub.readtransaction.find",
+      "hub.readtransaction.findbyid",
+      "hub.readtransaction.has",
+      "hub.readtransaction.start"
+    ],
+    "Types": [
+      "hub.action",
+      "hub.dbinfo",
+      "hub.filter",
+      "hub.query",
+      "hub.update",
+      "hub.where",
+      "hub.instancelist",
+      "hub.instancelist.instanceslist"
+    ]
+  },
+  "filcoin-docs": {
+    "Powergate (beta)": [
+      "hub.pow.addrs",
+      "hub.pow.balance",
+      "hub.pow.connectedness",
+      "hub.pow.copyauth",
+      "hub.pow.findpeer",
+      "hub.pow.gettoken",
+      "hub.pow.gettokenchallenge",
+      "hub.pow.settoken",
+      "hub.pow.health",
+      "hub.pow.info",
+      "hub.pow.listretrievaldealrecords",
+      "hub.pow.liststoragedealrecords",
+      "hub.pow.newaddr",
+      "hub.pow.peers",
+      "hub.pow.show",
+      "hub.pow.showall",
+      "hub.pow.withkeyinfo",
+      "hub.pow.withthread",
+      "hub.pow.withuserauth"
+    ],
+    "Types": []
+  },
+  "Types": {
+    "Common Types": [
+      "hub.userauth",
+      "hub.copyauthoptions",
+      "hub.withkeyinfooptions",
+      "hub.withuserauthoptions",
+      "hub.apisig",
+      "hub.keyinfo",
+      "hub.status",
+      "hub.variant"
+    ],
+    "Type Properties": [
+      "hub.copyauthoptions.debug",
+      "hub.withkeyinfooptions.debug",
+      "hub.withkeyinfooptions.date",
+      "hub.withkeyinfooptions.host",
+      "hub.withuserauthoptions.debug",
+      "hub.withuserauthoptions.host"
+    ]
+  }
+}

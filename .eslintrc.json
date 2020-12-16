@@ -1,0 +1,75 @@
+{
+  "env": {
+    "browser": true,
+    "es6": true,
+    "commonjs": true,
+    "node": true
+  },
+  "extends": [
+    "plugin:prettier/recommended",
+    "airbnb/base",
+    "plugin:@typescript-eslint/recommended",
+    "prettier/@typescript-eslint",
+    "plugin:mocha/recommended"
+  ],
+  "plugins": ["@typescript-eslint", "prettier", "mocha"],
+  "globals": {
+    "Atomics": "readonly",
+    "SharedArrayBuffer": "readonly"
+  },
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": 2018,
+    "sourceType": "module"
+  },
+  "rules": {
+    "prettier/prettier": "error",
+    "@typescript-eslint/explicit-function-return-type": 0,
+    "@typescript-eslint/no-explicit-any": 0,
+    "@typescript-eslint/explicit-member-accessibility": 0,
+    "@typescript-eslint/no-unused-vars": [0, { "argsIgnorePattern": "^_" }],
+    "no-undefined": 0,
+    "default-case": 0,
+    "import/prefer-default-export": "off",
+    "no-useless-constructor": "off",
+    "max-len": ["warn", { "code":  120 } ],
+    "mocha/no-mocha-arrows": "off",
+    "import/no-unresolved": "off",
+    "import/extensions": [
+      "error",
+      "ignorePackages",
+      {
+        "js": "never",
+        "ts": "never"
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/*.spec.ts"
+      ],
+      "env": {
+        "mocha": true
+      },
+      "rules": {
+        "import/no-extraneous-dependencies": "off"
+      }
+    }
+  ],
+  "settings": {
+    "indent": ["error",
+      2],
+    "import/extensions": [".js", ".ts"],
+    "import/parsers": {
+      "@typescript-eslint/parser": [
+        ".ts", ".tsx"
+      ]
+    },
+    "import/resolver": {
+      "node": {
+        "extensions": ["js", ".ts"]
+      }
+    }
+  }
+}

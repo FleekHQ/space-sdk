@@ -1,19 +1,39 @@
 {
   "compilerOptions": {
-    "target": "es2017",
+    "target": "es6", // 'es3' (default), 'es5', 'es2015', 'es2016', 'es2017', 'es2018', 'es2019' or 'esnext'
+    "module": "commonjs", // 'none', 'commonjs', 'amd', 'system', 'umd', 'es2015', or 'esnext'
     "lib": [
-      "ES2017",
-      "DOM"
+      "es6",
+      "dom",
+      "esnext"
     ],
-    "module": "commonjs",
-    "declaration": true,
-    "outDir": "./dist",
-    "strict": true,
-    "esModuleInterop": true,
     "skipLibCheck": true,
-    "inlineSourceMap": true,
-    "inlineSources": true
+    "composite": true,
+    "moduleResolution": "node",
+    "allowJs": false,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "importHelpers": false,
+    "downlevelIteration": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "rootDir": ".",
+    "baseUrl": "src",
+    "esModuleInterop": true,
+    "inlineSourceMap": false,
+    "inlineSources": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "types": [
+      "node",
+      "mocha"
+    ]
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "tests/*"]
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

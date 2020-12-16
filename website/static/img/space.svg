@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="123.954" height="104.742" viewBox="0 0 123.954 104.742">
+    <defs>
+        <linearGradient id="prefix__linear-gradient" x1=".426" x2=".693" y1=".182" y2=".83" gradientUnits="objectBoundingBox">
+            <stop offset="0" stop-color="#ed55eb"/>
+            <stop offset=".374" stop-color="#17e0d8"/>
+            <stop offset=".601" stop-color="#00ffc2"/>
+            <stop offset="1" stop-color="#ffec06"/>
+        </linearGradient>
+    </defs>
+    <g id="prefix__Page-1" transform="translate(.5 .5)">
+        <g id="prefix__Group-30-Copy-2">
+            <g id="prefix__Group-46-Copy-9" fill-rule="evenodd">
+                <path id="prefix__Combined-Shape" fill="#171717" stroke="#fff" d="M61.477 0A52.3 52.3 0 0 1 103.2 20.643h.946c10.438 1.979 18.8 12.6 18.8 24.82 0 9.273-5.157 16.954-11.065 20.117a52.376 52.376 0 0 1-100.826 0C5.157 62.409 0 54.728 0 45.455c0-12.217 8.365-22.841 18.8-24.82q.481 0 .949.008A52.3 52.3 0 0 1 61.477 0z"/>
+                <path id="prefix__Rectangle" fill="url(#prefix__linear-gradient)" d="M31.212 14.25a42.588 42.588 0 0 1 38.423 0 35 35 0 0 1 19.211 31.237v9.392a24.678 24.678 0 0 1-19.211 24.064 86.731 86.731 0 0 1-38.423 0A24.678 24.678 0 0 1 12 54.878v-9.391A35 35 0 0 1 31.212 14.25z" transform="translate(11.054 8.908)"/>
+            </g>
+        </g>
+    </g>
+</svg>
