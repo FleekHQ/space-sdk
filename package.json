@@ -23,7 +23,7 @@
     "space:upgrade": "lerna exec -- npx ncu -u '/^@space/.*$/'"
   },
   "resolutions": {
-    "npm-packlist": "1.1.12"
+    "npm-packlist": "2.1.4"
   },
   "nyc": {
     "extension": [
@@ -62,11 +62,13 @@
     "@microsoft/api-extractor": "^7.9.13",
     "@types/browser-or-node": "^1.2.0",
     "@types/chai": "^4.2.5",
+    "@types/chai-subset": "^1.3.3",
     "@types/mocha": "^7.0.1",
     "@typescript-eslint/eslint-plugin": "^2.9.0",
     "@typescript-eslint/parser": "^2.9.0",
     "browser-or-node": "^1.3.0",
     "chai": "^4.2.0",
+    "chai-subset": "^1.6.0",
     "eslint": "^6.7.1",
     "eslint-config-airbnb": "^18.0.1",
     "eslint-config-prettier": "^6.7.0",
