@@ -87,7 +87,7 @@ describe('UserStorage', () => {
         size: 10,
       };
       const { storage, mockBuckets } = initStubbedStorage();
-      when(mockBuckets.listPath('myBucketKey', listDirectoryRequest.path, 1)).thenResolve({
+      when(mockBuckets.listPath('myBucketKey', `/${listDirectoryRequest.path}`, 1)).thenResolve({
         item: {
           ...mock<PathItem>(),
           items: [
