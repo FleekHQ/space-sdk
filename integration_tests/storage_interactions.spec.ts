@@ -21,5 +21,11 @@ describe('Users storing data', () => {
         isDir: true,
       },
     ]);
+
+    // validate empty .keep file is at folders root
+    const fileResponse = await storage.openFile({ bucket: 'personal', path: '/topFolder/.keep' });
+    const keepFilesContent = await fileResponse.consumeStream();
+    // eslint-disable-next-line no-unused-expressions
+    expect(keepFilesContent).to.be.empty;
   }).timeout(TestsDefaultTimeout);
 });
