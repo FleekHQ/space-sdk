@@ -1,5 +1,6 @@
 import { expect } from 'chai';
-import { consumeStream, makeAsyncIterableString } from './streamUtils';
+import { makeAsyncIterableString } from '../testHelpers';
+import { consumeStream } from './streamUtils';
 
 describe('streamUtils', () => {
   describe('consumeStream', () => {

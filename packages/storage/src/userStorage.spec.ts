@@ -5,8 +5,8 @@ import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
 import { anyString, deepEqual, instance, mock, verify, when } from 'ts-mockito';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
+import { makeAsyncIterableString } from './testHelpers';
 import { UserStorage } from './userStorage';
-import { makeAsyncIterableString } from './utils/streamUtils';
 
 use(chaiAsPromised.default);
 use(chaiSubset.default);
