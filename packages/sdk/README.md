@@ -118,7 +118,28 @@ uploadResponse.once('done', (data: AddItemsEventData) => {
 This includes operations to share your storage items with existing user (identites)  
 
 ```typescript
-// WIP - Coming soon!
+import { UserStorage } from '@space/sdk';
+
+const storage = new UserStorage(user);
+
+// you can share privately with existing users via their public key:
+await storage.shareViaPublicKey({
+    publicKeys: [{
+      id: 'user@email.com', // or any identifier for the user
+      pk: 'user-pk-hex-or-multibase', // optional, omit if user doesn't exist yet, it would generate temp access key
+    }],
+    paths: [{
+        bucket: 'personal',
+        path: '/file/path/here'
+    }],
+});
+
+// or you could share the file publicly by generating a link. Generated link references
+await spaceStorage.setFilePublicAccess({
+  bucket: 'personal',
+  path: '/file.txt',
+  allowAccess: true, // <- set to false to revoke public access
+});
 ```
 
 ## Migrating from Space Daemon

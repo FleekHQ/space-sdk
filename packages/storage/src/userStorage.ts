@@ -20,6 +20,7 @@ import {
   CreateFolderRequest,
   DirectoryEntry,
   FileMember,
+  FullPath,
   GetFilesSharedByMeResponse,
   GetFilesSharedWithMeResponse,
   GetRecentlySharedWithResponse,
@@ -30,9 +31,15 @@ import {
   OpenFileResponse,
   OpenUuidFileRequest,
   OpenUuidFileResponse,
+  ShareKeyType,
+  SharePublicKeyInput,
+  SharePublicKeyOutput,
+  ShareViaPublicKeyRequest,
+  ShareViaPublicKeyResponse,
   SharedWithMeFiles,
   TxlSubscribeResponse,
 } from './types';
+import { validateNonEmptyArray } from './utils/assertUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import {
   filePathFromIpfsPath,
@@ -43,7 +50,7 @@ import {
 } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { getStubFileEntry } from './utils/stubUtils';
-import { getDeterministicThreadID } from './utils/threadsUtils';
+import { getDeterministicThreadID, tryParsePublicKey } from './utils/threadsUtils';
 
 /// TEMP Interfaces would be replaced by types from the @spacehq/mailbox package
 
@@ -51,13 +58,6 @@ enum InvitationStatus {
   PENDING = 0,
   ACCEPTED,
   REJECTED,
-}
-
-interface FullPath {
-  dbId: string;
-  bucketKey: string;
-  bucket: string;
-  path: string;
 }
 
 interface Invitation {
@@ -668,7 +668,7 @@ export class UserStorage {
         bucketKey: fullPath.bucketKey,
         bucketSlug: fullPath.bucket,
         path: fullPath.path,
-        dbId: fullPath.dbId,
+        dbId: fullPath.dbId || '',
         mimeType: '', // TODO: Update invitation to include mimeType from sender
         sharedBy: invitation.inviterPublicKey,
         uuid: v4(),
@@ -732,9 +732,9 @@ export class UserStorage {
     const client = this.getUserBucketsClient();
     const sharedFileMetadata = await metadataStore.listSharedWithMeFiles();
 
-    const filesPaths = await Promise.all(sharedFileMetadata.map(async (fileMetadata) => {
-      return this.buildSharedFileFromMetadata(client, fileMetadata);
-    }));
+    const filesPaths = await Promise.all(sharedFileMetadata.map(
+      async (fileMetadata) => this.buildSharedFileFromMetadata(client, fileMetadata),
+    ));
 
     return {
       files: filesPaths,
@@ -824,14 +824,97 @@ export class UserStorage {
     return { ...metadata, ...getOrCreateResponse };
   }
 
-  private static async getExistingBucket(
-    client: Buckets,
-    bucketName: string,
-    threadId: string,
-  ): Promise<Root | undefined> {
-    const existingRoots = await client.existing(threadId);
+  /**
+   * shareViaPublicKey shares specified files to users who owns the specified public keys.
+   *
+   * @example
+   * ```typescript
+   * const result = await spaceStorage.shareViaPublicKey({
+   *   publicKeys: [{
+   *      id: 'user@email.com', // or any identifier for the user
+   *      pk: 'user-pk-hex-or-multibase', // optional, omit if user doesn't exist yet, it would generate temp access key
+   *   }],
+   *   paths: [{
+   *      bucket: 'personal',
+   *      path: '/file/path/here'
+   *   }],
+   * });
+   *
+   * ```
+   */
+  public async shareViaPublicKey(request: ShareViaPublicKeyRequest): Promise<ShareViaPublicKeyResponse> {
+    validateNonEmptyArray('publicKeys', request.publicKeys);
+    validateNonEmptyArray('paths', request.paths);
+    const client = this.getUserBucketsClient();
+    const userKeys = await this.normalizeShareKeys(request.publicKeys);
+    const paths = await this.normalizeFullPaths(client, request.paths);
 
-    return existingRoots.find((root) => root.name === bucketName);
+    // eslint-disable-next-line no-restricted-syntax
+    for (const userKey of userKeys) {
+      // eslint-disable-next-line no-restricted-syntax
+      for (const path of paths) {
+        const roles = new Map();
+        roles.set(userKey.pk, PathAccessRole.PATH_ACCESS_ROLE_WRITER);
+        await client.pushPathAccessRoles(path.key, path.fullPath.path, roles);
+      }
+
+      // TODO: Send a mailbox message to new user
+    }
+
+    return {
+      publicKeys: userKeys.map((keys) => {
+        return {
+          id: keys.id,
+          pk: keys.pk,
+          type: keys.type,
+          tempKey: keys.tempKey,
+        };
+      }),
+    };
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  private normalizeShareKeys(publicKeys: SharePublicKeyInput[]): Promise<SharePublicKeyOutput[]> {
+    return Promise.all(publicKeys.map(async ({ id, pk }) => {
+      let type: ShareKeyType;
+      let validPk: string;
+      let tempKey: string | undefined;
+
+      if (pk) {
+        type = ShareKeyType.Existing;
+        validPk = tryParsePublicKey(pk).toString();
+      } else {
+        type = ShareKeyType.Temp;
+        const key = PrivateKey.fromRandom();
+        tempKey = key.toString();
+        validPk = key.public.toString();
+      }
+
+      return {
+        id,
+        pk: validPk,
+        type,
+        tempKey,
+      };
+    }));
+  }
+
+  private async normalizeFullPaths(
+    client: Buckets,
+    fullPaths: FullPath[],
+  ): Promise<{ key: string; fullPath: FullPath; }[]> {
+    const bucketCache = new Map<string, BucketMetadataWithThreads>();
+    return Promise.all(fullPaths.map(async (fullPath) => {
+      const bucket = bucketCache.get(fullPath.bucket) || await this.getOrCreateBucket(client, fullPath.bucket);
+      bucketCache.set(fullPath.bucket, bucket);
+      return {
+        key: bucket.root?.key || '',
+        fullPath: {
+          ...fullPath,
+          path: sanitizePath(fullPath.path),
+        },
+      };
+    }));
   }
 
   private getUserBucketsClient(): Buckets {

@@ -234,3 +234,87 @@ export interface TxlSubscribeResponse {
   once: (type: TxlSubscribeEventType, listener: TxlSubscribeListener) => void;
   off: (type: TxlSubscribeEventType, listener: TxlSubscribeListener) => void;
 }
+
+/**
+ * FullPath represents full path information to a file.
+ * `dbId` is optional and only required for when re-sharing files in another db.
+ */
+export interface FullPath {
+  path: string;
+  bucket: string;
+  bucketKey?: string;
+  dbId?: string;
+}
+
+/**
+ * Data object to represent public key of a user to share information with
+ *
+ */
+export interface SharePublicKeyInput {
+  /**
+   * A unique id provided by the client to identity this user.
+   * For example, it can be the users username or email.
+   *
+   */
+  id: string;
+  /**
+   * pk should be a multibase or hex encoded version of the public key to share.
+   * It is also optional and can be left undefined. When undefined a temp key is generated
+   * for the id.
+   *
+   */
+  pk?: string;
+}
+
+export interface ShareViaPublicKeyRequest {
+  /**
+   * Hex encoded public keys of users to share the specified files with.
+   *
+   */
+  publicKeys: SharePublicKeyInput[];
+  paths: FullPath[];
+}
+
+export enum ShareKeyType {
+  Temp = 'temp',
+  Existing = 'existing',
+}
+
+/**
+ * Data object to represent public key of a user to share information with
+ *
+ */
+export interface SharePublicKeyOutput {
+  /**
+   * This is the same the same unique id provided by the client on the SharePublicKeyInput
+   *
+   */
+  id: string;
+
+  /**
+   * Multibase base32 encoded public key of user.
+   *
+   */
+  pk: string;
+
+  /**
+   * Type is an enum that is ShareKeyType.Temp or ShareKeyType.Existing
+   *
+   * 'temp' is when the input doesn't provide a valid 'pk'
+   * 'existing' is when the input had a `pk` set.
+   *
+   * It's useful for the user of the sdk to determine what type of action to be performed.
+   */
+  type: ShareKeyType;
+
+  /**
+   * Temporary access key for temp key types. To be used by user to access the invite
+   *
+   */
+  tempKey?: string;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-empty-interface
+export interface ShareViaPublicKeyResponse {
+  publicKeys: SharePublicKeyOutput[]
+}

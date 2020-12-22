@@ -181,6 +181,18 @@ export class FileStorage {
     remove(key: string): Promise<void>;
     }
 
+// @public
+export interface FullPath {
+    // (undocumented)
+    bucket: string;
+    // (undocumented)
+    bucketKey?: string;
+    // (undocumented)
+    dbId?: string;
+    // (undocumented)
+    path: string;
+}
+
 // @public (undocumented)
 export const GetAddressFromPublicKey: (pubkey: string) => string;
 
@@ -326,6 +338,41 @@ export interface SharedWithMeFiles {
     sharedBy: string;
 }
 
+// @public (undocumented)
+export enum ShareKeyType {
+    // (undocumented)
+    Existing = "existing",
+    // (undocumented)
+    Temp = "temp"
+}
+
+// @public
+export interface SharePublicKeyInput {
+    id: string;
+    pk?: string;
+}
+
+// @public
+export interface SharePublicKeyOutput {
+    id: string;
+    pk: string;
+    tempKey?: string;
+    type: ShareKeyType;
+}
+
+// @public (undocumented)
+export interface ShareViaPublicKeyRequest {
+    // (undocumented)
+    paths: FullPath[];
+    publicKeys: SharePublicKeyInput[];
+}
+
+// @public (undocumented)
+export interface ShareViaPublicKeyResponse {
+    // (undocumented)
+    publicKeys: SharePublicKeyOutput[];
+}
+
 // @public
 export interface SpaceUser {
     // (undocumented)
@@ -441,6 +488,7 @@ export class UserStorage {
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse>;
     setFilePublicAccess(request: MakeFilePublicRequest): Promise<void>;
+    shareViaPublicKey(request: ShareViaPublicKeyRequest): Promise<ShareViaPublicKeyResponse>;
     txlSubscribe(): Promise<TxlSubscribeResponse>;
     }
 
@@ -455,6 +503,11 @@ export interface UserStorageConfig {
     // (undocumented)
     threadsInit?: (auth: UserAuth) => Client;
 }
+
+// @public (undocumented)
+export class ValidationError extends Error {
+    constructor(field: string, message: string);
+    }
 
 // @public
 export interface Vault {

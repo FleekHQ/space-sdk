@@ -16,3 +16,9 @@ export class FileNotFoundError extends Error {
     super('File not found');
   }
 }
+
+export class ValidationError extends Error {
+  constructor(private readonly field: string, message: string) {
+    super(`Validation error: '${field}': ${message}`);
+  }
+}

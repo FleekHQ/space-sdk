@@ -371,4 +371,48 @@ describe('UserStorage', () => {
       ]);
     });
   });
+
+  describe('shareViaPublicKey()', () => {
+    let storage: UserStorage;
+    let mockBuckets: Buckets;
+
+    beforeEach(() => {
+      const stub = initStubbedStorage();
+      storage = stub.storage;
+      mockBuckets = stub.mockBuckets;
+    });
+
+    it('should throw if public keys are empty', async () => {
+      await expect(
+        storage.shareViaPublicKey({
+          publicKeys: [],
+          paths: [
+            {
+              bucket: 'personal',
+              path: '/randomPath',
+              bucketKey: 'myBucketKey',
+            },
+          ],
+        }),
+      ).to.eventually.be.rejected;
+    });
+
+    it('should throw if public keys are not valid', async () => {
+      await expect(
+        storage.shareViaPublicKey({
+          publicKeys: [{
+            id: 'space-user@space.storage',
+            pk: 'invalid-pk-provided',
+          }],
+          paths: [
+            {
+              bucket: 'personal',
+              path: '/randomPath',
+              bucketKey: 'myBucketKey',
+            },
+          ],
+        }),
+      ).to.eventually.be.rejectedWith('Unsupported encoding: i');
+    });
+  });
 });
