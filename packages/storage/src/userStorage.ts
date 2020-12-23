@@ -1,7 +1,12 @@
 import { SpaceUser } from '@space/users';
 import { Buckets, PathItem, UserAuth } from '@textile/hub';
+import ee from 'event-emitter';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import {
+  AddItemsRequest,
+  AddItemsResponse,
+  AddItemsResultSummary,
+  AddItemsStatus,
   CreateFolderRequest,
   ListDirectoryRequest,
   ListDirectoryResponse,
@@ -127,6 +132,103 @@ export class UserStorage {
         throw e;
       }
     }
+  }
+
+  /**
+   * addItems is used to upload files to buckets.
+   * It uses an ReadableStream of Uint8Array data to read each files content to be uploaded.
+   *
+   * Uploads will sequential and asynchronous with updates being delivered through the
+   * event emitter returned by the function.
+   *
+   * @example
+   * ```typescript
+   * const spaceStorage = new UserStorage(spaceUser);
+   *
+   * const response = await spaceStorage.addItems({
+   *   bucket: 'personal',
+   *   files: [
+   *     {
+   *       path: 'file.txt',
+   *       content: '',
+   *     },
+   *     {
+   *       path: 'space.png',
+   *       content: '',
+   *     }
+   *   ],
+   * });
+   *
+   * response.on('data', (data: AddItemsEventData) => {
+   *  const status = data as AddItemsStatus;
+   *  // update event on how each file is uploaded
+   * });
+   *
+   * response.on('error', (err: AddItemsEventData) => {
+   *  const status = data as AddItemsStatus;
+   *  // error event if a file upload fails
+   *  // status.error contains the error
+   * });
+   *
+   * response.once('done', (data: AddItemsEventData) => {
+   *  const summary = data as AddItemsResultSummary;
+   *  // returns a summary of all files and their upload status
+   * });
+   * ```
+   */
+  public async addItems(request: AddItemsRequest): Promise<AddItemsResponse> {
+    const client = this.getUserBucketsClient();
+    const bucket = await client.getOrCreate(request.bucket);
+    const emitter = ee();
+
+    // using setImmediate here to ensure a cycle is skipped
+    // giving the caller a chance to listen to emitter in time to not
+    // miss an early data or error event
+    setImmediate(() => {
+      this.uploadMultipleFiles(request, client, bucket.root?.key || '', emitter).then((summary) => {
+        emitter.emit('done', summary);
+      });
+    });
+
+    return emitter;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  private async uploadMultipleFiles(
+    request: AddItemsRequest,
+    client: Buckets,
+    bucketKey: string,
+    emitter: ee.Emitter,
+  ): Promise<AddItemsResultSummary> {
+    const summary: AddItemsResultSummary = {
+      bucket: request.bucket,
+      files: [],
+    };
+
+    // sequentially upload each file in-order to avoid root corruption
+    // that may occur when uploading multiple files in parallel.
+    // eslint-disable-next-line no-restricted-syntax
+    for (const file of request.files) {
+      const path = sanitizePath(file.path);
+      const status: AddItemsStatus = {
+        path: file.path,
+        status: 'success',
+      };
+
+      try {
+        // eslint-disable-next-line no-await-in-loop
+        await client.pushPath(bucketKey, path, file.data);
+        emitter.emit('data', status);
+      } catch (err) {
+        status.status = 'error';
+        status.error = err;
+        emitter.emit('error', status);
+      }
+
+      summary.files.push(status);
+    }
+
+    return summary;
   }
 
   private getUserBucketsClient(): Buckets {
