@@ -9,6 +9,11 @@ import { Identity } from '@textile/crypto';
 import { UserAuth } from '@textile/hub';
 
 // @public (undocumented)
+export class DirEntryNotFoundError extends Error {
+    constructor(filePath: string, bucket: string);
+}
+
+// @public (undocumented)
 export interface IdentityStorage {
     // (undocumented)
     add: (identity: Identity) => Promise<void>;
@@ -28,6 +33,11 @@ export interface SpaceUser {
     storageAuth?: TextileStorageAuth;
     // (undocumented)
     token: string;
+}
+
+// @public (undocumented)
+export class UnauthenticatedError extends Error {
+    constructor();
 }
 
 // @public
@@ -54,15 +64,16 @@ export interface UsersConfig {
 // @public
 export class UserStorage {
     // Warning: (ae-forgotten-export) The symbol "UserStorageConfig" needs to be exported by the entry point index.d.ts
-    constructor(user: SpaceUser, config?: UserStorageConfig | undefined);
+    constructor(user: SpaceUser, config?: UserStorageConfig);
     // Warning: (ae-forgotten-export) The symbol "CreateFolderRequest" needs to be exported by the entry point index.d.ts
     createFolder(request: CreateFolderRequest): Promise<void>;
+    // Warning: (ae-forgotten-export) The symbol "ListDirectoryRequest" needs to be exported by the entry point index.d.ts
+    // Warning: (ae-forgotten-export) The symbol "ListDirectoryResponse" needs to be exported by the entry point index.d.ts
+    listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
+    // Warning: (ae-forgotten-export) The symbol "OpenFileRequest" needs to be exported by the entry point index.d.ts
+    // Warning: (ae-forgotten-export) The symbol "OpenFileResponse" needs to be exported by the entry point index.d.ts
+    openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     }
-
-// @public (undocumented)
-export const UserStorageErrors: {
-    Unauthenticated: Error;
-};
 
 
 // (No @packageDocumentation comment for this package)
