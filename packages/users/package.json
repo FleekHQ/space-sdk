@@ -1,5 +1,5 @@
 {
-  "name": "@space/users",
+  "name": "@spacehq/users",
   "version": "0.0.1",
   "description": "Space users implementation",
   "main": "dist/index",

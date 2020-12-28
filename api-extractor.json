@@ -61,8 +61,8 @@
    * local files for library1.
    */
   "bundledPackages": [
-    "@space/users",
-    "@space/storage"
+    "@spacehq/users",
+    "@spacehq/storage"
   ],
 
   /**

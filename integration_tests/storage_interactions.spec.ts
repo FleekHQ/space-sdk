@@ -1,4 +1,4 @@
-import { AddItemsEventData, AddItemsResultSummary, UserStorage } from '@space/sdk';
+import { AddItemsEventData, AddItemsResultSummary, UserStorage } from '@spacehq/sdk';
 import { expect, use } from 'chai';
 import * as chaiSubset from 'chai-subset';
 import { TestsDefaultTimeout } from './fixtures/configs';

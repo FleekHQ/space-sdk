@@ -1,6 +1,6 @@
 {
   "readme": "./README.md",
-  "name": "@space/app",
+  "name": "@spacehq/sdk",
   "mode": "modules",
   "out": "docs",
   "lib": [

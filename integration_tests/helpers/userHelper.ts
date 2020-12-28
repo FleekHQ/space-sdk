@@ -1,4 +1,4 @@
-import { SpaceUser, Users } from '@space/sdk';
+import { SpaceUser, Users } from '@spacehq/sdk';
 import { Identity } from '@textile/crypto';
 import { TestUsersConfig } from '../fixtures/configs';
 

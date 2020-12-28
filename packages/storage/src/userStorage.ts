@@ -1,4 +1,4 @@
-import { SpaceUser } from '@space/users';
+import { SpaceUser } from '@spacehq/users';
 import { Buckets, PathItem, UserAuth } from '@textile/hub';
 import ee from 'event-emitter';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';

@@ -1,5 +1,5 @@
-import { Users } from '@space/users';
-import { BrowserStorage } from '@space/users/dist/identity/browserStorage';
+import { Users } from '@spacehq/users';
+import { BrowserStorage } from '@spacehq/users/dist/identity/browserStorage';
 import { expect } from 'chai';
 import { TestsDefaultTimeout, TestUsersConfig } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';

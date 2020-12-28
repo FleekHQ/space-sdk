@@ -1,5 +1,5 @@
 {
-  "name": "@space/sdk",
+  "name": "@spacehq/sdk",
   "version": "0.0.0",
   "description": "Space SDK",
   "main": "packages/sdk",
@@ -19,8 +19,8 @@
     "test:node": "TS_NODE_FILES=true mocha --exit",
     "test:browser": "lerna run --stream test:browser",
     "test:integration": "polendina --cleanup --timeout 100000 integration_tests/**/*.spec.ts --webpack-config webpack.test.js",
-    "space:check": "lerna exec -- npx ncu '/^@space/.*$/'",
-    "space:upgrade": "lerna exec -- npx ncu -u '/^@space/.*$/'"
+    "space:check": "lerna exec -- npx ncu '/^@spacehq/.*$/'",
+    "space:upgrade": "lerna exec -- npx ncu -u '/^@spacehq/.*$/'"
   },
   "resolutions": {
     "npm-packlist": "2.1.4"

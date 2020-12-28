@@ -1,5 +1,5 @@
 {
-  "name": "@space/storage",
+  "name": "@spacehq/storage",
   "version": "0.0.1",
   "description": "Space storage implementation",
   "main": "dist/index",
@@ -40,7 +40,7 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@space/users": "^0.0.1",
+    "@spacehq/users": "^0.0.1",
     "@textile/hub": "^4.1.0",
     "event-emitter": "^0.3.5",
     "multihashes": "^3.1.0"

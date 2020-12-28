@@ -2,12 +2,12 @@
  Javascript/Typescript library for interacting with Space in the browser.
  
 ## Introduction
-`@space/sdk` provides a suit of functionality to perform different action on Space.
+`@spacehq/sdk` provides a suit of functionality to perform different action on Space.
 
 ## Installation
 Install the sdk using this npm command:
 ```
-npm install @space/sdk
+npm install @spacehq/sdk
 ```
 
 ## Usage
@@ -29,7 +29,7 @@ Full SDK Documentation can be [here](https://fleekhq.github.io/space-sdk/)
 This involves managing users and their identities.
 
 ```typescript
-import { Users } from '@space/sdk';
+import { Users } from '@spacehq/sdk';
 
 const users = new Users({ endpoint: 'https://identity-service-endpoint.com' });
 const identity = await users.createIdentity();
@@ -41,7 +41,7 @@ const user = await users.authenticate(identity);
 This involves operations to create and list files and directories in space storage.
 
 ```typescript
-import { UserStorage, AddItemsResultSummary } from '@space/sdk';
+import { UserStorage, AddItemsResultSummary } from '@spacehq/sdk';
 
 const storage = new UserStorage(user);
 await storage.createFolder({ bucket: 'personal', path: 'topFolder' });
