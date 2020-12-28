@@ -1,11 +1,16 @@
 import { Identity } from '@textile/crypto';
-import { Buckets, PathItem, Root } from '@textile/hub';
+import {
+ Buckets, PathItem, PushPathResult, Root
+} from '@textile/hub';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
-import { anyString, deepEqual, instance, mock, verify, when } from 'ts-mockito';
+import {
+ anyString, anything, deepEqual, instance, mock, verify, when
+} from 'ts-mockito';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import { makeAsyncIterableString } from './testHelpers';
+import { AddItemsEventData } from './types';
 import { UserStorage } from './userStorage';
 
 use(chaiAsPromised.default);
@@ -137,6 +142,61 @@ describe('UserStorage', () => {
       const filesData = await result.consumeStream();
 
       expect(new TextDecoder('utf8').decode(filesData)).to.equal(actualFileContent);
+    });
+  });
+
+  describe('addItems()', () => {
+    it('should publish data, error and done events correctly', async () => {
+      const { storage, mockBuckets } = initStubbedStorage();
+      const uploadError = new Error('Error: update is non-fast-forward');
+      when(mockBuckets.pushPath('myBucketKey', '/a.txt', anything())).thenResolve({
+        ...mock<PushPathResult>(),
+      });
+      // fail upload of b.txt
+      when(mockBuckets.pushPath('myBucketKey', '/b.txt', anything())).thenReject(uploadError);
+      const callbackData = {
+        data: [] as AddItemsEventData[],
+        error: [] as AddItemsEventData[],
+        done: [] as AddItemsEventData[],
+      };
+
+      // upload files
+      const uploadResponse = await storage.addItems({
+        bucket: 'personal',
+        files: [
+          {
+            path: 'a.txt',
+            data: 'a content',
+          },
+          {
+            path: 'b.txt',
+            data: 'b content',
+          },
+        ],
+      });
+
+      // listen for status events
+      uploadResponse.on('data', (it) => callbackData.data.push(it));
+      uploadResponse.on('error', (err) => callbackData.error.push(err));
+      await new Promise((resolve) => {
+        uploadResponse.once('done', (it) => {
+          callbackData.done.push(it);
+          resolve();
+        });
+      });
+
+      // verify callback data
+      expect(callbackData.data).to.containSubset([{ path: 'a.txt', status: 'success' }]);
+      expect(callbackData.error).to.containSubset([{ path: 'b.txt', status: 'error', error: uploadError }]);
+      expect(callbackData.done).to.containSubset([
+        {
+          bucket: 'personal',
+          files: [
+            { path: 'a.txt', status: 'success' },
+            { path: 'b.txt', status: 'error', error: uploadError },
+          ],
+        },
+      ]);
     });
   });
 });
