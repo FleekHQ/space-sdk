@@ -1,10 +1,22 @@
 export interface CreateFolderRequest {
+  /**
+   * Storage bucket to create the empty folder
+   */
   path: string;
+  /**
+   * Path in the bucket to create the empty folder
+   */
   bucket: string;
 }
 
 export interface ListDirectoryRequest {
+  /**
+   * Path in the bucket to fetch directories from
+   */
   path: string;
+  /**
+   * Storage bucket to fetch directory entries
+   */
   bucket: string;
   /**
    * set recursive to true, if you would like all children of folder entries

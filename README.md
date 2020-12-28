@@ -12,7 +12,6 @@ npm install @space/sdk
 
 ## Usage
 Space SDK provides an interface perform the following actions:
- 
 
 - Creating identities
 
@@ -32,32 +31,49 @@ This involves managing users and their identities.
 ```typescript
 import { Users } from '@space/sdk';
 
-
 const users = new Users({ endpoint: 'https://identity-service-endpoint.com' });
 const identity = await users.createIdentity();
 const user = await users.authenticate(identity);
-
-// TODO: Complete Code Snippet
+// `user` can be used with the storage class to provide identity.
 ```
 
 ### 2. Storage
-This involves CRUD operations on your files and directories.
+This involves operations to create and list files and directories in space storage.
 
 ```typescript
-import { UserStorage } from '@space/sdk';
+import { UserStorage, AddItemsResultSummary } from '@space/sdk';
 
 const storage = new UserStorage(user);
 await storage.createFolder({ bucket: 'personal', path: 'topFolder' });
-await storage.listDirectory({ path: '' });
+const result = await storage.listDirectory({ path: '' });
+// result contains `topFolder` items
 
-// TODO: Complete Code Snippet
+// upload a file
+const uploadResponse = await spaceStorage.addItems({
+   bucket: 'personal',
+   files: [
+     {
+       path: 'file.txt',
+       content: '',
+     },
+     {
+       path: 'space.png',
+       content: '',
+     }
+   ],
+});
+// uploadresponse is an event listener
+uploadResponse.once('done', (data: AddItemsEventData) => {
+  const summary = data as AddItemsResultSummary;
+  // returns a summary of all files and their upload status
+});
 ```
 
 ### 3. Sharing
 This includes operations to share your storage items with existing user (identites)  
 
 ```typescript
-// to be determined
+// WIP
 ```
 
 ## LICENSE
