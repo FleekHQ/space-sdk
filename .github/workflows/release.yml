@@ -1,12 +1,12 @@
-name: Release
+name: SDK Package Release
 
 on:
   push:
     tags:
-      - 'docs@*.*.*'
+      - 'v*.*.*'
 jobs:
   deploy:
-    name: Docs
+    name: Release Package
     runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, 'skip-ci')"
 
@@ -42,24 +42,22 @@ jobs:
     - name: Docs
       run: npm run build:docs
 
-    - name: Copy
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=version::${GITHUB_REF#refs/tags/v}
+
+    - name: Publish SDK
+      run: npm run publish
+      env:
+        NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Zip files for archiving
       run: |
-          mkdir pages
-          cp -r website/build/\@spacehq/sdk/* pages/
-          touch pages/.nojekyll
+        zip v${{ steps.get_version.outputs.version }}.zip dist/packages/* website/build/@spacehq/sdk/*
 
-    - name: Deploy
-      uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./pages
-
-    - name: Zip files
-      run: zip ${{ github.workflow }}.zip docs/*.md
-
-    - name: Upload docs archive
+    - name: Upload archive to github
       uses: softprops/action-gh-release@v1
       with:
-        files: '${{ github.workflow }}.zip'
+        files: 'v${{ steps.get_version.outputs.version }}.zip'
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
