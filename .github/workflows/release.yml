@@ -30,6 +30,10 @@ jobs:
         node-version: 12
         registry-url: https://registry.npmjs.org/
 
+    - name: Get the version
+      id: get_version
+      run: echo ::set-output name=version::${GITHUB_REF#refs/tags/v}
+
     - name: Install
       run: npm install
 
@@ -42,9 +46,17 @@ jobs:
     - name: Docs
       run: npm run build:docs
 
-    - name: Get the version
-      id: get_version
-      run: echo ::set-output name=version::${GITHUB_REF#refs/tags/v}
+    - name: Copy Latest Docs
+      run: |
+        mkdir pages
+        cp -r website/build/\@spacehq/sdk/* pages/
+        touch pages/.nojekyll
+
+    - name: Deploy Latest Docs
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./pages
 
     - name: Publish SDK
       run: npm run publish
