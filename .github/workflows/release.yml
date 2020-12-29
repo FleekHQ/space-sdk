@@ -4,11 +4,17 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version. Format: (*.*.*) e.g 0.1.0'
+        required: true
 jobs:
   deploy:
+    ## Ensure releases only run when valid branch PR to releases branch is merged
+    if: (github.event.pull_request.merged == true && contains(github.head_ref, 'release/v')) || (  )
     name: Release Package
     runs-on: ubuntu-latest
-    if: "!contains(github.event.head_commit.message, 'skip-ci')"
 
     steps:
 
@@ -30,9 +36,21 @@ jobs:
         node-version: 12
         registry-url: https://registry.npmjs.org/
 
+    - name: Get manual release Version
+      id: manual_release_get_version
+      run: echo ::set-output name=version::${{ github.event.inputs.version }}
+
+    - name: Get tag release the version
+      id: tag_release_get_version
+      run: echo ::set-output name=version::${GITHUB_REF#refs/tags/v}
+
     - name: Get the version
       id: get_version
-      run: echo ::set-output name=version::${GITHUB_REF#refs/tags/v}
+      uses: haya14busa/action-cond@v1
+      with:
+        cond: ${{ github.event_name == 'workflow_dispatch' }}
+        if_true: ${{ steps.manual_release_get_version.outputs.version }}
+        if_false: ${{ steps.tag_release_get_version.outputs.version }}
 
     - name: Install
       run: npm install
@@ -65,11 +83,18 @@ jobs:
 
     - name: Zip files for archiving
       run: |
-        zip v${{ steps.get_version.outputs.version }}.zip dist/packages/* website/build/@spacehq/sdk/*
+        zip v${{ steps.get_version.outputs.value }}.zip dist/packages/* website/build/@spacehq/sdk/*
 
     - name: Upload archive to github
       uses: softprops/action-gh-release@v1
       with:
-        files: 'v${{ steps.get_version.outputs.version }}.zip'
+        files: 'v${{ steps.get_version.outputs.value }}.zip'
+        body_path: changelogs/v${{ steps.get_version.outputs.value }}.md
+        # if no changelog file is provided 'body' would be used as release notes
+        body: |
+          # CHANGELOG
+
+          ## v${{ steps.get_version.outputs.value }}
+        tag_name: v${{ steps.get_version.outputs.value }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
