@@ -11,8 +11,6 @@ on:
         required: true
 jobs:
   deploy:
-    ## Ensure releases only run when valid branch PR to releases branch is merged
-    if: (github.event.pull_request.merged == true && contains(github.head_ref, 'release/v')) || (  )
     name: Release Package
     runs-on: ubuntu-latest
 
