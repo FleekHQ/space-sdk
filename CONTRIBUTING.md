@@ -16,7 +16,7 @@ There are two major branches: `master` and `releases`.
 All active development goes to the `master` branch. When a release is about to made, a branch should be created from the 
 `master` branch with the name format `release/v*.*.*` (replace `*.*.*`) with the actual release version.
 
-Open a PR with the new version release branch to the `releases` branch. This PR should have commits updating the
+Open a PR with the new version release branch. This PR should have commits updating the
 `CHANGELOG.md` file with changes being introduced in this version. It should also bump up the version of the package
 (inside `lerna.json`). Merging this PR and pushing a tag would trigger the CI to create a new release with the version
 and changelog.
