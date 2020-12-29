@@ -89,11 +89,6 @@ jobs:
       with:
         files: 'v${{ steps.get_version.outputs.value }}.zip'
         body_path: changelogs/v${{ steps.get_version.outputs.value }}.md
-        # if no changelog file is provided 'body' would be used as release notes
-        body: |
-          # CHANGELOG
-
-          ## v${{ steps.get_version.outputs.value }}
         tag_name: v${{ steps.get_version.outputs.value }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

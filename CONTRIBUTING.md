@@ -16,7 +16,7 @@ There are two major branches: `master` and `releases`.
 All active development goes to the `master` branch. When a release is about to made, a branch should be created from the 
 `master` branch with the name format `release/v*.*.*` (replace `*.*.*`) with the actual release version.
 
-- Open a PR with the new version release branch. This PR should have commits updating the `CHANGELOG.md` file with changes 
+- Open a PR with the new version release branch. This PR should have commits updating the `changelogs/v*.*.*.md` file with changes 
 that is being introduced in this version.
 - In this PR, You should have also bumped up the version of the packages (inside `lerna.json`) using the npm command 
 `npm run bumpversion <new-version>`.

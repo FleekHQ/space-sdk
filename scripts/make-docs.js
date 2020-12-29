@@ -1,7 +1,7 @@
-const { readdir, createReadStream, writeFile } = require('fs-extra')
-const { createInterface } = require('readline')
-const { join, parse } = require('path')
-const { exec } = require('child_process')
+const { readdir, createReadStream, writeFile } = require('fs-extra');
+const { createInterface } = require('readline');
+const { join, parse } = require('path');
+const { exec } = require('child_process');
 
 // This script is not part of faast.js, but rather a tool to rewrite some parts
 // of the generated docs from api-generator and api-documenter so they work with
@@ -10,77 +10,77 @@ const { exec } = require('child_process')
 async function main() {
   await new Promise((resolve, reject) =>
     exec(
-    'npx api-extractor run --local && npx api-documenter markdown -i temp && cp README.md markdown/index.md',
+    'npx api-extractor run --local && npx api-documenter markdown -i temp && cp packages/sdk/README.md markdown/index.md',
     (err, stdout, stderr) => {
-      console.log(stdout)
-      console.error(stderr)
+      console.log(stdout);
+      console.error(stderr);
       if (err) {
-        reject(err)
+        reject(err);
       } else {
-        resolve()
+        resolve();
       }
     },
   ));
 
-  const dir = './markdown'
-  const docFiles = await readdir(dir)
+  const dir = './markdown';
+  const docFiles = await readdir(dir);
   for (const docFile of docFiles) {
     try {
-      const { name: id, ext } = parse(docFile)
+      const { name: id, ext } = parse(docFile);
       if (ext !== '.md') {
-        continue
+        continue;
       }
 
-      const docPath = join(dir, docFile)
-      const input = createReadStream(docPath)
-      const output = []
+      const docPath = join(dir, docFile);
+      const input = createReadStream(docPath);
+      const output = [];
       const lines = createInterface({
         input,
         crlfDelay: Infinity,
-      })
+      });
 
-      let title = ''
+      let title = '';
       lines.on('line', (line) => {
-        let skip = false
+        let skip = false;
         if (!title) {
-          const titleLine = line.match(/## (.*)/)
+          const titleLine = line.match(/## (.*)/);
           if (titleLine) {
-            title = titleLine[1]
+            title = titleLine[1];
           }
         }
-        const homeLink = line.match(/\[Home\]\(.\/index\.md\) &gt; (.*)/)
+        const homeLink = line.match(/\[Home\]\(.\/index\.md\) &gt; (.*)/);
         if (homeLink) {
           // Skip the breadcrumb for the toplevel index file.
-          if (id !== '@textile/hub' && id !== '' && id !== 'index') {
-            output.push(homeLink[1])
+          if (id !== '@spacehq/sdk' && id !== '' && id !== 'index') {
+            output.push(homeLink[1]);
           }
-          skip = true
+          skip = true;
         }
         // See issue #4. api-documenter expects \| to escape table
         // column delimiters, but docusaurus uses a markdown processor
         // that doesn't support this. Replace with an escape sequence
         // that renders |.
         if (line.startsWith('|')) {
-          line = line.replace(/\\\|/g, '&#124;')
+          line = line.replace(/\\\|/g, '&#124;');
         }
         if (!skip) {
-          output.push(line)
+          output.push(line);
         }
-      })
+      });
 
-      await new Promise((resolve) => lines.once('close', resolve))
-      input.close()
+      await new Promise((resolve) => lines.once('close', resolve));
+      input.close();
 
-      if (title === 'hub package') {
-        title = 'Package Overview'
+      if (title === 'sdk package') {
+        title = 'Package Overview';
       }
-      const header = ['---', `id: ${id}`, `title: ${title}`, 'hide_title: true', '---']
+      const header = ['---', `id: ${id}`, `title: ${title}`, 'hide_title: true', '---'];
 
-      await writeFile(docPath, header.concat(output).join('\n'))
+      await writeFile(docPath, header.concat(output).join('\n'));
     } catch (err) {
-      console.error(`Could not process ${docFile}: ${err}`)
+      console.error(`Could not process ${docFile}: ${err}`);
     }
   }
 }
 
-main()
+main();
