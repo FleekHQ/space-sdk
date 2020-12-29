@@ -7,7 +7,7 @@
   "useWorkspaces": true,
   "command": {
     "version": {
-      "message": "chore: release/publish"
+      "message": "Chore: Set %s release version"
     }
   }
 }

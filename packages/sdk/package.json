@@ -33,7 +33,7 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@spacehq/users": "^0.0.1",
-    "@spacehq/storage": "^0.0.1"
+    "@spacehq/storage": "^0.0.1",
+    "@spacehq/users": "^0.0.1"
   }
 }

@@ -15,25 +15,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
-    - name: Checkout
-      uses: actions/checkout@v1
-
-    - name: Cache
-      uses: actions/cache@v1
-      with:
-        path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-        restore-keys: |
-          ${{ runner.os }}-build-${{ env.cache-name }}-
-          ${{ runner.os }}-build-
-          ${{ runner.os }}-
-    - name: Setup
-      uses: actions/setup-node@v1
-      with:
-        node-version: 12
-        registry-url: https://registry.npmjs.org/
-
     - name: Get manual release Version
       id: manual_release_get_version
       run: echo ::set-output name=version::${{ github.event.inputs.version }}
@@ -49,6 +30,26 @@ jobs:
         cond: ${{ github.event_name == 'workflow_dispatch' }}
         if_true: ${{ steps.manual_release_get_version.outputs.version }}
         if_false: ${{ steps.tag_release_get_version.outputs.version }}
+
+    - name: Checkout Release Tag
+      uses: actions/checkout@v2
+      with:
+        ref: refs/tags/v${{ steps.get_version.outputs.value }}
+
+    - name: Cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.npm # npm cache files are stored in `~/.npm` on Linux/macOS
+        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+    - name: Setup
+      uses: actions/setup-node@v1
+      with:
+        node-version: 12
+        registry-url: https://registry.npmjs.org/
 
     - name: Install
       run: npm install
@@ -68,16 +69,16 @@ jobs:
         cp -r website/build/\@spacehq/sdk/* pages/
         touch pages/.nojekyll
 
-    - name: Deploy Latest Docs
-      uses: peaceiris/actions-gh-pages@v3
-      with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./pages
-
     - name: Publish SDK
-      run: npm run publish
+      run: npm run publish:from --yes
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+    - name: Deploy Latest Docs
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./pages
 
     - name: Zip files for archiving
       run: |
