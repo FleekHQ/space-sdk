@@ -70,7 +70,7 @@ jobs:
         touch pages/.nojekyll
 
     - name: Publish SDK
-      run: npm run publish:from --yes
+      run: 'npm run publish:from --yes'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
