@@ -1,4 +1,4 @@
-import { UsersConfig } from '@space/users';
+import { UsersConfig } from '@spacehq/users';
 
 // @todo: replace this by mocked service
 const endpoint = 'gqo1oqz055.execute-api.us-west-2.amazonaws.com/dev';

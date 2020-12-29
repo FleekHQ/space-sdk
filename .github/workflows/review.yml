@@ -68,4 +68,4 @@ jobs:
       - name: Display
         run: npm run space:check
       - name: Check
-        run: if [ $(lerna exec -- npx ncu '/^@space/.*$/' | grep '@textile/' | wc -l) == 0 ]; then echo 'ok'; else exit 1; fi;
+        run: if [ $(lerna exec -- npx ncu '/^@spacehq/.*$/' | grep '@spacehq/' | wc -l) == 0 ]; then echo 'ok'; else exit 1; fi;

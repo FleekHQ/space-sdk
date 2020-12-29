@@ -1,4 +1,4 @@
-# @space/storage
+# @spacehq/storage
 
 ## Storage Package for Space SDK
 

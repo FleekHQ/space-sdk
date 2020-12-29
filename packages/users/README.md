@@ -1,3 +1,3 @@
-# @space/user
+# @spacehq/user
 
 **Info**

@@ -1,2 +1,2 @@
-export * from '@space/storage';
-export * from '@space/users';
+export * from '@spacehq/storage';
+export * from '@spacehq/users';

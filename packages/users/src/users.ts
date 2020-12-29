@@ -38,7 +38,7 @@ export interface UsersConfig {
  * @example
  * Initialize Users without identity storage
  * ```typescript
- * import { Users } from '@space/users'
+ * import { Users } from '@spacehq/users'
  *
  * const users = new Users({ endpoint: "users.space.storage" });
  *
@@ -52,7 +52,7 @@ export interface UsersConfig {
  * @example
  * Initialize Users with BrowserStorage
  * ```typescript
- * import { Users, BrowserStorage } from '@space/users'
+ * import { Users, BrowserStorage } from '@spacehq/users'
  *
  * const storage = new BrowserStorage();
  * // error is thrown when identity fails to auth

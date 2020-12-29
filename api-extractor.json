@@ -61,8 +61,8 @@
    * local files for library1.
    */
   "bundledPackages": [
-    "@space/users",
-    "@space/storage"
+    "@spacehq/users",
+    "@spacehq/storage"
   ],
 
   /**
@@ -333,6 +333,9 @@
       "default": {
         "logLevel": "warning"
         // "addToApiReportFile": false
+      },
+      "ae-missing-release-tag": {
+        "logLevel": "none"
       }
 
       // "ae-extra-release-tag": {

@@ -1,4 +1,4 @@
-import { SpaceUser } from '@space/users';
+import { SpaceUser } from '@spacehq/users';
 import { Buckets, PathItem, UserAuth } from '@textile/hub';
 import ee from 'event-emitter';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
@@ -16,14 +16,14 @@ import {
 import { sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 
-interface UserStorageConfig {
+export interface UserStorageConfig {
   textileHubAddress?: string;
   /**
    * Optional initializer of a bucket from textiles users auth
    * can be use to override/provide custom initialization logic
    *
    * The default value will be Textiles Buckets.withUserAuth
-   * @param auth
+   * @param auth - Textile UserAuth object to initialize bucket
    */
   bucketsInit?: (auth: UserAuth) => Buckets;
 }
@@ -52,8 +52,7 @@ export class UserStorage {
 
   /**
    * Creates an empty folder at the requested path and bucket.
-   * @param request.bucket Storage bucket to create the empty folder
-   * @param request.path Path in the bucket to create the empty folder
+   *
    * @remarks
    * - It throws if an error occurred while creating the folder
    */
@@ -72,9 +71,13 @@ export class UserStorage {
   /**
    * Returns all bucket entries at the specified path.
    *
-   * @param request.bucket Storage bucket to fetch directory entries
-   * @param request.path Path in the bucket to fetch directories from
-   * @param request.recursive Optional, if specified, it would recursively try and fetch all child entries of folders.
+   * @example
+   * ```typescript
+   * const spaceStorage = new UserStorage(spaceUser);
+   * const response = await spaceStorage.listDirectory({ bucket: 'personal', path: ''});
+   *
+   * console.log(response.items); // print items in repository
+   * ```
    */
   public async listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse> {
     const client = this.getUserBucketsClient();
@@ -136,6 +139,7 @@ export class UserStorage {
 
   /**
    * addItems is used to upload files to buckets.
+   *
    * It uses an ReadableStream of Uint8Array data to read each files content to be uploaded.
    *
    * Uploads will sequential and asynchronous with updates being delivered through the

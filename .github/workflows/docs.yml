@@ -48,7 +48,7 @@ jobs:
     - name: Copy
       run: |
           mkdir pages
-          cp -r website/build/\@space/sdk/* pages/
+          cp -r website/build/\@spacehq/sdk/* pages/
           touch pages/.nojekyll
 
     - name: Deploy
