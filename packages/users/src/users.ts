@@ -1,6 +1,10 @@
 import { Identity, PrivateKey } from '@textile/crypto';
+import { Libp2pCryptoIdentity } from '@textile/threads-core';
+import { keys } from '@textile/threads-crypto';
 import _ from 'lodash';
 import 'websocket-polyfill';
+import { marshalRawPrivateKey } from './utils/keysUtils';
+import { getPrivateKeyFromVaultItem, SpaceVaultService, Vault, VaultBackupType, VaultServiceConfig } from './vault';
 
 interface TextileStorageAuth {
   key: string;
@@ -21,8 +25,31 @@ export interface IdentityStorage {
   remove: (key: string) => Promise<void>;
 }
 
+/**
+ * Configuration option provided to the {@link Users} class.
+ *
+ */
 export interface UsersConfig {
+  /**
+   * Hub auth service endpoint
+   *
+   */
   endpoint: string;
+  /**
+   * Vault Service Configuration. Either this is provided or the `vaultInit` function is provided
+   * or else initializing the users class will throw an error.
+   *
+   */
+  vaultServiceConfig?: VaultServiceConfig;
+  /**
+   *
+   */
+  /**
+   * Optional {@link @spacehq/sdk#Vault} factory function.
+   *
+   * If provided the default VaultService with provided config will not be used for authentication.
+   */
+  vaultInit?: () => Vault;
 }
 
 /**
@@ -70,6 +97,8 @@ export class Users {
 
   private users: Record<string, SpaceUser>;
 
+  private vaultObj?: Vault;
+
   constructor(config: UsersConfig, storage?: IdentityStorage) {
     this.config = config;
     this.storage = storage;
@@ -106,6 +135,13 @@ export class Users {
     this.users = _.omit(this.users, [publicKey]);
   }
 
+  /**
+   * Authenticates the identity against the hub.
+   *
+   * If authentication succeeds, a SpaceUser object that can be used with the UserStorage class is returned.
+   *
+   * @param identity - User identity
+   */
   async authenticate(identity: Identity): Promise<SpaceUser> {
     return new Promise((resolve, reject) => {
       const socketUrl = `wss://${this.config.endpoint}`;
@@ -164,5 +200,45 @@ export class Users {
         };
       };
     });
+  }
+
+  /**
+   * Recovers users identity key information from the passphrase provided.
+   *
+   * If successfully recovered, the users information is stored in the `IdentityStorage` (if provided)
+   * when initializing the users class.
+   *
+   * @param uuid - users unique vault id
+   * @param passphrase - users passphrase used to recover keys
+   * @param backupType - Type of vault backup the passphrase originates from
+   */
+  public async recoverKeysByPassphrase(
+    uuid: string,
+    passphrase: string,
+    backupType: VaultBackupType,
+  ): Promise<SpaceUser> {
+    const vaultItems = await this.vault.retrieve(uuid, passphrase, backupType);
+    const privKey = getPrivateKeyFromVaultItem(vaultItems[0]);
+    const key = await keys.unmarshalPrivateKey(marshalRawPrivateKey(privKey));
+    const identity = new Libp2pCryptoIdentity(key);
+    const user = await this.authenticate(identity);
+    await this.storage?.add(identity);
+    return user;
+  }
+
+  private get vault(): Vault {
+    if (this.vaultObj) {
+      return this.vaultObj;
+    }
+
+    if (this.config.vaultInit) {
+      this.vaultObj = this.config.vaultInit();
+    } else if (this.config.vaultServiceConfig) {
+      this.vaultObj = new SpaceVaultService(this.config.vaultServiceConfig);
+    } else {
+      throw Error('Either vaultServiceConfig or vaultInit configuration is required.');
+    }
+
+    return this.vaultObj;
   }
 }

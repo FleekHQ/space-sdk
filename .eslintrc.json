@@ -28,6 +28,10 @@
     "@typescript-eslint/no-explicit-any": 0,
     "@typescript-eslint/explicit-member-accessibility": 0,
     "@typescript-eslint/no-unused-vars": [0, { "argsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-use-before-define": "off",
+    "object-curly-newline": ["error", {
+      "ImportDeclaration": "never"
+    }],
     "no-undefined": 0,
     "default-case": 0,
     "import/prefer-default-export": "off",

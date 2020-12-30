@@ -1,7 +1,11 @@
-import { expect } from 'chai';
+import { expect, use } from 'chai';
+import * as chaiAsPromised from 'chai-as-promised';
 import { BrowserStorage } from './identity/browserStorage';
 import { FileStorage } from './identity/fileStorage';
 import { IdentityStorage, Users } from './users';
+import { VaultBackupType } from './vault';
+
+use(chaiAsPromised.default);
 
 let storageDriver: IdentityStorage;
 
@@ -62,5 +66,14 @@ describe('Users...', () => {
       expect(usersFromStorage.list()).to.have.length(0);
       expect(storedIdentities).to.have.length(0);
     });
+  });
+
+  describe('recoverKeysByPassPhrase', () => {
+    it('should throw if vaultInit or vaultServiceConfig are missing', async () => {
+      const users = new Users(config);
+      await expect(users.recoverKeysByPassphrase('', '', VaultBackupType.Twitter)).to.eventually.be.rejected;
+    });
+
+    // it('should add new identity to identity storage', async () => {});
   });
 });

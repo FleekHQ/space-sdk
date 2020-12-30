@@ -1,5 +1,4 @@
-import { Users } from '@spacehq/users';
-import { BrowserStorage } from '@spacehq/users/dist/identity/browserStorage';
+import { BrowserStorage, Users, VaultBackupType } from '@spacehq/sdk';
 import { expect } from 'chai';
 import { TestsDefaultTimeout, TestUsersConfig } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
@@ -42,5 +41,20 @@ describe('Users interactions', () => {
       expect(usersFromStorage.list()).to.have.length(0);
       expect(storedIdentities).to.have.length(0);
     }).timeout(TestsDefaultTimeout);
+  });
+
+  describe('backup and recovery', () => {
+    it('user should be able to backup and recover via passphrase', async () => {
+      // create new anonymous user
+      const users = new Users(TestUsersConfig);
+      // backup users identity via passphrase
+      // try recovering users identity from a new users instance
+      const user = await users.recoverKeysByPassphrase(
+        '96f7a52f-b555-4d2e-93ec-f627539fd3ae',
+        '0xe8b1b9d782083f5217b017a113161f09eb0b6d4239d93b6cc639910ccbb06852',
+        VaultBackupType.Twitter,
+      );
+      // verify that user is in storage
+    });
   });
 });
