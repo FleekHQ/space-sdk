@@ -1,70 +1,34 @@
+import { PrivateKey } from '@textile/crypto';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
-import { BrowserStorage } from './identity/browserStorage';
-import { FileStorage } from './identity/fileStorage';
-import { IdentityStorage, Users } from './users';
+import { instance, mock, when } from 'ts-mockito';
+import { Users, UsersConfig } from './users';
 import { VaultBackupType } from './vault';
 
 use(chaiAsPromised.default);
 
-let storageDriver: IdentityStorage;
-
-// nodejs env
-if (process.env.TS_NODE_FILES) {
-  // eslint-disable-next-line global-require
-  global.WebSocket = require('ws');
-  storageDriver = new FileStorage(`/tmp/${Date.now()}.users.spec.ts`);
-} else {
-  storageDriver = new BrowserStorage();
-}
-
-// @todo: replace this by mocked service
-const endpoint = 'gqo1oqz055.execute-api.us-west-2.amazonaws.com/dev';
-const config = {
-  endpoint,
-};
-
 describe('Users...', () => {
+  const config: UsersConfig = {
+    endpoint: '',
+    authChallengeSolver: async () => ({
+      token: 'app-token',
+      storageAuth: {
+        key: '',
+        token: 'mock-auth-token',
+        sig: '',
+        msg: '',
+      },
+    }),
+  };
+
   describe('identity', () => {
     const users = new Users(config);
 
-    it('create and authenticate', async function () {
-      this.timeout(10000);
+    it('create and authenticate', async () => {
       const identity = await users.createIdentity();
       const user = await users.authenticate(identity);
-      expect(user).to.have.property('token');
-      expect(user).to.have.property('storageAuth');
-    });
-  });
 
-  describe('identity storage', () => {
-    it('create & authenticate & remove', async function () {
-      this.timeout(10000);
-      // create new Users with browser storage
-      const users = await Users.withStorage(storageDriver, config);
-      const identity = await users.createIdentity();
-      const storedIds = await storageDriver.list();
-      // identity should be added into storage
-      expect(storedIds).to.have.length(1);
-      // we create fresh Users instance from storage
-      // users should be loaded (authenticated) from stored identities
-      const usersFromStorage = await Users.withStorage(storageDriver, config);
-      const spaceUsers = usersFromStorage.list();
-      // we expect 1 user is signed in
-      expect(spaceUsers).to.have.length(1);
-      const spaceUser = spaceUsers.shift();
-      expect(spaceUser).to.have.property('token');
-      expect(spaceUser).to.have.property('identity');
-      expect(spaceUser).to.have.property('storageAuth');
-
-      // identity must be matching
-      expect(spaceUser?.identity.public.toString()).to.equal(identity.public.toString());
-
-      // remove user identity
-      await usersFromStorage.remove(identity.public.toString());
-      const storedIdentities = await storageDriver.list();
-      expect(usersFromStorage.list()).to.have.length(0);
-      expect(storedIdentities).to.have.length(0);
+      expect(user.token).to.equal('app-token');
     });
   });
 
@@ -75,5 +39,26 @@ describe('Users...', () => {
     });
 
     // it('should add new identity to identity storage', async () => {});
+  });
+
+  describe('backupKeysByPassphrase', () => {
+    it('should throw if vaultInit or vaultServiceConfig is missing', async () => {
+      const users = new Users(config);
+      const mockIdentity: PrivateKey = mock();
+
+      await expect(
+        users.backupKeysByPassphrase('', '', VaultBackupType.Twitter, instance(mockIdentity)),
+      ).to.eventually.be.rejectedWith('Either vaultServiceConfig or vaultInit configuration is required.');
+    });
+
+    it('should throw if identity provided is not a private key', async () => {
+      const users = new Users(config);
+      const mockIdentity: PrivateKey = mock();
+      when(mockIdentity.privKey).thenReturn((null as unknown) as Uint8Array);
+
+      await expect(
+        users.backupKeysByPassphrase('', '', VaultBackupType.Twitter, instance(mockIdentity)),
+      ).to.eventually.be.rejectedWith('identity provided is not a valid PrivateKey Identity.');
+    });
   });
 });

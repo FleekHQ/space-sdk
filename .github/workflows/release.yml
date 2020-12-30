@@ -52,16 +52,16 @@ jobs:
         registry-url: https://registry.npmjs.org/
 
     - name: Install
-      run: npm install
+      run: yarn install
 
     - name: Boostrap
-      run: npm run bootstrap
+      run: yarn run bootstrap
 
     - name: Build
-      run: npm run build
+      run: yarn run build
 
     - name: Docs
-      run: npm run build:docs
+      run: yarn run build:docs
 
     - name: Copy Latest Docs
       run: |
@@ -70,7 +70,7 @@ jobs:
         touch pages/.nojekyll
 
     - name: Publish SDK
-      run: 'npm run publish:from -- --yes --no-verify-access'
+      run: 'yarn run publish:from -- --yes --no-verify-access'
       env:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

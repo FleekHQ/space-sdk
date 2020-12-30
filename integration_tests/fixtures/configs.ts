@@ -3,7 +3,7 @@ import { UsersConfig } from '@spacehq/sdk';
 // eslint-disable-next-line import/no-extraneous-dependencies
 require('dotenv').config({
   path: `${__dirname}/../.env`,
-  debug: true,
+  debug: false,
 });
 
 // @todo: replace this by mocked service

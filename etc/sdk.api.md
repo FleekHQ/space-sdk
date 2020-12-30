@@ -60,6 +60,17 @@ export interface AddItemsStatus {
 }
 
 // @public (undocumented)
+export class BrowserStorage {
+    constructor();
+    // (undocumented)
+    add(identity: Identity): Promise<void>;
+    // (undocumented)
+    list(): Promise<Identity[]>;
+    // (undocumented)
+    remove(key: string): Promise<void>;
+}
+
+// @public (undocumented)
 export interface CreateFolderRequest {
     bucket: string;
     path: string;
@@ -85,6 +96,17 @@ export interface DirectoryEntry {
 export class DirEntryNotFoundError extends Error {
     constructor(filePath: string, bucket: string);
 }
+
+// @public (undocumented)
+export class FileStorage {
+    constructor(filename: string);
+    // (undocumented)
+    add(identity: Identity): Promise<void>;
+    // (undocumented)
+    list(): Promise<Identity[]>;
+    // (undocumented)
+    remove(key: string): Promise<void>;
+    }
 
 // @public (undocumented)
 export interface IdentityStorage {
@@ -136,6 +158,14 @@ export interface SpaceUser {
     token: string;
 }
 
+// @public
+export class SpaceVaultService implements Vault {
+    constructor(config: VaultServiceConfig);
+    // (undocumented)
+    retrieve(uuid: string, passphrase: string, backupType: VaultBackupType): Promise<VaultItem[]>;
+    store(uuid: string, passphrase: string, backupType: VaultBackupType, items: VaultItem[], metadata: Record<string, string>): Promise<void>;
+}
+
 // @public (undocumented)
 export class UnauthenticatedError extends Error {
     constructor();
@@ -144,22 +174,25 @@ export class UnauthenticatedError extends Error {
 // @public
 export class Users {
     constructor(config: UsersConfig, storage?: IdentityStorage);
-    // (undocumented)
     authenticate(identity: Identity): Promise<SpaceUser>;
+    // (undocumented)
+    backupKeysByPassphrase(uuid: string, passphrase: string, backupType: VaultBackupType, identity: Identity): Promise<void>;
     // (undocumented)
     createIdentity(): Promise<Identity>;
     // (undocumented)
     list(): SpaceUser[];
+    recoverKeysByPassphrase(uuid: string, passphrase: string, backupType: VaultBackupType): Promise<SpaceUser>;
     // (undocumented)
     remove(publicKey: string): Promise<void>;
     // (undocumented)
     static withStorage(storage: IdentityStorage, config: UsersConfig, onError?: CallableFunction): Promise<Users>;
 }
 
-// @public (undocumented)
+// @public
 export interface UsersConfig {
-    // (undocumented)
     endpoint: string;
+    vaultInit?: () => Vault;
+    vaultServiceConfig?: VaultServiceConfig;
 }
 
 // @public
@@ -176,6 +209,52 @@ export interface UserStorageConfig {
     bucketsInit?: (auth: UserAuth) => Buckets;
     // (undocumented)
     textileHubAddress?: string;
+}
+
+// @public
+export interface Vault {
+    retrieve: (uuid: string, passphrase: string, backupType: VaultBackupType) => Promise<VaultItem[]>;
+    store: (uuid: string, passphrase: string, backupType: VaultBackupType, item: VaultItem[], metadata: Record<string, string>) => Promise<void>;
+}
+
+// @public (undocumented)
+export enum VaultBackupType {
+    // (undocumented)
+    Email = "email",
+    // (undocumented)
+    Google = "google",
+    // (undocumented)
+    Password = "password",
+    // (undocumented)
+    Twitter = "twitter"
+}
+
+// @public
+export interface VaultItem {
+    // (undocumented)
+    itemType: VaultItemType;
+    // (undocumented)
+    value: string;
+}
+
+// @public (undocumented)
+export enum VaultItemType {
+    // (undocumented)
+    PrivateKeyWithMnemonic = "PrivateKeyWithMnemonic"
+}
+
+// @public (undocumented)
+export interface VaultServiceConfig {
+    // (undocumented)
+    saltSecret: string;
+    // (undocumented)
+    serviceUrl: string;
+}
+
+// @public (undocumented)
+export enum VkVersion {
+    // (undocumented)
+    VkVersion1 = "V1"
 }
 
 

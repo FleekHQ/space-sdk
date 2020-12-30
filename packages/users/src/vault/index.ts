@@ -1,2 +1,2 @@
 export * from './types';
-export * from './vault';
+export { SpaceVaultService } from './vault';

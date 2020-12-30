@@ -31,11 +31,29 @@ This involves managing users and their identities.
 ```typescript
 import { Users } from '@spacehq/sdk';
 
-const users = new Users({ endpoint: 'https://identity-service-endpoint.com' });
+const users = new Users({ endpoint: 'wss://auth-dev.space.storage' });
+
+// createIdentity generate a random keypair identity
 const identity = await users.createIdentity();
+
+// the new keypair can be used to authenticate a new user
+// `users.authenticate()` generates hub API session tokens for the keypair identity.
 const user = await users.authenticate(identity);
 // `user` can be used with the storage class to provide identity.
+
+// user's identity can also be backed up with a special recovery phrase
+const uuid = 'specify-uuid-representing-user-in-your-system';
+const passphrase = 'specify-unique-pass-phrase-related-to-backup-type';
+const backupType = VaultBackupType.Google;
+await users.backupKeysByPassphrase(uuid, passphrase, backupType, user.identity);
+
+// backed up users identity can also be recovered later
+const recoveredUser = await users.recoverKeysByPassphrase(uuid, passphrase, backupType);
+// `recoveredUser` has same authentication as `user` above.
 ```
+
+Check the [User's](https://fleekhq.github.io/space-sdk/docs/sdk.users) class for more examples of how to manage users
+with the sdk. 
 
 ### 2. Storage
 This involves operations to create and list files and directories in space storage.

@@ -1,20 +1,36 @@
 import { Identity, PrivateKey } from '@textile/crypto';
-import { Libp2pCryptoIdentity } from '@textile/threads-core';
-import { keys } from '@textile/threads-crypto';
 import _ from 'lodash';
 import 'websocket-polyfill';
-import { marshalRawPrivateKey } from './utils/keysUtils';
-import { getPrivateKeyFromVaultItem, SpaceVaultService, Vault, VaultBackupType, VaultServiceConfig } from './vault';
+import { getPrivateKeyFromVaultItem, getVaultItemFromPrivateKey } from './utils/vaultUtils';
+import { SpaceVaultService, Vault, VaultBackupType, VaultServiceConfig } from './vault';
 
-interface TextileStorageAuth {
+export interface TextileStorageAuth {
   key: string;
   token: string;
   sig: string;
   msg: string;
 }
 
+/**
+ * Space service Hub Auth challenge response
+ *
+ * @internal
+ */
+export interface HubAuthResponse {
+  token: string;
+  storageAuth?: TextileStorageAuth;
+}
+
+/**
+ * Represents an authenticated KeyPair identity with valid API session token.
+ *
+ */
 export interface SpaceUser {
   identity: Identity;
+  /**
+   * token is the service token. It can be used to interact with the identity service.
+   *
+   */
   token: string;
   storageAuth?: TextileStorageAuth;
 }
@@ -24,6 +40,8 @@ export interface IdentityStorage {
   add: (identity: Identity) => Promise<void>;
   remove: (key: string) => Promise<void>;
 }
+
+const privateKeyBytes = 32;
 
 /**
  * Configuration option provided to the {@link Users} class.
@@ -42,14 +60,12 @@ export interface UsersConfig {
    */
   vaultServiceConfig?: VaultServiceConfig;
   /**
-   *
-   */
-  /**
    * Optional {@link @spacehq/sdk#Vault} factory function.
    *
    * If provided the default VaultService with provided config will not be used for authentication.
    */
   vaultInit?: () => Vault;
+  authChallengeSolver?: (identity: Identity) => Promise<HubAuthResponse>;
 }
 
 /**
@@ -115,6 +131,10 @@ export class Users {
     return users;
   }
 
+  /**
+   * createIdentity generates a random keypair identity.
+   *
+   */
   async createIdentity(): Promise<Identity> {
     const id = PrivateKey.fromRandom();
     if (this.storage) {
@@ -123,6 +143,10 @@ export class Users {
     return id;
   }
 
+  /**
+   * List all in memory {@link SpaceUser} that have been authenticated so far.
+   *
+   */
   list(): SpaceUser[] {
     return _.values(this.users);
   }
@@ -136,22 +160,32 @@ export class Users {
   }
 
   /**
-   * Authenticates the identity against the hub.
+   * Authenticates the random keypair identity against the hub. Generating an appToken API Session token.
    *
    * If authentication succeeds, a SpaceUser object that can be used with the UserStorage class is returned.
    *
    * @param identity - User identity
    */
   async authenticate(identity: Identity): Promise<SpaceUser> {
-    return new Promise((resolve, reject) => {
-      const socketUrl = `wss://${this.config.endpoint}`;
+    let storageAuth: HubAuthResponse;
+    if (this.config.authChallengeSolver) {
+      storageAuth = await this.config.authChallengeSolver(identity);
+    } else {
+      storageAuth = await this.spaceAuthChallengeSolver(identity);
+    }
 
-      /** Initialize our websocket connection */
-      const socket = new WebSocket(socketUrl);
+    const spaceUser = { ...storageAuth, identity };
+    this.users[identity.public.toString()] = spaceUser;
+
+    return spaceUser;
+  }
+
+  private spaceAuthChallengeSolver(identity: Identity): Promise<HubAuthResponse> {
+    return new Promise((resolve, reject) => {
+      const socket = new WebSocket(this.config.endpoint);
 
       /** Wait for our socket to open successfully */
       socket.onopen = () => {
-        /** Get public key string */
         const publicKey = identity.public.toString();
 
         /** Send a new token request */
@@ -191,9 +225,7 @@ export class Users {
             /** New token generated */
             case 'token': {
               socket.close();
-              const spaceUser = { ...data.value, identity };
-              this.users[identity.public.toString()] = spaceUser;
-              resolve(spaceUser);
+              resolve(data.value);
               break;
             }
           }
@@ -203,7 +235,7 @@ export class Users {
   }
 
   /**
-   * Recovers users identity key information from the passphrase provided.
+   * Recovers users identity key information using the passphrase provided.
    *
    * If successfully recovered, the users information is stored in the `IdentityStorage` (if provided)
    * when initializing the users class.
@@ -219,11 +251,35 @@ export class Users {
   ): Promise<SpaceUser> {
     const vaultItems = await this.vault.retrieve(uuid, passphrase, backupType);
     const privKey = getPrivateKeyFromVaultItem(vaultItems[0]);
-    const key = await keys.unmarshalPrivateKey(marshalRawPrivateKey(privKey));
-    const identity = new Libp2pCryptoIdentity(key);
+    const identity = new PrivateKey(privKey.slice(0, privateKeyBytes));
     const user = await this.authenticate(identity);
     await this.storage?.add(identity);
     return user;
+  }
+
+  /**
+   * Backup the existing users identity key information using the passphrase provided.
+   *
+   * `Identity` can be gotten from {@link @spacehq/sdk#SpaceUser} gotten after a successful authentication
+   * or recovery.
+   *
+   * @param uuid - users unique vault id
+   * @param passphrase - users passphrase used to recover keys
+   * @param backupType - Type of vault backup the passphrase originates from
+   * @param identity - Identity containing private key of user to backup
+   */
+  public async backupKeysByPassphrase(
+    uuid: string,
+    passphrase: string,
+    backupType: VaultBackupType,
+    identity: Identity,
+  ): Promise<void> {
+    const user = await this.authenticate(identity);
+
+    const pk = await this.getPrivKeyFromIdentity(identity);
+    await this.vault.store(uuid, passphrase, backupType, [getVaultItemFromPrivateKey(Buffer.from(pk))], {
+      sessionToken: user.token,
+    });
   }
 
   private get vault(): Vault {
@@ -236,9 +292,40 @@ export class Users {
     } else if (this.config.vaultServiceConfig) {
       this.vaultObj = new SpaceVaultService(this.config.vaultServiceConfig);
     } else {
-      throw Error('Either vaultServiceConfig or vaultInit configuration is required.');
+      throw new Error('Either vaultServiceConfig or vaultInit configuration is required.');
     }
 
     return this.vaultObj;
+  }
+
+  /**
+   * Tries to get the private key from the Identity object provided.
+   * if none found, then tries to get it from the identity storage if provided
+   *
+   * @private
+   */
+  private async getPrivKeyFromIdentity(identity: Identity): Promise<Uint8Array> {
+    if ((identity as PrivateKey).privKey) {
+      return (identity as PrivateKey).privKey;
+    }
+
+    // check users cache
+    if (this.users[identity.public.toString()]) {
+      const user = this.users[identity.public.toString()];
+      if ((user.identity as PrivateKey).privKey) {
+        return (user.identity as PrivateKey).privKey;
+      }
+    }
+
+    // check identity storage
+    if (this.storage) {
+      const identities = await this.storage.list();
+      const foundPk = identities.find((value) => value.public.toString() === identity.public.toString());
+      if (foundPk && (foundPk as PrivateKey).privKey) {
+        return (foundPk as PrivateKey).privKey;
+      }
+    }
+
+    throw new Error('identity provided is not a valid PrivateKey Identity.');
   }
 }

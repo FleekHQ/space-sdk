@@ -1,13 +1,9 @@
 import { Identity } from '@textile/crypto';
-import {
- Buckets, PathItem, PushPathResult, Root
-} from '@textile/hub';
+import { Buckets, PathItem, PushPathResult, Root } from '@textile/hub';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
-import {
- anyString, anything, deepEqual, instance, mock, verify, when
-} from 'ts-mockito';
+import { anyString, anything, deepEqual, instance, mock, verify, when } from 'ts-mockito';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import { makeAsyncIterableString } from './testHelpers';
 import { AddItemsEventData } from './types';

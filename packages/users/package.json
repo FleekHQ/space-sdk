@@ -36,8 +36,6 @@
   },
   "dependencies": {
     "@textile/crypto": "^2.0.0",
-    "@textile/threads-core": "^0.3.1",
-    "@textile/threads-crypto": "^0.1.5",
     "@types/lodash": "^4.14.165",
     "axios": "^0.21.1",
     "crypto-browserify": "^3.12.0",

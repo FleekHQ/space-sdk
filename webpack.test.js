@@ -1,8 +1,14 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const path = require('path');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = {
   target: 'web',
+  plugins: [
+    new Dotenv({
+      path: 'integration_tests/.env',
+      safe: 'integration_tests/test.env',
+    }),
+  ],
   module: {
     rules: [
       {
