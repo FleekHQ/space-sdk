@@ -107,9 +107,11 @@
 <tr><th>Method</th><th>Modifiers</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><a href="/space-sdk/docs/sdk.users.authenticate">authenticate(identity)</a></td><td></td><td></td></tr>
-<tr><td><a href="/space-sdk/docs/sdk.users.createidentity">createIdentity()</a></td><td></td><td></td></tr>
-<tr><td><a href="/space-sdk/docs/sdk.users.list">list()</a></td><td></td><td></td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.users.authenticate">authenticate(identity)</a></td><td></td><td>Authenticates the random keypair identity against the hub. Generating an appToken API Session token.<!-- -->If authentication succeeds, a SpaceUser object that can be used with the UserStorage class is returned.</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.users.backupkeysbypassphrase">backupKeysByPassphrase(uuid, passphrase, backupType, identity)</a></td><td></td><td>Backup the existing users identity key information using the passphrase provided.<code>Identity</code> can be gotten from <a href="/space-sdk/docs/sdk.spaceuser">SpaceUser</a> gotten after a successful authentication or recovery.</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.users.createidentity">createIdentity()</a></td><td></td><td>createIdentity generates a random keypair identity.</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.users.list">list()</a></td><td></td><td>List all in memory <a href="/space-sdk/docs/sdk.spaceuser">SpaceUser</a> that have been authenticated so far.</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.users.recoverkeysbypassphrase">recoverKeysByPassphrase(uuid, passphrase, backupType)</a></td><td></td><td>Recovers users identity key information using the passphrase provided.<!-- -->If successfully recovered, the users information is stored in the <code>IdentityStorage</code> (if provided) when initializing the users class.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.users.remove">remove(publicKey)</a></td><td></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.users.withstorage">withStorage(storage, config, onError)</a></td><td><code>static</code></td><td></td></tr>
 </tbody>
