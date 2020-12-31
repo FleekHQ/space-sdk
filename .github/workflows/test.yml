@@ -21,28 +21,33 @@ jobs:
           node-version: 12
 
       - name: Install
-        run: npm install
+        run: yarn install
 
       - name: Boostrap
-        run: npm run bootstrap
+        run: yarn run bootstrap
 
       - name: Build All
         run: |
-          npm run build
+          yarn run build
 
       - name: Test Node
         run: |
-          npm run test:node
+          yarn run test:node
 
       - name: Test Browser
         run: |
-          npm run test:browser
+          yarn run test:browser
 
+      - name: Setup Integration Test Env
+        run: |
+          echo HUB_AUTH_ENDPOINT=${{ secrets.HUB_AUTH_ENDPOINT }} >> integration_tests/.env
+          echo VAULT_API_URL=${{ secrets.VAULT_API_URL }} >> integration_tests/.env
+          echo VAULT_SALT_SECRET=${{ secrets.VAULT_SALT_SECRET }} >> integration_tests/.env
       - name: Integrations tests
-        run: npm run test:integration
+        run: yarn run test:integration
 
       - name: Test Examples
         run: |
-          npm run docs
+          yarn run docs
 #          npm run test:docs # disabled for now because typescript-docs-verifier not working well with docs
 

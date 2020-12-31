@@ -17,6 +17,8 @@
       "sdk.users.authenticate",
       "sdk.users.withstorage",
       "sdk.users.createidentity",
+      "sdk.users.recoverkeysbypassphrase",
+      "sdk.users.backupkeysbypassphrase",
       "sdk.users.list",
       "sdk.users.remove"
     ],
