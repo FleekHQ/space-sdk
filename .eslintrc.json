@@ -6,13 +6,12 @@
     "node": true
   },
   "extends": [
-    "plugin:prettier/recommended",
     "airbnb/base",
     "plugin:@typescript-eslint/recommended",
     "prettier/@typescript-eslint",
     "plugin:mocha/recommended"
   ],
-  "plugins": ["@typescript-eslint", "prettier", "mocha"],
+  "plugins": ["@typescript-eslint", "mocha"],
   "globals": {
     "Atomics": "readonly",
     "SharedArrayBuffer": "readonly"
@@ -23,7 +22,6 @@
     "sourceType": "module"
   },
   "rules": {
-    "prettier/prettier": "error",
     "@typescript-eslint/explicit-function-return-type": 0,
     "@typescript-eslint/no-explicit-any": 0,
     "@typescript-eslint/explicit-member-accessibility": 0,
