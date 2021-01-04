@@ -1,4 +1,4 @@
-import { Identity } from '@textile/crypto';
+import { Identity, PrivateKey } from '@textile/crypto';
 import { Buckets, PathItem, PushPathResult, Root } from '@textile/hub';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
@@ -12,11 +12,11 @@ import { UserStorage } from './userStorage';
 use(chaiAsPromised.default);
 use(chaiSubset.default);
 
-const mockIdentity: Identity = mock();
+const mockIdentity: Identity = PrivateKey.fromRandom();
 
 const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } => {
   const mockBuckets: Buckets = mock();
-  when(mockBuckets.getOrCreate(anyString())).thenReturn(
+  when(mockBuckets.getOrCreate(anyString(), anything())).thenReturn(
     Promise.resolve({
       root: {
         ...mock<Root>(),
@@ -27,7 +27,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
 
   const storage = new UserStorage(
     {
-      identity: instance(mockIdentity),
+      identity: mockIdentity,
       token: '',
       storageAuth: {
         key: 'random-key',
@@ -47,7 +47,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
 describe('UserStorage', () => {
   describe('createFolder()', () => {
     it('should throw error if user is not authenticated', async () => {
-      const storage = new UserStorage({ identity: instance(mockIdentity), token: '' });
+      const storage = new UserStorage({ identity: mockIdentity, token: '' });
       await expect(storage.createFolder({ bucket: '', path: '' })).to.eventually.be.rejectedWith(UnauthenticatedError);
     });
 
@@ -72,7 +72,7 @@ describe('UserStorage', () => {
 
   describe('listDirectory()', () => {
     it('should throw error if user is not authenticated', async () => {
-      const storage = new UserStorage({ identity: instance(mockIdentity), token: '' });
+      const storage = new UserStorage({ identity: mockIdentity, token: '' });
       await expect(storage.listDirectory({ bucket: 'bucket', path: '' })).to.eventually.be.rejectedWith(
         UnauthenticatedError,
       );
@@ -110,7 +110,7 @@ describe('UserStorage', () => {
 
   describe('openFile()', () => {
     it('should throw error if user is not authenticated', async () => {
-      const storage = new UserStorage({ identity: instance(mockIdentity), token: '' });
+      const storage = new UserStorage({ identity: mockIdentity, token: '' });
       await expect(storage.openFile({ bucket: 'bucket', path: '' })).to.eventually.be.rejectedWith(
         UnauthenticatedError,
       );

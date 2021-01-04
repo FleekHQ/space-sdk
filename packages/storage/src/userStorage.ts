@@ -1,5 +1,6 @@
 import { SpaceUser } from '@spacehq/users';
-import { Buckets, PathItem, UserAuth } from '@textile/hub';
+import { PrivateKey } from '@textile/crypto'
+import { Buckets, PathItem, UserAuth, GetOrCreateResponse } from '@textile/hub';
 import ee from 'event-emitter';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import {
@@ -15,6 +16,7 @@ import {
 } from './types';
 import { sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
+import { getDeterministicThreadID } from './utils/threadsUtils'
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -59,7 +61,7 @@ export class UserStorage {
   public async createFolder(request: CreateFolderRequest): Promise<void> {
     const client = this.getUserBucketsClient();
 
-    const bucket = await client.getOrCreate(request.bucket);
+    const bucket = await this.getOrCreateBucket(client, request.bucket);
     const file = {
       path: `${sanitizePath(request.path.trimStart())}/.keep`,
       content: Buffer.from(''),
@@ -81,7 +83,7 @@ export class UserStorage {
    */
   public async listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse> {
     const client = this.getUserBucketsClient();
-    const bucket = await client.getOrCreate(request.bucket);
+    const bucket = await this.getOrCreateBucket(client, request.bucket);
     const path = sanitizePath(request.path);
 
     const depth = request.recursive ? Number.MAX_SAFE_INTEGER : 1;
@@ -119,7 +121,7 @@ export class UserStorage {
    */
   public async openFile(request: OpenFileRequest): Promise<OpenFileResponse> {
     const client = this.getUserBucketsClient();
-    const bucket = await client.getOrCreate(request.bucket);
+    const bucket = await this.getOrCreateBucket(client, request.bucket);
     const path = sanitizePath(request.path);
 
     try {
@@ -182,7 +184,7 @@ export class UserStorage {
    */
   public async addItems(request: AddItemsRequest): Promise<AddItemsResponse> {
     const client = this.getUserBucketsClient();
-    const bucket = await client.getOrCreate(request.bucket);
+    const bucket = await this.getOrCreateBucket(client, request.bucket);
     const emitter = ee();
 
     // using setImmediate here to ensure a cycle is skipped
@@ -233,6 +235,12 @@ export class UserStorage {
     }
 
     return summary;
+  }
+
+  private async getOrCreateBucket(client: Buckets, name: string): Promise<GetOrCreateResponse> {
+    return client.getOrCreate(name, {
+      threadID: getDeterministicThreadID(this.user.identity as PrivateKey).toString(),
+    });
   }
 
   private getUserBucketsClient(): Buckets {
