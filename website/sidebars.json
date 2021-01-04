@@ -9,7 +9,9 @@
     ],
     "Storage API": [
       "sdk.userstorage",
-      "sdk.identitystorage"
+      "sdk.identitystorage",
+      "sdk.browserstorage",
+      "sdk.filestorage"
     ]
   },
   "users-docs": {

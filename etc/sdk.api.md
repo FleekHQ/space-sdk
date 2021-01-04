@@ -59,7 +59,7 @@ export interface AddItemsStatus {
     status: 'success' | 'error';
 }
 
-// @public (undocumented)
+// @public
 export class BrowserStorage {
     constructor();
     // (undocumented)
@@ -97,7 +97,7 @@ export class DirEntryNotFoundError extends Error {
     constructor(filePath: string, bucket: string);
 }
 
-// @public (undocumented)
+// @public
 export class FileStorage {
     constructor(filename: string);
     // (undocumented)
@@ -108,7 +108,17 @@ export class FileStorage {
     remove(key: string): Promise<void>;
     }
 
-// @public (undocumented)
+// Warning: (ae-internal-missing-underscore) The name "HubAuthResponse" should be prefixed with an underscore because the declaration is marked as @internal
+//
+// @internal
+export interface HubAuthResponse {
+    // (undocumented)
+    storageAuth?: TextileStorageAuth;
+    // (undocumented)
+    token: string;
+}
+
+// @public
 export interface IdentityStorage {
     // (undocumented)
     add: (identity: Identity) => Promise<void>;
@@ -146,15 +156,12 @@ export interface OpenFileResponse {
     stream: AsyncIterableIterator<Uint8Array>;
 }
 
-// @public (undocumented)
+// @public
 export interface SpaceUser {
     // (undocumented)
     identity: Identity;
-    // Warning: (ae-forgotten-export) The symbol "TextileStorageAuth" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     storageAuth?: TextileStorageAuth;
-    // (undocumented)
     token: string;
 }
 
@@ -167,6 +174,18 @@ export class SpaceVaultService implements Vault {
 }
 
 // @public (undocumented)
+export interface TextileStorageAuth {
+    // (undocumented)
+    key: string;
+    // (undocumented)
+    msg: string;
+    // (undocumented)
+    sig: string;
+    // (undocumented)
+    token: string;
+}
+
+// @public (undocumented)
 export class UnauthenticatedError extends Error {
     constructor();
 }
@@ -175,21 +194,20 @@ export class UnauthenticatedError extends Error {
 export class Users {
     constructor(config: UsersConfig, storage?: IdentityStorage);
     authenticate(identity: Identity): Promise<SpaceUser>;
-    // (undocumented)
     backupKeysByPassphrase(uuid: string, passphrase: string, backupType: VaultBackupType, identity: Identity): Promise<void>;
-    // (undocumented)
     createIdentity(): Promise<Identity>;
-    // (undocumented)
     list(): SpaceUser[];
     recoverKeysByPassphrase(uuid: string, passphrase: string, backupType: VaultBackupType): Promise<SpaceUser>;
-    // (undocumented)
     remove(publicKey: string): Promise<void>;
-    // (undocumented)
     static withStorage(storage: IdentityStorage, config: UsersConfig, onError?: CallableFunction): Promise<Users>;
 }
 
 // @public
 export interface UsersConfig {
+    // Warning: (ae-incompatible-release-tags) The symbol "authChallengeSolver" is marked as @public, but its signature references "HubAuthResponse" which is marked as @internal
+    //
+    // (undocumented)
+    authChallengeSolver?: (identity: Identity) => Promise<HubAuthResponse>;
     endpoint: string;
     vaultInit?: () => Vault;
     vaultServiceConfig?: VaultServiceConfig;
@@ -223,8 +241,6 @@ export enum VaultBackupType {
     Email = "email",
     // (undocumented)
     Google = "google",
-    // (undocumented)
-    Password = "password",
     // (undocumented)
     Twitter = "twitter"
 }

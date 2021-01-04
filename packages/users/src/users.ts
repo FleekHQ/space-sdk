@@ -35,6 +35,12 @@ export interface SpaceUser {
   storageAuth?: TextileStorageAuth;
 }
 
+/**
+ * An IdentityStorage handles persistence of Identity for the {@link Users} class.
+ *
+ * The sdk provides two implementation for this.
+ * See {@link @spacehq/sdk#BrowserStorage} and {@link @spacehq/sdk#FileStorage}.
+ */
 export interface IdentityStorage {
   list: () => Promise<Identity[]>;
   add: (identity: Identity) => Promise<void>;
@@ -121,6 +127,9 @@ export class Users {
     this.users = {};
   }
 
+  /**
+   * Creates a users
+   */
   static async withStorage(storage: IdentityStorage, config: UsersConfig, onError?: CallableFunction) {
     const identities = await storage.list();
     const users = new Users(config, storage);
@@ -151,6 +160,13 @@ export class Users {
     return _.values(this.users);
   }
 
+  /**
+   * Removes the users identity from list of authenticated users.
+   *
+   * It also removes the identity from the {@link IdentityStorage} provided.
+   *
+   * @param publicKey - public key of users identity
+   */
   async remove(publicKey: string): Promise<void> {
     if (this.storage) {
       await this.storage.remove(publicKey);
