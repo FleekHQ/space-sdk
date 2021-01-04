@@ -2,7 +2,13 @@ import { Identity, PrivateKey } from '@textile/crypto';
 import fs from 'fs';
 import _ from 'lodash';
 
-// experimental, do not use yet
+/**
+ * FileStorage is an {@link @spacehq/sdk#IdentityStorage} implementation that works in the browser.
+ *
+ * NOTE: This is experimental, you might want to roll your own IdentityStorage of early.
+ *
+ * @experimental
+ */
 export class FileStorage {
   private filename: string;
 

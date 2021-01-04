@@ -1,6 +1,10 @@
 import { Identity, PrivateKey } from '@textile/crypto';
 import localForage from 'localforage';
 
+/**
+ * BrowserStorage is an {@link @spacehq/sdk#IdentityStorage} implementation that works in the browser.
+ *
+ */
 export class BrowserStorage {
   private db: LocalForage;
 
