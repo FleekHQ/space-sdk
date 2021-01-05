@@ -99,7 +99,7 @@ If you are already familiar with the space daemon and its gRPC methods and would
 here are some pointers on how those gRPC methods correspond to functionalities exposed by the space-sdk.
 
 ### Key Pairs (GenerateKeyPair)
-In the sdk the concept of Key Pairs is represented as an [`Identity`](https://fleekhq.github.io/space-sdk/docs/sdk.public).
+In the sdk the concept of Key Pairs is represented as an [`Identity`](https://fleekhq.github.io/space-sdk/docs/sdk.identity).
 To create a new Identity similar to the `GenerateKeyPair` method, you would do:
 
 ```typescript
