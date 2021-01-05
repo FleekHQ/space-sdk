@@ -11,7 +11,7 @@
 <tr><th>Property</th><th>Type</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><a href="/space-sdk/docs/sdk.usersconfig.authchallengesolver">authChallengeSolver?</a></td><td>(identity: Identity) =&gt; Promise&lt;HubAuthResponse&gt;</td><td><i>(Optional)</i></td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.usersconfig.authchallengesolver">authChallengeSolver?</a></td><td>(identity: <a href="/space-sdk/docs/sdk.identity">Identity</a><!-- -->) =&gt; Promise&lt;HubAuthResponse&gt;</td><td><i>(Optional)</i></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.usersconfig.endpoint">endpoint</a></td><td>string</td><td>Hub auth service endpoint</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.usersconfig.vaultinit">vaultInit?</a></td><td>() =&gt; <a href="/space-sdk/docs/sdk.vault">Vault</a></td><td><i>(Optional)</i> Optional <a href="/space-sdk/docs/sdk.vault">Vault</a> factory function.<!-- -->If provided the default VaultService with provided config will not be used for authentication.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.usersconfig.vaultserviceconfig">vaultServiceConfig?</a></td><td><a href="/space-sdk/docs/sdk.vaultserviceconfig">VaultServiceConfig</a></td><td><i>(Optional)</i> Vault Service Configuration. Either this is provided or the <code>vaultInit</code> function is provided or else initializing the users class will throw an error.</td></tr>
