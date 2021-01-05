@@ -5,7 +5,6 @@
 ```ts
 
 import { Buckets } from '@textile/hub';
-import { Identity } from '@textile/crypto';
 import { UserAuth } from '@textile/hub';
 
 // @public (undocumented)
@@ -119,6 +118,12 @@ export interface HubAuthResponse {
 }
 
 // @public
+export interface Identity {
+    public: Public;
+    sign(data: Uint8Array): Promise<Uint8Array>;
+}
+
+// @public
 export interface IdentityStorage {
     // (undocumented)
     add: (identity: Identity) => Promise<void>;
@@ -154,6 +159,13 @@ export interface OpenFileResponse {
     consumeStream: () => Promise<Uint8Array>;
     // (undocumented)
     stream: AsyncIterableIterator<Uint8Array>;
+}
+
+// @public
+export interface Public {
+    bytes: Uint8Array;
+    pubKey: Uint8Array;
+    verify(data: Uint8Array, sig: Uint8Array): Promise<boolean>;
 }
 
 // @public

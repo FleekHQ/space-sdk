@@ -99,7 +99,7 @@ If you are already familiar with the space daemon and its gRPC methods and would
 here are some pointers on how those gRPC methods correspond to functionalities exposed by the space-sdk.
 
 ### Key Pairs (GenerateKeyPair)
-In the sdk the concept of Key Pairs is represented as an `Identity`.
+In the sdk the concept of Key Pairs is represented as an [`Identity`](https://fleekhq.github.io/space-sdk/docs/sdk.public).
 To create a new Identity similar to the `GenerateKeyPair` method, you would do:
 
 ```typescript
@@ -183,7 +183,7 @@ method, the `SpaceUser` returns is also authenticated and has the session tokens
 
 ### GetPublicKey
 In space daemon `GetPublicKey` returned the id of the current keypair in keychain, but since space-sdk returns the `identity`
-object. You can get the public key for a particular identity through `identity.public.toString()`.
+object. You can get the public key bytes for a particular identity through `identity.public.pubKey`.
 
 Also, an authenticated [`SpaceUser`](https://fleekhq.github.io/space-sdk/docs/sdk.spaceuser) identity can be found in the `identity` field.
 

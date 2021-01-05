@@ -1,5 +1,6 @@
-import { Identity, PrivateKey } from '@textile/crypto';
+import { PrivateKey } from '@textile/crypto';
 import localForage from 'localforage';
+import { Identity } from '../types';
 
 /**
  * BrowserStorage is an {@link @spacehq/sdk#IdentityStorage} implementation that works in the browser.

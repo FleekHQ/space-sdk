@@ -1,4 +1,5 @@
-import { Identity, PrivateKey } from '@textile/crypto';
+import { Identity } from '@spacehq/users';
+import { PrivateKey } from '@textile/crypto';
 import { Buckets, PathItem, PushPathResult, Root } from '@textile/hub';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';

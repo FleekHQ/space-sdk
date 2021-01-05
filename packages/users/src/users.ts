@@ -1,6 +1,7 @@
-import { Identity, PrivateKey } from '@textile/crypto';
+import { PrivateKey } from '@textile/crypto';
 import _ from 'lodash';
 import 'websocket-polyfill';
+import { Identity } from './types';
 import { getPrivateKeyFromVaultItem, getVaultItemFromPrivateKey } from './utils/vaultUtils';
 import { SpaceVaultService, Vault, VaultBackupType, VaultServiceConfig } from './vault';
 

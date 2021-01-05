@@ -1,5 +1,5 @@
 import { SpaceUser } from '@spacehq/users';
-import { PrivateKey } from '@textile/crypto'
+import { PrivateKey } from '@textile/crypto';
 import { Buckets, PathItem, UserAuth, GetOrCreateResponse } from '@textile/hub';
 import ee from 'event-emitter';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
@@ -16,7 +16,7 @@ import {
 } from './types';
 import { sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
-import { getDeterministicThreadID } from './utils/threadsUtils'
+import { getDeterministicThreadID } from './utils/threadsUtils';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;

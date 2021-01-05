@@ -29,7 +29,8 @@
       "sdk.spaceuser.token"
     ],
     "Types": [
-      "sdk.userconfig"
+      "sdk.userconfig",
+      "sdk.identity"
     ]
   },
   "storage-docs": {
