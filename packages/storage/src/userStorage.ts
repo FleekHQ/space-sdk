@@ -2,6 +2,7 @@ import { SpaceUser } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
 import { Buckets, PathItem, UserAuth, GetOrCreateResponse } from '@textile/hub';
 import ee from 'event-emitter';
+import { utils } from 'mocha';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import {
   AddItemsRequest,
@@ -9,6 +10,7 @@ import {
   AddItemsResultSummary,
   AddItemsStatus,
   CreateFolderRequest,
+  DirectoryEntry,
   ListDirectoryRequest,
   ListDirectoryResponse,
   OpenFileRequest,
@@ -16,6 +18,7 @@ import {
 } from './types';
 import { sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
+import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
 
 export interface UserStorageConfig {
@@ -70,6 +73,35 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
+  private static parsePathItems(its: PathItem[]): DirectoryEntry[] {
+    const filteredEntries = its.filter((it:PathItem)=> {return !isMetaFileName(it.name)});
+
+    const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
+      console.log("Processing path item: ", it);
+
+      const relPathRegex = new RegExp(`\/ip(f|n)s\/[^\/]*(?P<relPath>\/.*)`);
+      const paths = relPathRegex.exec(it.path);
+
+      if (!paths){
+        throw new Error("Unable to regex parse the path");
+      }
+
+      let relPath:string;
+      if (paths.length > 2) {
+        relPath = paths[2];
+      }else{
+        relPath = it.path;
+      }
+
+      return ({
+        ...it,
+        entries: it.items,
+      })
+    });
+
+    return des;
+  }
+
   /**
    * Returns all bucket entries at the specified path.
    *
@@ -90,8 +122,14 @@ export class UserStorage {
     try {
       const result = await client.listPath(bucket.root?.key || '', path, depth);
 
+      if(!result.item || !result.item.items){
+        return {
+          items: [],
+        }
+      }
+
       return {
-        items: result.item?.items?.map((it: PathItem) => ({ ...it, entries: it.items })) || [],
+        items: UserStorage.parsePathItems(result.item?.items) || [],
       };
     } catch (e) {
       if (e.message.includes('no link named')) {

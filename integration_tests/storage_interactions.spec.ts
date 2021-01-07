@@ -83,6 +83,9 @@ describe('Users storing data', () => {
       },
     ]);
 
+    const listFolderRec = await storage.listDirectory({ bucket: 'personal', path: '',recursive: true });
+    console.log("listFolderRec: ", listFolderRec)
+
     // validate content of top.txt file
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/top.txt' });
     const actualTxtContent = await fileResponse.consumeStream();
