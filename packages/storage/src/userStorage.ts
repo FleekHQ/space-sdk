@@ -1,9 +1,10 @@
 import { SpaceUser } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
-import { Buckets, PathItem, UserAuth, GetOrCreateResponse, PathAccessRole } from '@textile/hub';
+import { Buckets, PathItem, UserAuth, GetOrCreateResponse, PathAccessRole, Root } from '@textile/hub';
 import ee from 'event-emitter';
 import { utils } from 'mocha';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
+import { BucketMetadata, UserMetadataStore } from './metadata/metadataStore';
 import {
   AddItemsRequest,
   AddItemsResponse,
@@ -20,7 +21,7 @@ import {
 import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
-import { getDeterministicThreadID } from './utils/threadsUtils';
+import { getDeterministicThreadID, getManagedThreadKey, ThreadKeyVariant } from './utils/threadsUtils';
 import { stringify } from 'querystring';
 
 export interface UserStorageConfig {
@@ -33,10 +34,16 @@ export interface UserStorageConfig {
    * @param auth - Textile UserAuth object to initialize bucket
    */
   bucketsInit?: (auth: UserAuth) => Buckets;
+  metadataStoreInit?: (auth: UserAuth) => UserMetadataStore;
 }
 
 // TODO: Change this to prod value
 const DefaultTextileHubAddress = 'http://textile-hub-dev.fleek.co:3007';
+
+interface BucketMetadataWithThreads extends BucketMetadata {
+  root?: Root
+  threadId?: string;
+}
 
 /**
  * UserStorage performs storage actions on behalf of the user provided.
@@ -53,6 +60,10 @@ const DefaultTextileHubAddress = 'http://textile-hub-dev.fleek.co:3007';
  * ```
  */
 export class UserStorage {
+  // private field to cache created store
+  // use the metadataStore getter to access this
+  private userMetadataStore?: UserMetadataStore;
+
   constructor(private readonly user: SpaceUser, private readonly config: UserStorageConfig = {}) {
     this.config.textileHubAddress = this.config.textileHubAddress ?? DefaultTextileHubAddress;
   }
@@ -326,10 +337,14 @@ export class UserStorage {
     return summary;
   }
 
-  private async getOrCreateBucket(client: Buckets, name: string): Promise<GetOrCreateResponse> {
-    return client.getOrCreate(name, {
-      threadID: getDeterministicThreadID(this.user.identity as PrivateKey).toString(),
-    });
+  private async getOrCreateBucket(client: Buckets, name: string): Promise<BucketMetadataWithThreads> {
+    const threadId = getDeterministicThreadID(this.user.identity as PrivateKey).toString();
+    const metadata: BucketMetadata = await this.metadataStore.findBucket(name)
+      || await this.metadataStore.createBucket(threadId, name);
+
+    const getOrCreateResponse = await client.getOrCreate(name, { threadID: threadId });
+
+    return { ...metadata, ...getOrCreateResponse };
   }
 
   private getUserBucketsClient(): Buckets {
@@ -351,4 +366,38 @@ export class UserStorage {
 
     return Buckets.withUserAuth(userAuth, { host: this.config?.textileHubAddress });
   }
+
+  private get metadataStore(): UserMetadataStore {
+    if (this.userMetadataStore) {
+      return this.userMetadataStore;
+    }
+    if (this.config.metadataStoreInit) {
+      this.userMetadataStore = this.config.metadataStoreInit(this.getUserAuth());
+    } else {
+      this.userMetadataStore = this.getDefaultUserMetadataStore();
+    }
+
+    return this.userMetadataStore;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  private getDefaultUserMetadataStore(): UserMetadataStore {
+    // TODO: Initialize GundsDB MetadataStore
+    return {
+      createBucket(dbId: string, bucketSlug: string): Promise<BucketMetadata> {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+        // @ts-ignore
+        return Promise.resolve({
+
+        });
+      },
+      findBucket(bucketSlug: string): Promise<BucketMetadata | null> {
+        return Promise.resolve(null);
+      },
+      listBuckets(): Promise<BucketMetadata[]> {
+        return Promise.resolve([]);
+      },
+    };
+  }
+
 }
