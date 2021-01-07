@@ -8,15 +8,15 @@ export interface UserMetadataStore {
    *
    * It should fail if a bucketSlug with similar dbId already exists.
    *
-   * @param dbId - unique id representing bucket provided by user storage.
    * @param bucketSlug - unqiue slug representing bucket provided by user.
+   * @param dbId - unique id representing bucket provided by user storage.
    */
-  createBucket: (dbId: string, bucketSlug: string) => Promise<BucketMetadata>;
+  createBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata>;
   /**
-   * Find bucketschema with slug belonging to the current user matching
+   * Find bucket metadata with slug belonging to the current user matching
    *
    */
-  findBucket: (bucketSlug: string) => Promise<BucketMetadata | null>;
+  findBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata | undefined>;
   /**
    * Returns a list of all bucket schemas belonging to the current user
    *
@@ -30,10 +30,6 @@ export interface UserMetadataStore {
  *
  */
 export interface BucketMetadata {
-  /**
-   * Unique id for this particular record
-   */
-  id: string;
   /**
    * unique user specified bucket slug
    */

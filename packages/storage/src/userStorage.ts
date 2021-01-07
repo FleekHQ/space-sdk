@@ -1,9 +1,9 @@
-import { SpaceUser } from '@spacehq/users';
+import { Identity, SpaceUser } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
-import { Buckets, PathItem, UserAuth, GetOrCreateResponse, PathAccessRole, Root } from '@textile/hub';
+import { Buckets, PathItem, UserAuth, PathAccessRole, Root } from '@textile/hub';
 import ee from 'event-emitter';
-import { utils } from 'mocha';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
+import { GunsdbMetadataStore } from './metadata/gunsdbMetadataStore';
 import { BucketMetadata, UserMetadataStore } from './metadata/metadataStore';
 import {
   AddItemsRequest,
@@ -21,8 +21,7 @@ import {
 import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
-import { getDeterministicThreadID, getManagedThreadKey, ThreadKeyVariant } from './utils/threadsUtils';
-import { stringify } from 'querystring';
+import { getDeterministicThreadID } from './utils/threadsUtils';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -34,7 +33,7 @@ export interface UserStorageConfig {
    * @param auth - Textile UserAuth object to initialize bucket
    */
   bucketsInit?: (auth: UserAuth) => Buckets;
-  metadataStoreInit?: (auth: UserAuth) => UserMetadataStore;
+  metadataStoreInit?: (identity: Identity) => Promise<UserMetadataStore>;
 }
 
 // TODO: Change this to prod value
@@ -339,8 +338,9 @@ export class UserStorage {
 
   private async getOrCreateBucket(client: Buckets, name: string): Promise<BucketMetadataWithThreads> {
     const threadId = getDeterministicThreadID(this.user.identity as PrivateKey).toString();
-    const metadata: BucketMetadata = await this.metadataStore.findBucket(name)
-      || await this.metadataStore.createBucket(threadId, name);
+    const metadataStore = await this.getMetadataStore();
+    const metadata: BucketMetadata = await metadataStore.findBucket(name, threadId)
+      || await metadataStore.createBucket(name, threadId);
 
     const getOrCreateResponse = await client.getOrCreate(name, { threadID: threadId });
 
@@ -367,37 +367,21 @@ export class UserStorage {
     return Buckets.withUserAuth(userAuth, { host: this.config?.textileHubAddress });
   }
 
-  private get metadataStore(): UserMetadataStore {
+  private async getMetadataStore(): Promise<UserMetadataStore> {
     if (this.userMetadataStore) {
       return this.userMetadataStore;
     }
     if (this.config.metadataStoreInit) {
-      this.userMetadataStore = this.config.metadataStoreInit(this.getUserAuth());
+      this.userMetadataStore = await this.config.metadataStoreInit(this.user.identity);
     } else {
-      this.userMetadataStore = this.getDefaultUserMetadataStore();
+      this.userMetadataStore = await this.getDefaultUserMetadataStore();
     }
 
     return this.userMetadataStore;
   }
 
   // eslint-disable-next-line class-methods-use-this
-  private getDefaultUserMetadataStore(): UserMetadataStore {
-    // TODO: Initialize GundsDB MetadataStore
-    return {
-      createBucket(dbId: string, bucketSlug: string): Promise<BucketMetadata> {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
-        // @ts-ignore
-        return Promise.resolve({
-
-        });
-      },
-      findBucket(bucketSlug: string): Promise<BucketMetadata | null> {
-        return Promise.resolve(null);
-      },
-      listBuckets(): Promise<BucketMetadata[]> {
-        return Promise.resolve([]);
-      },
-    };
+  private getDefaultUserMetadataStore(): Promise<UserMetadataStore> {
+    return GunsdbMetadataStore.fromIdentity(this.user.identity);
   }
-
 }
