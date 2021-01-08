@@ -145,8 +145,8 @@ describe('UserStorage', () => {
   describe('addItems()', () => {
     it('should publish data, error and done events correctly', async () => {
       const { storage, mockBuckets } = initStubbedStorage();
-      const uploadError = new Error('Error: update is non-fast-forward');
-      when(mockBuckets.pushPath('myBucketKey', '/a.txt', anything())).thenResolve({
+      const uploadError = new Error('update is non-fast-forward');
+      when(mockBuckets.pushPath('myBucketKey', anyString(), anything())).thenResolve({
         ...mock<PushPathResult>(),
       });
       // fail upload of b.txt
@@ -162,7 +162,7 @@ describe('UserStorage', () => {
         bucket: 'personal',
         files: [
           {
-            path: 'a.txt',
+            path: '/top/a.txt',
             data: 'a content',
           },
           {
@@ -183,14 +183,18 @@ describe('UserStorage', () => {
       });
 
       // verify callback data
-      expect(callbackData.data).to.containSubset([{ path: 'a.txt', status: 'success' }]);
-      expect(callbackData.error).to.containSubset([{ path: 'b.txt', status: 'error', error: uploadError }]);
+      expect(callbackData.data).to.containSubset([
+        { path: '/top/a.txt', status: 'success' },
+        { path: '/top', status: 'success' },
+      ]);
+      expect(callbackData.error).to.containSubset([{ path: '/b.txt', status: 'error', error: uploadError }]);
       expect(callbackData.done).to.containSubset([
         {
           bucket: 'personal',
           files: [
-            { path: 'a.txt', status: 'success' },
-            { path: 'b.txt', status: 'error', error: uploadError },
+            { path: '/top', status: 'success' },
+            { path: '/top/a.txt', status: 'success' },
+            { path: '/b.txt', status: 'error', error: uploadError },
           ],
         },
       ]);
