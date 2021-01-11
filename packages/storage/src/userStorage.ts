@@ -1,6 +1,6 @@
 import { SpaceUser } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
-import { Buckets, PathItem, UserAuth, GetOrCreateResponse } from '@textile/hub';
+import { Buckets, PathItem, UserAuth, GetOrCreateResponse, PathAccessRole } from '@textile/hub';
 import ee from 'event-emitter';
 import { utils } from 'mocha';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
@@ -11,6 +11,7 @@ import {
   AddItemsStatus,
   CreateFolderRequest,
   DirectoryEntry,
+  FileMember,
   ListDirectoryRequest,
   ListDirectoryResponse,
   OpenFileRequest,
@@ -20,6 +21,7 @@ import { sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
+import { stringify } from 'querystring';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -77,25 +79,39 @@ export class UserStorage {
     const filteredEntries = its.filter((it:PathItem)=> {return !isMetaFileName(it.name)});
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
-      console.log("Processing path item: ", it);
-
-      const relPathRegex = new RegExp(`\/ip(f|n)s\/[^\/]*(?P<relPath>\/.*)`);
-      const paths = relPathRegex.exec(it.path);
+      const paths = it.path.split(/\/ip[f|n]s\/[^\/]*/);
 
       if (!paths){
         throw new Error("Unable to regex parse the path");
       }
 
-      let relPath:string;
-      if (paths.length > 2) {
-        relPath = paths[2];
-      }else{
-        relPath = it.path;
+      if (!it.metadata || !it.metadata.updatedAt){
+        throw new Error("Unable to parse updatedAt from bucket file");
       }
+
+      const members:FileMember[]=[];
+      it.metadata.roles.forEach((val:PathAccessRole, key:string)=>{
+        members.push({
+          publicKey: key,
+        })
+      });
 
       return ({
         ...it,
-        entries: it.items,
+        path: paths[1],
+        ipfsHash: it.cid,
+        sizeInBytes: it.size,
+        // using the updated date as weare in the daemon, should
+        // change once createdAt is available
+        created: new Date(it.metadata?.updatedAt),
+        updated: new Date(it.metadata?.updatedAt),
+        fileExtension: it.name.indexOf('.') >= 0 ? it.name.substr(it.name.lastIndexOf('.') + 1):"",
+        isLocallyAvailable: false,
+        backupCount: 1,
+        members,
+        isBackupInProgress: false,
+        isRestoreInProgress: false,
+        items: UserStorage.parsePathItems(it.items),
       })
     });
 

@@ -1,6 +1,6 @@
 import { Identity } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
-import { Buckets, PathItem, PushPathResult, Root } from '@textile/hub';
+import { Buckets, PathAccessRole, PathItem, PushPathResult, Root } from '@textile/hub';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
@@ -81,20 +81,32 @@ describe('UserStorage', () => {
 
     it('should return list of items', async () => {
       const listDirectoryRequest = { bucket: 'personal', path: 'topLevel' };
-      const actualItem = {
+
+      const mainItem = mock<PathItem>();
+
+      const childItem = {
         name: 'folder',
-        path: '/folder',
-        cid: '',
+        path: '/ipfs/Qm123/folder',
+        cid: 'Qm...',
         isDir: true,
         size: 10,
       };
+
+      const roles = new Map<string, PathAccessRole>();
+      const pubkey = "ab1";
+      roles.set(pubkey, PathAccessRole.PATH_ACCESS_ROLE_ADMIN);
+
       const { storage, mockBuckets } = initStubbedStorage();
       when(mockBuckets.listPath('myBucketKey', `/${listDirectoryRequest.path}`, 1)).thenResolve({
         item: {
-          ...mock<PathItem>(),
+          ...mainItem,
           items: [
             {
-              ...actualItem,
+              ...childItem,
+              metadata: {
+                updatedAt: new Date().getMilliseconds(),
+                roles,
+              },
               items: [],
               count: 1,
             },
@@ -105,7 +117,21 @@ describe('UserStorage', () => {
       const result = await storage.listDirectory(listDirectoryRequest);
 
       expect(result).to.not.equal(undefined);
-      expect(result.items).to.containSubset([actualItem]);
+      expect(result.items[0]).to.not.equal(undefined);
+      expect(result.items[0].name).to.equal(childItem.name);
+      expect(result.items[0].ipfsHash).to.equal(childItem.cid);
+      expect(result.items[0].isDir).to.equal(childItem.isDir);
+      expect(result.items[0].sizeInBytes).to.equal(childItem.size);
+      expect(result.items[0].created).to.not.equal(undefined);
+      expect(result.items[0].updated).to.not.equal(undefined);
+      expect(result.items[0].fileExtension).to.equal("");
+      expect(result.items[0].isLocallyAvailable).to.equal(false);
+      expect(result.items[0].backupCount).to.equal(1);
+      expect(result.items[0].members).to.deep.equal([{
+        publicKey: pubkey,
+      }]);
+      expect(result.items[0].isBackupInProgress).to.equal(false);
+      expect(result.items[0].isRestoreInProgress).to.equal(false);
     });
   });
 
