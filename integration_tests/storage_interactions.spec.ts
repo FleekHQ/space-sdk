@@ -60,11 +60,15 @@ describe('Users storing data', () => {
       bucket: 'personal',
       files: [
         {
-          path: 'top.txt',
+          path: '/top.txt',
           status: 'success',
         },
         {
-          path: 'subfolder/inner.txt',
+          path: '/subfolder/inner.txt',
+          status: 'success',
+        },
+        {
+          path: '/subfolder',
           status: 'success',
         },
       ],

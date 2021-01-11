@@ -14,7 +14,7 @@ import {
   OpenFileRequest,
   OpenFileResponse,
 } from './types';
-import { sanitizePath } from './utils/pathUtils';
+import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
 
@@ -211,28 +211,63 @@ export class UserStorage {
       files: [],
     };
 
-    // sequentially upload each file in-order to avoid root corruption
-    // that may occur when uploading multiple files in parallel.
-    // eslint-disable-next-line no-restricted-syntax
-    for (const file of request.files) {
-      const path = sanitizePath(file.path);
-      const status: AddItemsStatus = {
-        path: file.path,
-        status: 'success',
-      };
+    const reOrderedFiles = reOrderPathByParents(request.files, (it) => it.path);
 
-      try {
-        // eslint-disable-next-line no-await-in-loop
-        await client.pushPath(bucketKey, path, file.data);
-        emitter.emit('data', status);
-      } catch (err) {
-        status.status = 'error';
-        status.error = err;
-        emitter.emit('error', status);
+    await reOrderedFiles.traverseLevels(async (dirFiles) => {
+      // NOTE it is safe to use dirFiles[0].path because:
+      // - dirFiles is guaranteed to be non-empty by traverseLevels
+      // - all files in dirFiles would be in the same directory
+      if (!isTopLevelPath(dirFiles[0].path)) {
+        const parentPath = getParentPath(dirFiles[0].path);
+        const status: AddItemsStatus = {
+          path: parentPath,
+          status: 'success',
+        };
+
+        try {
+          await this.createFolder({
+            bucket: request.bucket,
+            path: parentPath,
+          });
+
+          emitter.emit('data', status);
+          summary.files.push(status);
+        } catch (err) {
+          status.status = 'error';
+          status.error = err;
+          emitter.emit('error', status);
+          summary.files.push(status);
+
+          // TODO: since root folder creation failed
+          // should automatically fail all subsequent uploads
+          // looking forward to community fixing this
+        }
       }
 
-      summary.files.push(status);
-    }
+      // sequentially upload each file in-order to avoid root corruption
+      // that may occur when uploading multiple files in parallel.
+      // eslint-disable-next-line no-restricted-syntax
+      for (const file of dirFiles) {
+        const path = sanitizePath(file.path);
+
+        const status: AddItemsStatus = {
+          path,
+          status: 'success',
+        };
+
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await client.pushPath(bucketKey, path, file.data);
+          emitter.emit('data', status);
+        } catch (err) {
+          status.status = 'error';
+          status.error = err;
+          emitter.emit('error', status);
+        }
+
+        summary.files.push(status);
+      }
+    });
 
     return summary;
   }
