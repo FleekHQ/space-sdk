@@ -1,6 +1,6 @@
 {
   "name": "@spacehq/storage",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Space storage implementation",
   "main": "dist/index",
   "types": "dist/index",
@@ -38,7 +38,7 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@spacehq/users": "^0.0.3",
+    "@spacehq/users": "^0.0.4",
     "@textile/crypto": "^2.0.0",
     "@textile/hub": "^4.1.0",
     "@textile/threads-id": "^0.4.0",
