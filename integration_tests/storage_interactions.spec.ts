@@ -74,6 +74,17 @@ describe('Users storing data', () => {
       ],
     });
 
+    //3rd level upload
+    const anotheruploadResponse = await storage.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'firstfolder/secondfolder/file.txt',
+          data: txtContent,
+        },
+      ],
+    });
+
     // validate files are in the directory
     const listFolder = await storage.listDirectory({ bucket: 'personal', path: '' });
     expect(listFolder.items).to.containSubset([
@@ -86,6 +97,8 @@ describe('Users storing data', () => {
         isDir: true,
       },
     ]);
+
+    const listFolderRec = await storage.listDirectory({ bucket: 'personal', path: '',recursive: true });
 
     // validate content of top.txt file
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/top.txt' });

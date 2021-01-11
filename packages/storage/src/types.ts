@@ -26,14 +26,30 @@ export interface ListDirectoryRequest {
 }
 
 /**
- * Represent an item stored in a storages directory
+ * Represents a member on a shared file
+ */
+export interface FileMember {
+  publicKey:string;
+  address?:string;
+}
+
+/**
+ * Represents an item stored in a storages directory
  */
 export interface DirectoryEntry {
   name: string;
   path: string;
-  cid: string;
+  ipfsHash: string;
   isDir: boolean;
-  size: number;
+  sizeInBytes: number;
+  created: Date;
+  updated: Date;
+  fileExtension: string;
+  isLocallyAvailable: boolean;
+  backupCount: number;
+  members: FileMember[];
+  isBackupInProgress: boolean;
+  isRestoreInProgress: boolean;
   items?: DirectoryEntry[];
 }
 
