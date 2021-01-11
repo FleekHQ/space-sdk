@@ -8,7 +8,7 @@
     "serve:docs": "npm run docs && cd website && npm run start",
     "build:docs": "npm run docs && cd website && npm install && npm run build",
     "bootstrap": "lerna bootstrap",
-    "bumpversion": "npm run build:docs && lerna version --no-push --no-git-tag-version",
+    "bumpversion": "npm run build && npm run build:docs && lerna version --no-push --no-git-tag-version",
     "publish": "lerna publish",
     "publish:from": "lerna publish from-package",
     "clean": "lerna clean && lerna run clean",
