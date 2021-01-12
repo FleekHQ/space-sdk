@@ -161,3 +161,6 @@ website/i18n/en.json
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# gundb data directory
+radata/

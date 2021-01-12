@@ -14,6 +14,13 @@ export interface Identity {
    * @param data The data (raw bytes) to sign.
    */
   sign(data: Uint8Array): Promise<Uint8Array>;
+
+  /**
+   * Raw private key bytes of this identity
+   *
+   */
+  privKey: Uint8Array;
+
   /**
    * Get the public key associated with this identity. This can be any object
    * that satisfies the {@link Public} interface.
