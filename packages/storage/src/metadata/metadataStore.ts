@@ -12,16 +12,34 @@ export interface UserMetadataStore {
    * @param dbId - unique id representing bucket provided by user storage.
    */
   createBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata>;
+
   /**
    * Find bucket metadata with slug belonging to the current user matching
    *
    */
   findBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata | undefined>;
+
   /**
    * Returns a list of all bucket schemas belonging to the current user
    *
    */
   listBuckets: () => Promise<BucketMetadata[]>;
+
+  /**
+   * Updates the metadata information about a specific file.
+   *
+   */
+  upsertFileMetadata: (bucketSlug: string, dbId: string, path: string, data: FileMetadata) => Promise<FileMetadata>;
+
+  /**
+   * Find existing metadata information about the file at path.
+   *
+   */
+  findFileMetadata: (
+    bucketSlug:string,
+    dbId: string,
+    path: string,
+  ) => Promise<FileMetadata | undefined>;
 }
 
 /**
@@ -46,4 +64,12 @@ export interface BucketMetadata {
   dbId: string;
 
   // Ignoring mirror files schema for now, but can be added later when backup is being implemented
+}
+
+/**
+ * Represents metadata information about a file stored in users storage
+ *
+ */
+export interface FileMetadata {
+  mimeType?: string;
 }

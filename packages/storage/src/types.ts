@@ -71,14 +71,23 @@ export interface OpenFileResponse {
    * return an empty bytes array.
    */
   consumeStream: () => Promise<Uint8Array>;
+  mimeType: string | undefined;
 }
 
 export interface AddItemFile {
-  /** path is path in the bucket where the file should be uploaded.
+  /**
+   * path in the bucket where the file should be uploaded.
    * filename would be determined by the last segment in the path
    * so path folder/a_file.txt would have the name `a_file.txt`
+   *
    */
   path: string;
+  /**
+   * MimeType of the file being added.
+   * This value can be retrieved when opening the file later one.
+   *
+   */
+  mimeType: string;
   data: ReadableStream<Uint8Array> | ArrayBuffer | string;
 }
 

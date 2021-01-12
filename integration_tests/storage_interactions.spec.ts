@@ -40,10 +40,12 @@ describe('Users storing data', () => {
         {
           path: 'top.txt',
           data: txtContent,
+          mimeType: 'plain/text',
         },
         {
           path: 'subfolder/inner.txt',
           data: 'some other stuffs',
+          mimeType: 'plain/text',
         },
       ],
     });
@@ -81,6 +83,7 @@ describe('Users storing data', () => {
         {
           path: 'firstfolder/secondfolder/file.txt',
           data: txtContent,
+          mimeType: 'plain/text',
         },
       ],
     });
@@ -104,5 +107,6 @@ describe('Users storing data', () => {
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/top.txt' });
     const actualTxtContent = await fileResponse.consumeStream();
     expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
+    expect(fileResponse.mimeType).to.equal('plain/text');
   }).timeout(TestsDefaultTimeout);
 });

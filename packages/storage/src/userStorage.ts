@@ -5,8 +5,7 @@ import ee from 'event-emitter';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import { GunsdbMetadataStore } from './metadata/gunsdbMetadataStore';
 import { BucketMetadata, UserMetadataStore } from './metadata/metadataStore';
-import {
-  AddItemsRequest,
+import { AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
@@ -16,8 +15,7 @@ import {
   ListDirectoryRequest,
   ListDirectoryResponse,
   OpenFileRequest,
-  OpenFileResponse,
-} from './types';
+  OpenFileResponse } from './types';
 import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
@@ -86,24 +84,24 @@ export class UserStorage {
   }
 
   private static parsePathItems(its: PathItem[]): DirectoryEntry[] {
-    const filteredEntries = its.filter((it:PathItem)=> {return !isMetaFileName(it.name)});
+    const filteredEntries = its.filter((it:PathItem) => !isMetaFileName(it.name));
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
       const paths = it.path.split(/\/ip[f|n]s\/[^\/]*/);
 
-      if (!paths){
-        throw new Error("Unable to regex parse the path");
+      if (!paths) {
+        throw new Error('Unable to regex parse the path');
       }
 
-      if (!it.metadata || !it.metadata.updatedAt){
-        throw new Error("Unable to parse updatedAt from bucket file");
+      if (!it.metadata || !it.metadata.updatedAt) {
+        throw new Error('Unable to parse updatedAt from bucket file');
       }
 
-      const members:FileMember[]=[];
-      it.metadata.roles.forEach((val:PathAccessRole, key:string)=>{
+      const members:FileMember[] = [];
+      it.metadata.roles.forEach((val:PathAccessRole, key:string) => {
         members.push({
           publicKey: key,
-        })
+        });
       });
 
       return ({
@@ -115,14 +113,14 @@ export class UserStorage {
         // change once createdAt is available
         created: new Date(it.metadata?.updatedAt),
         updated: new Date(it.metadata?.updatedAt),
-        fileExtension: it.name.indexOf('.') >= 0 ? it.name.substr(it.name.lastIndexOf('.') + 1):"",
+        fileExtension: it.name.indexOf('.') >= 0 ? it.name.substr(it.name.lastIndexOf('.') + 1) : '',
         isLocallyAvailable: false,
         backupCount: 1,
         members,
         isBackupInProgress: false,
         isRestoreInProgress: false,
         items: UserStorage.parsePathItems(it.items),
-      })
+      });
     });
 
     return des;
@@ -148,10 +146,10 @@ export class UserStorage {
     try {
       const result = await client.listPath(bucket.root?.key || '', path, depth);
 
-      if(!result.item || !result.item.items){
+      if (!result.item || !result.item.items) {
         return {
           items: [],
-        }
+        };
       }
 
       return {
@@ -184,15 +182,18 @@ export class UserStorage {
    * ```
    */
   public async openFile(request: OpenFileRequest): Promise<OpenFileResponse> {
+    const metadataStore = await this.getMetadataStore();
     const client = this.getUserBucketsClient();
     const bucket = await this.getOrCreateBucket(client, request.bucket);
     const path = sanitizePath(request.path);
+    const fileMetadata = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, path);
 
     try {
       const fileData = client.pullPath(bucket.root?.key || '', path);
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
+        mimeType: fileMetadata?.mimeType,
       };
     } catch (e) {
       if (e.message.includes('no link named')) {
@@ -255,7 +256,7 @@ export class UserStorage {
     // giving the caller a chance to listen to emitter in time to not
     // miss an early data or error event
     setImmediate(() => {
-      this.uploadMultipleFiles(request, client, bucket.root?.key || '', emitter).then((summary) => {
+      this.uploadMultipleFiles(request, client, bucket, emitter).then((summary) => {
         emitter.emit('done', summary);
       });
     });
@@ -267,9 +268,10 @@ export class UserStorage {
   private async uploadMultipleFiles(
     request: AddItemsRequest,
     client: Buckets,
-    bucketKey: string,
+    bucket: BucketMetadataWithThreads,
     emitter: ee.Emitter,
   ): Promise<AddItemsResultSummary> {
+    const metadataStore = await this.getMetadataStore();
     const summary: AddItemsResultSummary = {
       bucket: request.bucket,
       files: [],
@@ -321,7 +323,11 @@ export class UserStorage {
 
         try {
           // eslint-disable-next-line no-await-in-loop
-          await client.pushPath(bucketKey, path, file.data);
+          await client.pushPath(bucket.root?.key || '', path, file.data);
+          // eslint-disable-next-line no-await-in-loop
+          await metadataStore.upsertFileMetadata(bucket.slug, bucket.dbId, path, {
+            mimeType: file.mimeType,
+          });
           emitter.emit('data', status);
         } catch (err) {
           status.status = 'error';
