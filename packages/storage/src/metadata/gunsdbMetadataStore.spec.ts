@@ -34,4 +34,18 @@ describe('GunsdbMetadataStore', () => {
     const existingBuckets = await newStore.listBuckets();
     expect(existingBuckets).to.containSubset([{ dbId, slug: bucket }]);
   }).timeout(10000);
+
+  it('should work for file metadata', async () => {
+    const bucket = 'personal';
+    const dbId = 'something';
+    const path = '/home/case.png';
+    const store = await GunsdbMetadataStore.fromIdentity(identity);
+
+    await store.upsertFileMetadata(bucket, dbId, path, { mimeType: 'image/png' });
+
+    const fileMetadata = await store.findFileMetadata(bucket, dbId, path);
+    expect(fileMetadata).to.deep.equal({
+      mimeType: 'image/png',
+    });
+  }).timeout(10000);
 });

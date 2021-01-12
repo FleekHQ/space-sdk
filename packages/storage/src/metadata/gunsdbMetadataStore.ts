@@ -3,7 +3,7 @@ import { isNode } from 'browser-or-node';
 import { IGunChainReference } from 'gun/types/chain';
 import { IGunStatic } from 'gun/types/static';
 import { Identity } from '@spacehq/users';
-import { BucketMetadata, UserMetadataStore } from './metadataStore';
+import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadataStore';
 
 let Gun: IGunStatic;
 if (isNode) {
@@ -32,14 +32,14 @@ interface AckError {
 
 // Remapped bucket metadata type compatible with Gundb
 type GunBucketMetadata = Omit<BucketMetadata, 'encryptionKey'> & { encryptionKey: string };
-type EncryptedGunBucketMetadata = { data: string; };
+type EncryptedMetadata = { data: string; };
 
 interface LookupDataState {
-  [dbIdBucket: string]: EncryptedGunBucketMetadata;
+  [dbIdBucket: string]: EncryptedMetadata;
 }
 
 interface ListDataState {
-  [collectionName: string]: EncryptedGunBucketMetadata[]
+  [collectionName: string]: EncryptedMetadata[]
 }
 
 // Data schema of records stored in gundb
@@ -118,7 +118,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
     const nodeRef = this.lookupUser.get(lookupKey).put(encryptedMetadata);
     // store in list too. the unknown cast is required because of typescripts limitation
     // but it to ensure that the set has a reference to the actual data
-    this.listUser.get(BucketMetadataCollection).set(nodeRef as unknown as EncryptedGunBucketMetadata);
+    this.listUser.get(BucketMetadataCollection).set(nodeRef as unknown as EncryptedMetadata);
 
     return schema;
   }
@@ -128,7 +128,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
    */
   public async findBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata | undefined> {
     const lookupKey = GunsdbMetadataStore.getBucketsLookupKey(bucketSlug, dbId);
-    const encryptedData = await new Promise<EncryptedGunBucketMetadata | undefined>((resolve, reject) => {
+    const encryptedData = await new Promise<EncryptedMetadata | undefined>((resolve, reject) => {
       this.lookupUser.get(lookupKey).once((data) => {
         resolve(data);
       });
@@ -148,6 +148,56 @@ export class GunsdbMetadataStore implements UserMetadataStore {
    */
   public async listBuckets(): Promise<BucketMetadata[]> {
     return this.bucketsListCache;
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.upsertFileMetadata}
+   */
+  public async upsertFileMetadata(
+    bucketSlug:string,
+    dbId: string,
+    path: string,
+    metadata: FileMetadata,
+  ): Promise<FileMetadata> {
+    const lookupKey = GunsdbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
+    const existingFileMetadata = await this.findFileMetadata(bucketSlug, dbId, path);
+
+    let updatedMetadata = metadata;
+    if (existingFileMetadata) {
+      updatedMetadata = {
+        ...existingFileMetadata,
+        ...metadata,
+      };
+    }
+
+    const encryptedMetadata = await this.encrypt(JSON.stringify(updatedMetadata));
+    this.lookupUser.get(lookupKey).put({ data: encryptedMetadata });
+
+    return updatedMetadata;
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.findFileMetadata}
+   */
+  public async findFileMetadata(
+    bucketSlug:string,
+    dbId: string,
+    path: string,
+  ): Promise<FileMetadata | undefined> {
+    const lookupKey = GunsdbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
+    const encryptedData = await new Promise<EncryptedMetadata | null>((resolve, reject) => {
+      this.lookupUser.get(lookupKey).once((data) => {
+        resolve(data);
+      });
+    });
+    // unregister lookup
+    this.lookupUser.get(lookupKey).off();
+
+    if (!encryptedData) {
+      return undefined;
+    }
+
+    return this.decrypt(encryptedData.data);
   }
 
   private async startCachingBucketsList(): Promise<void> {
@@ -170,6 +220,10 @@ export class GunsdbMetadataStore implements UserMetadataStore {
     return `bucketSchema/${bucketSlug}/${dbId}`;
   }
 
+  private static getFilesLookupKey(bucketSlug: string, dbId: string, path: string): string {
+    return `fileMetadata/${bucketSlug}/${dbId}/${path}`;
+  }
+
   private get user(): GunChainReference<GunDataState> {
     if (!this._user || !(this._user as unknown as { is?: Record<never, never>; }).is) {
       throw new Error('gundb user not authenticated');
@@ -181,6 +235,11 @@ export class GunsdbMetadataStore implements UserMetadataStore {
 
   // use this alias getter for lookuping up users metadata so typescript works as expected
   private get lookupUser(): GunChainReference<LookupDataState> {
+    return this.user as GunChainReference<LookupDataState>;
+  }
+
+  // use this alias getter for lookuping up users file metadata so typescript works as expected
+  private get lookupFile(): GunChainReference<LookupDataState> {
     return this.user as GunChainReference<LookupDataState>;
   }
 
@@ -237,7 +296,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
     return Buffer.from(this.identity.public.pubKey).toString('hex');
   }
 
-  private async encryptBucketSchema(schema: BucketMetadata): Promise<EncryptedGunBucketMetadata> {
+  private async encryptBucketSchema(schema: BucketMetadata): Promise<EncryptedMetadata> {
     return {
       data: await this.encrypt(JSON.stringify({
         ...schema,
@@ -246,7 +305,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
     };
   }
 
-  private async decryptBucketSchema(encryptedSchema: EncryptedGunBucketMetadata): Promise<BucketMetadata> {
+  private async decryptBucketSchema(encryptedSchema: EncryptedMetadata): Promise<BucketMetadata> {
     const decryptedSchema = await this.decrypt(encryptedSchema.data);
     if (!decryptedSchema) {
       throw new Error('Unknown bucket metadata');

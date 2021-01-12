@@ -5,12 +5,14 @@
 ```ts
 
 import { Buckets } from '@textile/hub';
+import { IGunChainReference } from 'gun/types/chain';
 import { UserAuth } from '@textile/hub';
 
 // @public (undocumented)
 export interface AddItemFile {
     // (undocumented)
     data: ReadableStream<Uint8Array> | ArrayBuffer | string;
+    mimeType: string;
     path: string;
 }
 
@@ -69,6 +71,13 @@ export class BrowserStorage {
     remove(key: string): Promise<void>;
 }
 
+// @public
+export interface BucketMetadata {
+    dbId: string;
+    encryptionKey: Uint8Array;
+    slug: string;
+}
+
 // @public (undocumented)
 export interface CreateFolderRequest {
     bucket: string;
@@ -121,6 +130,12 @@ export interface FileMember {
 }
 
 // @public
+export interface FileMetadata {
+    // (undocumented)
+    mimeType?: string;
+}
+
+// @public
 export class FileStorage {
     constructor(filename: string);
     // (undocumented)
@@ -129,6 +144,18 @@ export class FileStorage {
     list(): Promise<Identity[]>;
     // (undocumented)
     remove(key: string): Promise<void>;
+    }
+
+// @public
+export class GunsdbMetadataStore implements UserMetadataStore {
+    createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata>;
+    findBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata | undefined>;
+    findFileMetadata(bucketSlug: string, dbId: string, path: string): Promise<FileMetadata | undefined>;
+    // Warning: (ae-forgotten-export) The symbol "GunChainReference" needs to be exported by the entry point index.d.ts
+    // Warning: (ae-forgotten-export) The symbol "GunDataState" needs to be exported by the entry point index.d.ts
+    static fromIdentity(identity: Identity, gunOrServer?: GunChainReference<GunDataState> | string): Promise<GunsdbMetadataStore>;
+    listBuckets(): Promise<BucketMetadata[]>;
+    upsertFileMetadata(bucketSlug: string, dbId: string, path: string, metadata: FileMetadata): Promise<FileMetadata>;
     }
 
 // Warning: (ae-internal-missing-underscore) The name "HubAuthResponse" should be prefixed with an underscore because the declaration is marked as @internal
@@ -143,6 +170,7 @@ export interface HubAuthResponse {
 
 // @public
 export interface Identity {
+    privKey: Uint8Array;
     public: Public;
     sign(data: Uint8Array): Promise<Uint8Array>;
 }
@@ -181,6 +209,8 @@ export interface OpenFileRequest {
 // @public (undocumented)
 export interface OpenFileResponse {
     consumeStream: () => Promise<Uint8Array>;
+    // (undocumented)
+    mimeType: string | undefined;
     // (undocumented)
     stream: AsyncIterableIterator<Uint8Array>;
 }
@@ -227,6 +257,15 @@ export class UnauthenticatedError extends Error {
 }
 
 // @public
+export interface UserMetadataStore {
+    createBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata>;
+    findBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata | undefined>;
+    findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
+    listBuckets: () => Promise<BucketMetadata[]>;
+    upsertFileMetadata: (bucketSlug: string, dbId: string, path: string, data: FileMetadata) => Promise<FileMetadata>;
+}
+
+// @public
 export class Users {
     constructor(config: UsersConfig, storage?: IdentityStorage);
     authenticate(identity: Identity): Promise<SpaceUser>;
@@ -261,6 +300,8 @@ export class UserStorage {
 // @public (undocumented)
 export interface UserStorageConfig {
     bucketsInit?: (auth: UserAuth) => Buckets;
+    // (undocumented)
+    metadataStoreInit?: (identity: Identity) => Promise<UserMetadataStore>;
     // (undocumented)
     textileHubAddress?: string;
 }

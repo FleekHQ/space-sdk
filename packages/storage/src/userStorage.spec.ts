@@ -6,7 +6,7 @@ import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
 import { anyString, anything, deepEqual, instance, mock, verify, when } from 'ts-mockito';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
-import { BucketMetadata, UserMetadataStore } from './metadata/metadataStore'
+import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
 import { makeAsyncIterableString } from './testHelpers';
 import { AddItemsEventData } from './types';
 import { UserStorage } from './userStorage';
@@ -69,7 +69,12 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
           listBuckets(): Promise<BucketMetadata[]> {
             return Promise.resolve([]);
           },
-
+          upsertFileMetadata(): Promise<FileMetadata> {
+            return Promise.resolve({});
+          },
+          findFileMetadata(): Promise<FileMetadata | undefined> {
+            return Promise.resolve({ mimeType: 'generic/type' });
+          },
         });
       },
     },
@@ -126,7 +131,7 @@ describe('UserStorage', () => {
       };
 
       const roles = new Map<string, PathAccessRole>();
-      const pubkey = "ab1";
+      const pubkey = 'ab1';
       roles.set(pubkey, PathAccessRole.PATH_ACCESS_ROLE_ADMIN);
 
       const { storage, mockBuckets } = initStubbedStorage();
@@ -157,7 +162,7 @@ describe('UserStorage', () => {
       expect(result.items[0].sizeInBytes).to.equal(childItem.size);
       expect(result.items[0].created).to.not.equal(undefined);
       expect(result.items[0].updated).to.not.equal(undefined);
-      expect(result.items[0].fileExtension).to.equal("");
+      expect(result.items[0].fileExtension).to.equal('');
       expect(result.items[0].isLocallyAvailable).to.equal(false);
       expect(result.items[0].backupCount).to.equal(1);
       expect(result.items[0].members).to.deep.equal([{
@@ -198,6 +203,7 @@ describe('UserStorage', () => {
       const filesData = await result.consumeStream();
 
       expect(new TextDecoder('utf8').decode(filesData)).to.equal(actualFileContent);
+      expect(result.mimeType).to.equal('generic/type');
     });
   });
 
@@ -223,10 +229,12 @@ describe('UserStorage', () => {
           {
             path: '/top/a.txt',
             data: 'a content',
+            mimeType: 'text/plain',
           },
           {
             path: 'b.txt',
             data: 'b content',
+            mimeType: 'text/plain',
           },
         ],
       });
