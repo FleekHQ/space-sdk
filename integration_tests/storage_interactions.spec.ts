@@ -1,6 +1,9 @@
 import { AddItemsEventData, AddItemsResultSummary, UserStorage } from '@spacehq/sdk';
+import { isNode } from 'browser-or-node';
+import fs from 'fs';
 import { expect, use } from 'chai';
 import * as chaiSubset from 'chai-subset';
+import path from 'path';
 import { TestsDefaultTimeout } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
 
@@ -76,7 +79,7 @@ describe('Users storing data', () => {
       ],
     });
 
-    //3rd level upload
+    // 3rd level upload
     const anotheruploadResponse = await storage.addItems({
       bucket: 'personal',
       files: [
@@ -101,7 +104,7 @@ describe('Users storing data', () => {
       },
     ]);
 
-    const listFolderRec = await storage.listDirectory({ bucket: 'personal', path: '',recursive: true });
+    const listFolderRec = await storage.listDirectory({ bucket: 'personal', path: '', recursive: true });
 
     // validate content of top.txt file
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/top.txt' });
@@ -109,4 +112,36 @@ describe('Users storing data', () => {
     expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
     expect(fileResponse.mimeType).to.equal('plain/text');
   }).timeout(TestsDefaultTimeout);
+
+  it('should open large files successfully', async () => {
+    if (!isNode) {
+      return;
+    }
+
+    const { user } = await authenticateAnonymousUser();
+    const imageBytes = fs.readFileSync(path.join(__dirname, 'test_data', 'image.jpg'));
+    const storage = new UserStorage(user);
+    const uploadResponse = await storage.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'image.jpg',
+          data: imageBytes,
+          mimeType: 'image/jpg',
+        },
+      ],
+    });
+
+    await new Promise<AddItemsEventData>((resolve) => {
+      uploadResponse.once('done', resolve);
+    });
+
+    const openResponse = await storage.openFile({
+      bucket: 'personal',
+      path: '/image.jpg',
+    });
+
+    const actualBytes = await openResponse.consumeStream();
+    expect(Buffer.from(actualBytes)).to.deep.equal(imageBytes);
+  });
 });
