@@ -1,3 +1,4 @@
+import { Identity } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
 import { ThreadID } from '@textile/threads-id';
 import { encode } from 'varint';
@@ -19,7 +20,7 @@ export enum ThreadKeyVariant {
  * @param variant The deterministic thread variant
  */
 export const getDeterministicThreadID = (
-  identity: PrivateKey,
+  identity: Identity,
   variant: DeterministicThreadVariant = DeterministicThreadVariant.MetathreadThreadVariant,
 ): ThreadID => {
   // We need the raw key, thus we use marshal() instead of bytes

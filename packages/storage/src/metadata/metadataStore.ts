@@ -17,7 +17,7 @@ export interface UserMetadataStore {
    * Find bucket metadata with slug belonging to the current user matching
    *
    */
-  findBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata | undefined>;
+  findBucket: (bucketSlug: string) => Promise<BucketMetadata | undefined>;
 
   /**
    * Returns a list of all bucket schemas belonging to the current user

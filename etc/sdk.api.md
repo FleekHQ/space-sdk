@@ -150,13 +150,13 @@ export class FileStorage {
 export const GetAddressFromPublicKey: (pubkey: string) => string;
 
 // @public
-export class GunsdbMetadataStore implements UserMetadataStore {
+export class GundbMetadataStore implements UserMetadataStore {
     createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata>;
-    findBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata | undefined>;
+    findBucket(bucketSlug: string): Promise<BucketMetadata | undefined>;
     findFileMetadata(bucketSlug: string, dbId: string, path: string): Promise<FileMetadata | undefined>;
     // Warning: (ae-forgotten-export) The symbol "GunChainReference" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "GunDataState" needs to be exported by the entry point index.d.ts
-    static fromIdentity(identity: Identity, gunOrServer?: GunChainReference<GunDataState> | string): Promise<GunsdbMetadataStore>;
+    static fromIdentity(username: string, userpass: string, gunOrServer?: GunChainReference<GunDataState> | string): Promise<GundbMetadataStore>;
     listBuckets(): Promise<BucketMetadata[]>;
     upsertFileMetadata(bucketSlug: string, dbId: string, path: string, metadata: FileMetadata): Promise<FileMetadata>;
     }
@@ -262,7 +262,7 @@ export class UnauthenticatedError extends Error {
 // @public
 export interface UserMetadataStore {
     createBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata>;
-    findBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata | undefined>;
+    findBucket: (bucketSlug: string) => Promise<BucketMetadata | undefined>;
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
     listBuckets: () => Promise<BucketMetadata[]>;
     upsertFileMetadata: (bucketSlug: string, dbId: string, path: string, data: FileMetadata) => Promise<FileMetadata>;

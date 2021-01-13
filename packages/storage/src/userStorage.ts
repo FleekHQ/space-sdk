@@ -1,9 +1,10 @@
 import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
-import { PrivateKey, publicKeyBytesFromString } from '@textile/crypto';
-import { Buckets, PathItem, UserAuth, PathAccessRole, Root } from '@textile/hub';
+import { publicKeyBytesFromString } from '@textile/crypto';
+import { Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
 import ee from 'event-emitter';
+import dayjs from 'dayjs';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
-import { GunsdbMetadataStore } from './metadata/gunsdbMetadataStore';
+import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, UserMetadataStore } from './metadata/metadataStore';
 import { AddItemsRequest,
   AddItemsResponse,
@@ -20,8 +21,6 @@ import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } fro
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
-import { stringify } from 'querystring';
-import dayjs from 'dayjs';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -355,12 +354,14 @@ export class UserStorage {
   }
 
   private async getOrCreateBucket(client: Buckets, name: string): Promise<BucketMetadataWithThreads> {
-    const threadId = getDeterministicThreadID(this.user.identity as PrivateKey).toString();
     const metadataStore = await this.getMetadataStore();
-    const metadata: BucketMetadata = await metadataStore.findBucket(name, threadId)
-      || await metadataStore.createBucket(name, threadId);
+    let metadata = await metadataStore.findBucket(name);
+    if (!metadata) {
+      const dbId = ThreadID.fromRandom(ThreadID.Variant.Raw, 32).toString();
+      metadata = await metadataStore.createBucket(name, dbId);
+    }
 
-    const getOrCreateResponse = await client.getOrCreate(name, { threadID: threadId });
+    const getOrCreateResponse = await client.getOrCreate(name, { threadID: metadata.dbId });
 
     return { ...metadata, ...getOrCreateResponse };
   }
@@ -400,6 +401,8 @@ export class UserStorage {
 
   // eslint-disable-next-line class-methods-use-this
   private getDefaultUserMetadataStore(): Promise<UserMetadataStore> {
-    return GunsdbMetadataStore.fromIdentity(this.user.identity);
+    const username = Buffer.from(this.user.identity.public.pubKey).toString('hex');
+    const password = getDeterministicThreadID(this.user.identity).toString();
+    return GundbMetadataStore.fromIdentity(username, password);
   }
 }

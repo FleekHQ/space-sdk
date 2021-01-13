@@ -2,7 +2,6 @@
 import { isNode } from 'browser-or-node';
 import { IGunChainReference } from 'gun/types/chain';
 import { IGunStatic } from 'gun/types/static';
-import { Identity } from '@spacehq/users';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadataStore';
 
 let Gun: IGunStatic;
@@ -52,7 +51,7 @@ export type GunDataState = LookupDataState | ListDataState;
  * This is the default MetadataStore used by {@link @spacehq/sdk#UserStorage}.
  *
  */
-export class GunsdbMetadataStore implements UserMetadataStore {
+export class GundbMetadataStore implements UserMetadataStore {
   private readonly gun: GunChainReference<GunDataState>;
 
   // in memory cache list of buckets
@@ -66,7 +65,11 @@ export class GunsdbMetadataStore implements UserMetadataStore {
    * @param identity - Identity of user owning this store
    * @param gunOrServer - initialized gun instance or peer server
    */
-  private constructor(private readonly identity: Identity, gunOrServer?: GunChainReference<GunDataState> | string) {
+  private constructor(
+    private readonly username: string,
+    private readonly userpass: string,
+    gunOrServer?: GunChainReference<GunDataState> | string,
+  ) {
     if (gunOrServer) {
       if (typeof gunOrServer === 'string') {
         this.gun = Gun({ web: gunOrServer });
@@ -83,14 +86,16 @@ export class GunsdbMetadataStore implements UserMetadataStore {
   /**
    * Creates a new instance of this metadata store for users identity.
    *
-   * @param identity - Identity of user owning this store
+   * @param username - Username of user
+   * @param userpass - Password of user
    * @param gunOrServer - initialized gun instance or peer server
    */
   static async fromIdentity(
-    identity: Identity,
+    username: string,
+    userpass: string,
     gunOrServer?: GunChainReference<GunDataState> | string,
-  ): Promise<GunsdbMetadataStore> {
-    const store = new GunsdbMetadataStore(identity, gunOrServer);
+  ): Promise<GundbMetadataStore> {
+    const store = new GundbMetadataStore(username, userpass, gunOrServer);
     await store.authenticateUser();
     await store.startCachingBucketsList();
 
@@ -102,7 +107,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
    */
   public async createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata> {
     // throw if dbId with bucketSlug doesn't already
-    const existingBucket = await this.findBucket(bucketSlug, dbId);
+    const existingBucket = await this.findBucket(bucketSlug);
     if (existingBucket) {
       throw new Error('Bucket with slug and dbId already exists');
     }
@@ -113,7 +118,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
       slug: bucketSlug,
     };
     const encryptedMetadata = await this.encryptBucketSchema(schema);
-    const lookupKey = GunsdbMetadataStore.getBucketsLookupKey(bucketSlug, dbId);
+    const lookupKey = this.getBucketsLookupKey(bucketSlug);
 
     const nodeRef = this.lookupUser.get(lookupKey).put(encryptedMetadata);
     // store in list too. the unknown cast is required because of typescripts limitation
@@ -126,8 +131,8 @@ export class GunsdbMetadataStore implements UserMetadataStore {
   /**
    * {@inheritDoc @spacehq/sdk#UserMetadataStore.findBucket}
    */
-  public async findBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata | undefined> {
-    const lookupKey = GunsdbMetadataStore.getBucketsLookupKey(bucketSlug, dbId);
+  public async findBucket(bucketSlug: string): Promise<BucketMetadata | undefined> {
+    const lookupKey = this.getBucketsLookupKey(bucketSlug);
     const encryptedData = await new Promise<EncryptedMetadata | undefined>((resolve, reject) => {
       this.lookupUser.get(lookupKey).once((data) => {
         resolve(data);
@@ -159,7 +164,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
     path: string,
     metadata: FileMetadata,
   ): Promise<FileMetadata> {
-    const lookupKey = GunsdbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
+    const lookupKey = GundbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
     const existingFileMetadata = await this.findFileMetadata(bucketSlug, dbId, path);
 
     let updatedMetadata = metadata;
@@ -184,7 +189,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
     dbId: string,
     path: string,
   ): Promise<FileMetadata | undefined> {
-    const lookupKey = GunsdbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
+    const lookupKey = GundbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
     const encryptedData = await new Promise<EncryptedMetadata | null>((resolve, reject) => {
       this.lookupUser.get(lookupKey).once((data) => {
         resolve(data);
@@ -216,8 +221,8 @@ export class GunsdbMetadataStore implements UserMetadataStore {
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
-  private static getBucketsLookupKey(bucketSlug: string, dbId: string): string {
-    return `bucketSchema/${bucketSlug}/${dbId}`;
+  private getBucketsLookupKey(bucketSlug: string): string {
+    return `bucketSchema/${bucketSlug}/${this.username}`;
   }
 
   private static getFilesLookupKey(bucketSlug: string, dbId: string, path: string): string {
@@ -254,13 +259,11 @@ export class GunsdbMetadataStore implements UserMetadataStore {
       return;
     }
 
-    const username = this.publicKey;
-    const password = this.privateKey;
     this._user = this.gun.user();
 
     await new Promise((resolve, reject) => {
       // eslint-disable-next-line no-unused-expressions
-      this._user?.create(username, password, (ack) => {
+      this._user?.create(this.username, this.userpass, (ack) => {
         // if ((ack as AckError).err) {
         //   // error here means user either exists or is being created, see gundb user docs.
         //   // so ignoring
@@ -268,7 +271,7 @@ export class GunsdbMetadataStore implements UserMetadataStore {
         // }
 
         // eslint-disable-next-line no-unused-expressions
-        this._user?.auth(username, password, (auth) => {
+        this._user?.auth(this.username, this.userpass, (auth) => {
           if ((auth as AckError).err) {
             reject(new Error(`gundb failed to authenticate user: ${(auth as AckError).err}`));
             return;
@@ -281,19 +284,11 @@ export class GunsdbMetadataStore implements UserMetadataStore {
 
   // encrypts data with users private key
   private async encrypt(data: string): Promise<string> {
-    return Gun.SEA.encrypt(data, this.privateKey);
+    return Gun.SEA.encrypt(data, this.userpass);
   }
 
   private async decrypt(data: string): Promise<Record<string, string> | undefined> {
-    return ((Gun.SEA.decrypt(data, this.privateKey)) as Promise<Record<string, string> | undefined>);
-  }
-
-  private get privateKey(): string {
-    return Buffer.from(this.identity.privKey).toString('hex');
-  }
-
-  private get publicKey(): string {
-    return Buffer.from(this.identity.public.pubKey).toString('hex');
+    return ((Gun.SEA.decrypt(data, this.userpass)) as Promise<Record<string, string> | undefined>);
   }
 
   private async encryptBucketSchema(schema: BucketMetadata): Promise<EncryptedMetadata> {
