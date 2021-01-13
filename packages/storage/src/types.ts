@@ -42,8 +42,8 @@ export interface DirectoryEntry {
   ipfsHash: string;
   isDir: boolean;
   sizeInBytes: number;
-  created: Date;
-  updated: Date;
+  created: string;
+  updated: string;
   fileExtension: string;
   isLocallyAvailable: boolean;
   backupCount: number;

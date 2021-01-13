@@ -98,7 +98,12 @@ describe('Users storing data', () => {
       },
     ]);
 
-    const listFolderRec = await storage.listDirectory({ bucket: 'personal', path: '',recursive: true });
+    const listFolderRec = await storage.listDirectory({ bucket: 'personal', path: '', recursive: true });
+
+    const listFolder1 = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: false });
+    expect(listFolder1.items[0].items.length).to.be.equals(0);
+    const listFolder1Rec = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: true });
+    expect(listFolder1Rec.items[0].items.length).to.be.greaterThan(0);
 
     // validate content of top.txt file
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/top.txt' });

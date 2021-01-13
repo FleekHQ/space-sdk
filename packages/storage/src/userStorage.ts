@@ -1,5 +1,5 @@
-import { SpaceUser } from '@spacehq/users';
-import { PrivateKey } from '@textile/crypto';
+import { SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
+import { PrivateKey, publicKeyBytesFromString } from '@textile/crypto';
 import { Buckets, PathItem, UserAuth, GetOrCreateResponse, PathAccessRole } from '@textile/hub';
 import ee from 'event-emitter';
 import { utils } from 'mocha';
@@ -22,6 +22,7 @@ import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
 import { stringify } from 'querystring';
+import moment from 'moment';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -76,43 +77,53 @@ export class UserStorage {
   }
 
   private static parsePathItems(its: PathItem[]): DirectoryEntry[] {
-    const filteredEntries = its.filter((it:PathItem)=> {return !isMetaFileName(it.name)});
+    const filteredEntries = its.filter((it:PathItem) => { return !isMetaFileName(it.name)});
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
       const paths = it.path.split(/\/ip[f|n]s\/[^\/]*/);
 
-      if (!paths){
-        throw new Error("Unable to regex parse the path");
+      if (!paths) {
+        throw new Error('Unable to regex parse the path');
       }
 
-      if (!it.metadata || !it.metadata.updatedAt){
-        throw new Error("Unable to parse updatedAt from bucket file");
+      if (!it.metadata || !it.metadata.updatedAt) {
+        throw new Error('Unable to parse updatedAt from bucket file');
       }
 
-      const members:FileMember[]=[];
-      it.metadata.roles.forEach((val:PathAccessRole, key:string)=>{
+      const members:FileMember[] = [];
+      it.metadata.roles.forEach((val:PathAccessRole, key:string) => {
         members.push({
-          publicKey: key,
-        })
+          publicKey: key === '*' ? '*' : Buffer.from(publicKeyBytesFromString(key)).toString('hex'),
+          address: key === '*' ? '' : GetAddressFromPublicKey(key),
+        });
       });
 
+      const { name, isDir, count } = it;
+
+      // need to divide because textile gives nanoseconds
+      const dt = new Date(Math.round(it.metadata.updatedAt / 1000000));
+      // using moment to get required output format 2021-01-12T22:57:34-05:00
+      const d = moment(dt);
+
       return ({
-        ...it,
+        name,
+        isDir,
+        count,
         path: paths[1],
         ipfsHash: it.cid,
         sizeInBytes: it.size,
         // using the updated date as weare in the daemon, should
         // change once createdAt is available
-        created: new Date(it.metadata?.updatedAt),
-        updated: new Date(it.metadata?.updatedAt),
-        fileExtension: it.name.indexOf('.') >= 0 ? it.name.substr(it.name.lastIndexOf('.') + 1):"",
+        created: d.format(),
+        updated: d.format(),
+        fileExtension: it.name.indexOf('.') >= 0 ? it.name.substr(it.name.lastIndexOf('.') + 1) : '',
         isLocallyAvailable: false,
         backupCount: 1,
         members,
         isBackupInProgress: false,
         isRestoreInProgress: false,
         items: UserStorage.parsePathItems(it.items),
-      })
+      });
     });
 
     return des;
@@ -134,14 +145,14 @@ export class UserStorage {
     const bucket = await this.getOrCreateBucket(client, request.bucket);
     const path = sanitizePath(request.path);
 
-    const depth = request.recursive ? Number.MAX_SAFE_INTEGER : 1;
+    const depth = request.recursive ? Number.MAX_SAFE_INTEGER : 0;
     try {
       const result = await client.listPath(bucket.root?.key || '', path, depth);
 
-      if(!result.item || !result.item.items){
+      if (!result.item || !result.item.items) {
         return {
           items: [],
-        }
+        };
       }
 
       return {
