@@ -3,3 +3,4 @@ docs
 examples
 jest.config.js
 **/proto.keys.ts
+**/*.md

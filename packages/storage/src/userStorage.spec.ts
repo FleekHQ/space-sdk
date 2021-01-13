@@ -1,5 +1,5 @@
-import { Identity } from '@spacehq/users';
-import { PrivateKey } from '@textile/crypto';
+import { Identity, GetAddressFromPublicKey } from '@spacehq/users';
+import { PrivateKey, publicKeyBytesFromString } from '@textile/crypto';
 import { Buckets, PathAccessRole, PathItem, PushPathResult, Root } from '@textile/hub';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
@@ -10,6 +10,7 @@ import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/meta
 import { makeAsyncIterableString } from './testHelpers';
 import { AddItemsEventData } from './types';
 import { UserStorage } from './userStorage';
+import dayjs from 'dayjs';
 
 use(chaiAsPromised.default);
 use(chaiSubset.default);
@@ -131,18 +132,19 @@ describe('UserStorage', () => {
       };
 
       const roles = new Map<string, PathAccessRole>();
-      const pubkey = 'ab1';
+      const pubkey = 'bbaareieswor4fnmzdwmv6fwij2rxyyjmpc2izognkiqnfxlvnzzsvs7y5y';
       roles.set(pubkey, PathAccessRole.PATH_ACCESS_ROLE_ADMIN);
+      const updatedAt = (new Date().getMilliseconds()) * 1000000;
 
       const { storage, mockBuckets } = initStubbedStorage();
-      when(mockBuckets.listPath('myBucketKey', `/${listDirectoryRequest.path}`, 1)).thenResolve({
+      when(mockBuckets.listPath('myBucketKey', `/${listDirectoryRequest.path}`, 0)).thenResolve({
         item: {
           ...mainItem,
           items: [
             {
               ...childItem,
               metadata: {
-                updatedAt: new Date().getMilliseconds(),
+                updatedAt,
                 roles,
               },
               items: [],
@@ -154,19 +156,22 @@ describe('UserStorage', () => {
 
       const result = await storage.listDirectory(listDirectoryRequest);
 
+      const expectedDate = dayjs(new Date(Math.round(updatedAt / 1000000))).format();
+
       expect(result).to.not.equal(undefined);
       expect(result.items[0]).to.not.equal(undefined);
       expect(result.items[0].name).to.equal(childItem.name);
       expect(result.items[0].ipfsHash).to.equal(childItem.cid);
       expect(result.items[0].isDir).to.equal(childItem.isDir);
       expect(result.items[0].sizeInBytes).to.equal(childItem.size);
-      expect(result.items[0].created).to.not.equal(undefined);
-      expect(result.items[0].updated).to.not.equal(undefined);
+      expect(result.items[0].created).to.equal(expectedDate);
+      expect(result.items[0].updated).to.equal(expectedDate);
       expect(result.items[0].fileExtension).to.equal('');
       expect(result.items[0].isLocallyAvailable).to.equal(false);
       expect(result.items[0].backupCount).to.equal(1);
       expect(result.items[0].members).to.deep.equal([{
-        publicKey: pubkey,
+        publicKey: Buffer.from(publicKeyBytesFromString(pubkey)).toString('hex'),
+        address: GetAddressFromPublicKey(pubkey),
       }]);
       expect(result.items[0].isBackupInProgress).to.equal(false);
       expect(result.items[0].isRestoreInProgress).to.equal(false);

@@ -1,4 +1,4 @@
-import { AddItemsEventData, AddItemsResultSummary, UserStorage } from '@spacehq/sdk';
+import { AddItemsEventData, AddItemsResultSummary, UserStorage, ListDirectoryResponse } from '@spacehq/sdk';
 import { isNode } from 'browser-or-node';
 import fs from 'fs';
 import { expect, use } from 'chai';
@@ -104,7 +104,23 @@ describe('Users storing data', () => {
       },
     ]);
 
-    const listFolderRec = await storage.listDirectory({ bucket: 'personal', path: '', recursive: true });
+    const listFolder1 = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: false });
+    expect(listFolder1).to.not.be.equals(null);
+    if (listFolder1.items && listFolder1.items[0].items) {
+      expect(listFolder1.items[0].items.length).to.be.equals(0);
+    } else {
+      expect(listFolder1.items).to.not.be.equals(null);
+      expect(listFolder1.items[0].items).to.not.be.equals(null);
+    }
+
+    const listFolder1Rec:ListDirectoryResponse = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: true });
+    expect(listFolder1Rec).to.not.be.equals(null);
+    if (listFolder1Rec.items && listFolder1Rec.items[0].items) {
+      expect(listFolder1Rec.items[0].items.length).to.be.greaterThan(0);
+    } else {
+      expect(listFolder1Rec.items).to.not.be.equals(null);
+      expect(listFolder1Rec.items[0].items).to.not.be.equals(null);
+    }
 
     // validate content of top.txt file
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/top.txt' });

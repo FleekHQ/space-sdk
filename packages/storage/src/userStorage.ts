@@ -1,5 +1,5 @@
-import { Identity, SpaceUser } from '@spacehq/users';
-import { PrivateKey } from '@textile/crypto';
+import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
+import { PrivateKey, publicKeyBytesFromString } from '@textile/crypto';
 import { Buckets, PathItem, UserAuth, PathAccessRole, Root } from '@textile/hub';
 import ee from 'event-emitter';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
@@ -20,6 +20,8 @@ import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } fro
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
+import { stringify } from 'querystring';
+import dayjs from 'dayjs';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -35,7 +37,7 @@ export interface UserStorageConfig {
 }
 
 // TODO: Change this to prod value
-const DefaultTextileHubAddress = 'http://textile-hub-dev.fleek.co:3007';
+const DefaultTextileHubAddress = 'https://hub-dev-web.space.storage:3007';
 
 interface BucketMetadataWithThreads extends BucketMetadata {
   root?: Root
@@ -100,19 +102,29 @@ export class UserStorage {
       const members:FileMember[] = [];
       it.metadata.roles.forEach((val:PathAccessRole, key:string) => {
         members.push({
-          publicKey: key,
+          publicKey: key === '*' ? '*' : Buffer.from(publicKeyBytesFromString(key)).toString('hex'),
+          address: key === '*' ? '' : GetAddressFromPublicKey(key),
         });
       });
 
+      const { name, isDir, count } = it;
+
+      // need to divide because textile gives nanoseconds
+      const dt = new Date(Math.round(it.metadata.updatedAt / 1000000));
+      // using moment to get required output format 2021-01-12T22:57:34-05:00
+      const d = dayjs(dt);
+
       return ({
-        ...it,
+        name,
+        isDir,
+        count,
         path: paths[1],
         ipfsHash: it.cid,
         sizeInBytes: it.size,
         // using the updated date as weare in the daemon, should
         // change once createdAt is available
-        created: new Date(it.metadata?.updatedAt),
-        updated: new Date(it.metadata?.updatedAt),
+        created: d.format(),
+        updated: d.format(),
         fileExtension: it.name.indexOf('.') >= 0 ? it.name.substr(it.name.lastIndexOf('.') + 1) : '',
         isLocallyAvailable: false,
         backupCount: 1,
@@ -142,7 +154,7 @@ export class UserStorage {
     const bucket = await this.getOrCreateBucket(client, request.bucket);
     const path = sanitizePath(request.path);
 
-    const depth = request.recursive ? Number.MAX_SAFE_INTEGER : 1;
+    const depth = request.recursive ? Number.MAX_SAFE_INTEGER : 0;
     try {
       const result = await client.listPath(bucket.root?.key || '', path, depth);
 
