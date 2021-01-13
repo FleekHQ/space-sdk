@@ -8,6 +8,10 @@ export enum DeterministicThreadVariant {
   MetathreadThreadVariant = 'metathread',
 }
 
+export enum ThreadKeyVariant {
+  metathreadVariant = 'metathreadV1',
+}
+
 /**
  * Builds a thread ID that's going to be the same every time for a given user key pair.
  * Used for example to store user-related metadata
@@ -32,4 +36,18 @@ export const getDeterministicThreadID = (
   const bytes = Buffer.concat([Buffer.from(encode(ThreadID.V1)), Buffer.from(encode(v)), derivedPk]);
 
   return new ThreadID(bytes);
+};
+
+export const getManagedThreadKey = (identity: PrivateKey, threadKeyVariant: ThreadKeyVariant): Uint8Array => {
+  const pk = identity.privKey;
+  const keyLen = 32;
+  const keyBytes = 32;
+  const v = ThreadID.Variant.Raw;
+  const encoder = new TextEncoder();
+  const salt = encoder.encode(`threadKey${threadKeyVariant}`);
+
+  // Based on https://github.com/FleekHQ/space-daemon/blob/master/core/keychain.go
+  const derivedPk: Buffer = pbkdf2Sync(pk, salt, 256, keyLen, 'sha512');
+
+  return derivedPk.slice(0, keyBytes * 2);
 };

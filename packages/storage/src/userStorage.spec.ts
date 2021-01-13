@@ -6,6 +6,7 @@ import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
 import { anyString, anything, deepEqual, instance, mock, verify, when } from 'ts-mockito';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
+import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
 import { makeAsyncIterableString } from './testHelpers';
 import { AddItemsEventData } from './types';
 import { UserStorage } from './userStorage';
@@ -27,6 +28,14 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
     }),
   );
 
+  // const mockMetadataStore: UserMetadataStore = mock();
+  // when(mockMetadataStore.findBucket(anyString(), anyString())).thenReturn(Promise.resolve(undefined));
+  // when(mockMetadataStore.createBucket(anyString(), anyString())).thenReturn(Promise.resolve({
+  //   slug: 'myBucketKey',
+  //   encryptionKey: new Uint8Array(80),
+  //   dbId: 'dbId',
+  // }));
+
   const storage = new UserStorage(
     {
       identity: mockIdentity,
@@ -40,6 +49,35 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
     },
     {
       bucketsInit: () => instance(mockBuckets),
+      metadataStoreInit: async (): Promise<UserMetadataStore> => {
+        // commenting this out now because it causes test to silently fail
+        // return instance(mockMetadataStore); // to be fixed later
+        return Promise.resolve({
+          createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata> {
+            return Promise.resolve({
+              slug: 'myBucketKey',
+              encryptionKey: new Uint8Array(80),
+              dbId: 'dbId',
+            });
+          },
+          findBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata | undefined> {
+            return Promise.resolve({
+              slug: 'myBucketKey',
+              encryptionKey: new Uint8Array(80),
+              dbId: 'dbId',
+            });
+          },
+          listBuckets(): Promise<BucketMetadata[]> {
+            return Promise.resolve([]);
+          },
+          upsertFileMetadata(): Promise<FileMetadata> {
+            return Promise.resolve({});
+          },
+          findFileMetadata(): Promise<FileMetadata | undefined> {
+            return Promise.resolve({ mimeType: 'generic/type' });
+          },
+        });
+      },
     },
   );
 
@@ -94,12 +132,12 @@ describe('UserStorage', () => {
       };
 
       const roles = new Map<string, PathAccessRole>();
-      const pubkey = "bbaareieswor4fnmzdwmv6fwij2rxyyjmpc2izognkiqnfxlvnzzsvs7y5y";
+      const pubkey = 'bbaareieswor4fnmzdwmv6fwij2rxyyjmpc2izognkiqnfxlvnzzsvs7y5y';
       roles.set(pubkey, PathAccessRole.PATH_ACCESS_ROLE_ADMIN);
       const updatedAt = (new Date().getMilliseconds()) * 1000000;
 
       const { storage, mockBuckets } = initStubbedStorage();
-      when(mockBuckets.listPath('myBucketKey', `/${listDirectoryRequest.path}`, 1)).thenResolve({
+      when(mockBuckets.listPath('myBucketKey', `/${listDirectoryRequest.path}`, 0)).thenResolve({
         item: {
           ...mainItem,
           items: [
@@ -170,6 +208,7 @@ describe('UserStorage', () => {
       const filesData = await result.consumeStream();
 
       expect(new TextDecoder('utf8').decode(filesData)).to.equal(actualFileContent);
+      expect(result.mimeType).to.equal('generic/type');
     });
   });
 
@@ -195,10 +234,12 @@ describe('UserStorage', () => {
           {
             path: '/top/a.txt',
             data: 'a content',
+            mimeType: 'text/plain',
           },
           {
             path: 'b.txt',
             data: 'b content',
+            mimeType: 'text/plain',
           },
         ],
       });

@@ -1,6 +1,9 @@
-import { AddItemsEventData, AddItemsResultSummary, UserStorage } from '@spacehq/sdk';
+import { AddItemsEventData, AddItemsResultSummary, UserStorage, ListDirectoryResponse } from '@spacehq/sdk';
+import { isNode } from 'browser-or-node';
+import fs from 'fs';
 import { expect, use } from 'chai';
 import * as chaiSubset from 'chai-subset';
+import path from 'path';
 import { TestsDefaultTimeout } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
 
@@ -40,10 +43,12 @@ describe('Users storing data', () => {
         {
           path: 'top.txt',
           data: txtContent,
+          mimeType: 'plain/text',
         },
         {
           path: 'subfolder/inner.txt',
           data: 'some other stuffs',
+          mimeType: 'plain/text',
         },
       ],
     });
@@ -74,13 +79,14 @@ describe('Users storing data', () => {
       ],
     });
 
-    //3rd level upload
+    // 3rd level upload
     const anotheruploadResponse = await storage.addItems({
       bucket: 'personal',
       files: [
         {
           path: 'firstfolder/secondfolder/file.txt',
           data: txtContent,
+          mimeType: 'plain/text',
         },
       ],
     });
@@ -98,16 +104,60 @@ describe('Users storing data', () => {
       },
     ]);
 
-    const listFolderRec = await storage.listDirectory({ bucket: 'personal', path: '', recursive: true });
-
     const listFolder1 = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: false });
-    expect(listFolder1.items[0].items.length).to.be.equals(0);
-    const listFolder1Rec = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: true });
-    expect(listFolder1Rec.items[0].items.length).to.be.greaterThan(0);
+    expect(listFolder1).to.not.be.equals(null);
+    if (listFolder1.items && listFolder1.items[0].items) {
+      expect(listFolder1.items[0].items.length).to.be.equals(0);
+    } else {
+      expect(listFolder1.items).to.not.be.equals(null);
+      expect(listFolder1.items[0].items).to.not.be.equals(null);
+    }
+
+    const listFolder1Rec:ListDirectoryResponse = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: true });
+    expect(listFolder1Rec).to.not.be.equals(null);
+    if (listFolder1Rec.items && listFolder1Rec.items[0].items) {
+      expect(listFolder1Rec.items[0].items.length).to.be.greaterThan(0);
+    } else {
+      expect(listFolder1Rec.items).to.not.be.equals(null);
+      expect(listFolder1Rec.items[0].items).to.not.be.equals(null);
+    }
 
     // validate content of top.txt file
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/top.txt' });
     const actualTxtContent = await fileResponse.consumeStream();
     expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
+    expect(fileResponse.mimeType).to.equal('plain/text');
   }).timeout(TestsDefaultTimeout);
+
+  it('should open large files successfully', async () => {
+    if (!isNode) {
+      return;
+    }
+
+    const { user } = await authenticateAnonymousUser();
+    const imageBytes = fs.readFileSync(path.join(__dirname, 'test_data', 'image.jpg'));
+    const storage = new UserStorage(user);
+    const uploadResponse = await storage.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'image.jpg',
+          data: imageBytes,
+          mimeType: 'image/jpg',
+        },
+      ],
+    });
+
+    await new Promise<AddItemsEventData>((resolve) => {
+      uploadResponse.once('done', resolve);
+    });
+
+    const openResponse = await storage.openFile({
+      bucket: 'personal',
+      path: '/image.jpg',
+    });
+
+    const actualBytes = await openResponse.consumeStream();
+    expect(Buffer.from(actualBytes)).to.deep.equal(imageBytes);
+  });
 });
