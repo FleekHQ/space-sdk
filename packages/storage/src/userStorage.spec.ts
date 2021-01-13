@@ -60,7 +60,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
               dbId: 'dbId',
             });
           },
-          findBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata | undefined> {
+          findBucket(bucketSlug: string): Promise<BucketMetadata | undefined> {
             return Promise.resolve({
               slug: 'myBucketKey',
               encryptionKey: new Uint8Array(80),
