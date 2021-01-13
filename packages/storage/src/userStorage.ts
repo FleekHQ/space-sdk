@@ -21,7 +21,7 @@ import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
 import { stringify } from 'querystring';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -37,7 +37,7 @@ export interface UserStorageConfig {
 }
 
 // TODO: Change this to prod value
-const DefaultTextileHubAddress = 'http://textile-hub-dev.fleek.co:3007';
+const DefaultTextileHubAddress = 'https://hub-dev-web.space.storage:3007';
 
 interface BucketMetadataWithThreads extends BucketMetadata {
   root?: Root
@@ -112,7 +112,7 @@ export class UserStorage {
       // need to divide because textile gives nanoseconds
       const dt = new Date(Math.round(it.metadata.updatedAt / 1000000));
       // using moment to get required output format 2021-01-12T22:57:34-05:00
-      const d = moment(dt);
+      const d = dayjs(dt);
 
       return ({
         name,

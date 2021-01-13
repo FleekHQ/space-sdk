@@ -10,7 +10,7 @@ import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/meta
 import { makeAsyncIterableString } from './testHelpers';
 import { AddItemsEventData } from './types';
 import { UserStorage } from './userStorage';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 use(chaiAsPromised.default);
 use(chaiSubset.default);
@@ -156,7 +156,7 @@ describe('UserStorage', () => {
 
       const result = await storage.listDirectory(listDirectoryRequest);
 
-      const expectedDate = moment(new Date(Math.round(updatedAt / 1000000))).format();
+      const expectedDate = dayjs(new Date(Math.round(updatedAt / 1000000))).format();
 
       expect(result).to.not.equal(undefined);
       expect(result.items[0]).to.not.equal(undefined);
