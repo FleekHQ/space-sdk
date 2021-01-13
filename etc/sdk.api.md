@@ -89,7 +89,7 @@ export interface DirectoryEntry {
     // (undocumented)
     backupCount: number;
     // (undocumented)
-    created: Date;
+    created: string;
     // (undocumented)
     fileExtension: string;
     // (undocumented)
@@ -113,7 +113,7 @@ export interface DirectoryEntry {
     // (undocumented)
     sizeInBytes: number;
     // (undocumented)
-    updated: Date;
+    updated: string;
 }
 
 // @public (undocumented)
@@ -145,6 +145,9 @@ export class FileStorage {
     // (undocumented)
     remove(key: string): Promise<void>;
     }
+
+// @public (undocumented)
+export const GetAddressFromPublicKey: (pubkey: string) => string;
 
 // @public
 export class GunsdbMetadataStore implements UserMetadataStore {
