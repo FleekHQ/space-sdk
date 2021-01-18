@@ -38,15 +38,18 @@ describe('GunsdbMetadataStore', () => {
   }).timeout(10000);
 
   it('should work for file metadata', async () => {
-    const bucket = 'personal';
+    const bucketSlug = 'personal';
     const dbId = 'something';
     const path = '/home/case.png';
     const store = await GundbMetadataStore.fromIdentity(username, password);
 
-    await store.upsertFileMetadata(bucket, dbId, path, { mimeType: 'image/png' });
+    await store.upsertFileMetadata({ mimeType: 'image/png', bucketSlug, dbId, path });
 
-    const fileMetadata = await store.findFileMetadata(bucket, dbId, path);
+    const fileMetadata = await store.findFileMetadata(bucketSlug, dbId, path);
     expect(fileMetadata).to.deep.equal({
+      bucketSlug,
+      dbId,
+      path,
       mimeType: 'image/png',
     });
   }).timeout(10000);

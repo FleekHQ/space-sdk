@@ -3,6 +3,7 @@ import { publicKeyBytesFromString } from '@textile/crypto';
 import { Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
 import ee from 'event-emitter';
 import dayjs from 'dayjs';
+import { v4 } from 'uuid';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, UserMetadataStore } from './metadata/metadataStore';
@@ -326,7 +327,6 @@ export class UserStorage {
       // eslint-disable-next-line no-restricted-syntax
       for (const file of dirFiles) {
         const path = sanitizePath(file.path);
-
         const status: AddItemsStatus = {
           path,
           status: 'success',
@@ -336,8 +336,12 @@ export class UserStorage {
           // eslint-disable-next-line no-await-in-loop
           await client.pushPath(bucket.root?.key || '', path, file.data);
           // eslint-disable-next-line no-await-in-loop
-          await metadataStore.upsertFileMetadata(bucket.slug, bucket.dbId, path, {
+          await metadataStore.upsertFileMetadata({
+            uuid: v4(),
             mimeType: file.mimeType,
+            bucketSlug: bucket.slug,
+            dbId: bucket.dbId,
+            path,
           });
           emitter.emit('data', status);
         } catch (err) {

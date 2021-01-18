@@ -4,13 +4,13 @@ import { Buckets, PathAccessRole, PathItem, PushPathResult, Root } from '@textil
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
+import dayjs from 'dayjs';
 import { anyString, anything, deepEqual, instance, mock, verify, when } from 'ts-mockito';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
 import { makeAsyncIterableString } from './testHelpers';
 import { AddItemsEventData } from './types';
 import { UserStorage } from './userStorage';
-import dayjs from 'dayjs';
 
 use(chaiAsPromised.default);
 use(chaiSubset.default);
@@ -70,11 +70,11 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
           listBuckets(): Promise<BucketMetadata[]> {
             return Promise.resolve([]);
           },
-          upsertFileMetadata(): Promise<FileMetadata> {
-            return Promise.resolve({});
+          upsertFileMetadata(input: FileMetadata): Promise<FileMetadata> {
+            return Promise.resolve({ ...input, bucketSlug: 'myBucket', dbId: '', path: '/' });
           },
           findFileMetadata(): Promise<FileMetadata | undefined> {
-            return Promise.resolve({ mimeType: 'generic/type' });
+            return Promise.resolve({ mimeType: 'generic/type', bucketSlug: 'myBucket', dbId: '', path: '/' });
           },
         });
       },
