@@ -1,5 +1,5 @@
 import { expect } from 'chai';
-import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } from './pathUtils';
+import { filePathFromIpfsPath, getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } from './pathUtils';
 
 describe('pathUtils', () => {
   describe('sanitizePath', () => {
@@ -75,6 +75,27 @@ describe('pathUtils', () => {
           actualOutput.push(...leaf);
         });
 
+        expect(actualOutput).to.deep.equal(output);
+      });
+    });
+  });
+
+  describe('filePathFromIpfsPath', () => {
+    const tests = [
+      {
+        input: '/ipfs/bafybeifyipelgeu75bzjnrw5l5xpp4nmllh3owzk5o7qci7gtatstgdoam/.textileseed',
+        output: '/.textileseed',
+      },
+      {
+        input: '/ipfs/bafybeifyipelgeu75bzjnrw5l5xpp4nmllh3owzk5o7qci7gtatstgdoam/top.txt',
+        output: '/top.txt',
+      },
+    ];
+
+    // eslint-disable-next-line mocha/no-setup-in-describe
+    tests.forEach(({ input, output }) => {
+      it(`filePathFromIpfsPath('${input}') returns '${output}'`, async () => {
+        const actualOutput = filePathFromIpfsPath(input);
         expect(actualOutput).to.deep.equal(output);
       });
     });

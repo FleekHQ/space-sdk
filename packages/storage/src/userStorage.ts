@@ -5,10 +5,11 @@ import ee from 'event-emitter';
 import dayjs from 'dayjs';
 import { flattenDeep } from 'lodash';
 import { v4 } from 'uuid';
-import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
+import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from './errors';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
-import { AddItemsRequest,
+import {
+  AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
@@ -18,8 +19,16 @@ import { AddItemsRequest,
   ListDirectoryRequest,
   ListDirectoryResponse,
   OpenFileRequest,
-  OpenFileResponse } from './types';
-import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } from './utils/pathUtils';
+  OpenFileResponse,
+  OpenUuidFileResponse,
+} from './types';
+import {
+  filePathFromIpfsPath,
+  getParentPath,
+  isTopLevelPath,
+  reOrderPathByParents,
+  sanitizePath,
+} from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
@@ -90,9 +99,9 @@ export class UserStorage {
     const filteredEntries = its.filter((it:PathItem) => !isMetaFileName(it.name));
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
-      const paths = it.path.split(/\/ip[f|n]s\/[^\/]*/);
+      const path = filePathFromIpfsPath(it.path);
 
-      if (!paths) {
+      if (!path) {
         throw new Error('Unable to regex parse the path');
       }
 
@@ -119,7 +128,7 @@ export class UserStorage {
         name,
         isDir,
         count,
-        path: paths[1],
+        path,
         ipfsHash: it.cid,
         sizeInBytes: it.size,
         // using the updated date as weare in the daemon, should
@@ -132,7 +141,7 @@ export class UserStorage {
         members,
         isBackupInProgress: false,
         isRestoreInProgress: false,
-        uuid: metadataMap[it.path]?.uuid || '',
+        uuid: metadataMap[path]?.uuid || '',
         items: UserStorage.parsePathItems(it.items, metadataMap),
       });
     });
@@ -214,6 +223,64 @@ export class UserStorage {
     } catch (e) {
       if (e.message.includes('no link named')) {
         throw new DirEntryNotFoundError(path, request.bucket);
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  /**
+   * Open a file with uuid. Will only return a result if the current user
+   * has access to the file.
+   *
+   * See the sharing guide for a use case of how this method will be useful.
+   *
+   * @example
+   * ```typescript
+   * const spaceStorage = new UserStorage(spaceUser);
+   *
+   * const response = await spaceStorage.openFileByUuid('file-uu-id');
+   * const filename = response.entry.name;
+   *
+   * // response.stream is an async iterable
+   * for await (const chunk of response.stream) {
+   *    // aggregate the chunks based on your logic
+   * }
+   *
+   * // response also contains a convenience function consumeStream
+   * const fileBytes = await response.consumeStream();
+   *```
+   *
+   * @param uuid - Uuid of file to be open
+   */
+  public async openFileByUuid(uuid: string): Promise<OpenUuidFileResponse> {
+    const metadataStore = await this.getMetadataStore();
+    const client = this.getUserBucketsClient();
+    const fileMetadata = await metadataStore.findFileMetadataByUuid(uuid);
+    if (!fileMetadata) {
+      throw new FileNotFoundError();
+    }
+
+    const existingRoot = await UserStorage.getExistingBucket(client, fileMetadata.bucketSlug, fileMetadata.dbId);
+    if (!existingRoot) {
+      throw new DirEntryNotFoundError(fileMetadata.path, fileMetadata.bucketSlug);
+    }
+
+    try {
+      // fetch entry information
+      const existingFile = await client.listPath(existingRoot.key, fileMetadata.path);
+      const [fileEntry] = UserStorage.parsePathItems([existingFile.item!], { [fileMetadata.path]: fileMetadata });
+
+      const fileData = client.pullPath(existingRoot.key, fileMetadata.path);
+      return {
+        stream: fileData,
+        consumeStream: () => consumeStream(fileData),
+        mimeType: fileMetadata.mimeType,
+        entry: fileEntry,
+      };
+    } catch (e) {
+      if (e.message.includes('no link named')) {
+        throw new DirEntryNotFoundError(fileMetadata.path, fileMetadata.bucketSlug);
       } else {
         throw e;
       }
@@ -375,7 +442,7 @@ export class UserStorage {
     const result: Record<string, FileMetadata> = {};
 
     const extractPathRecursive = (item: PathItem): string[] => ([
-      item.path,
+      filePathFromIpfsPath(item.path),
       ...flattenDeep(item.items.map(extractPathRecursive)),
     ]);
     const paths = flattenDeep(items.map(extractPathRecursive));
@@ -401,6 +468,16 @@ export class UserStorage {
     const getOrCreateResponse = await client.getOrCreate(name, { threadID: metadata.dbId });
 
     return { ...metadata, ...getOrCreateResponse };
+  }
+
+  private static async getExistingBucket(
+    client: Buckets,
+    bucketName: string,
+    threadId: string,
+  ): Promise<Root | undefined> {
+    const existingRoots = await client.existing(threadId);
+
+    return existingRoots.find((root) => root.name === bucketName);
   }
 
   private getUserBucketsClient(): Buckets {

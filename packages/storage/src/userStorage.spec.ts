@@ -6,6 +6,7 @@ import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
 import dayjs from 'dayjs';
 import { anyString, anything, deepEqual, instance, mock, verify, when } from 'ts-mockito';
+import { v4 } from 'uuid';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
 import { makeAsyncIterableString } from './testHelpers';
@@ -77,7 +78,12 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
             return Promise.resolve({ uuid: 'generated-uuid', mimeType: 'generic/type', bucketSlug, dbId, path });
           },
           findFileMetadataByUuid(): Promise<FileMetadata | undefined> {
-            return Promise.resolve({ mimeType: 'generic/type', bucketSlug: 'myBucket', dbId: '', path: '/' });
+            return Promise.resolve({
+              mimeType: 'generic/type',
+              bucketSlug: 'myBucket',
+              dbId: 'mockThreadId',
+              path: '/',
+            });
           },
         });
       },
@@ -209,6 +215,47 @@ describe('UserStorage', () => {
       );
 
       const result = await storage.openFile({ bucket: 'personal', path: '/file.txt' });
+      const filesData = await result.consumeStream();
+
+      expect(new TextDecoder('utf8').decode(filesData)).to.equal(actualFileContent);
+      expect(result.mimeType).to.equal('generic/type');
+    });
+  });
+
+  describe('openFileByUuid', () => {
+    // it('should throw if uuid is not found', async () => {
+    //  // fix this when mocking metadatastore works
+    // });
+
+    it('should return a valid stream of files data', async () => {
+      const { storage, mockBuckets } = initStubbedStorage();
+      const fileUuid = v4();
+      const actualFileContent = "file.txt's file content";
+      when(mockBuckets.existing('mockThreadId')).thenReturn(Promise.resolve([
+        {
+          ...mock<Root>(),
+          name: 'myBucket',
+          key: 'myBucketKey',
+        },
+      ]));
+      when(mockBuckets.listPath('myBucketKey', anyString())).thenResolve({
+        item: {
+          ...mock<PathItem>(),
+          name: 'file.txt',
+          path: '/ipfs/Qm123/file.txt',
+          metadata: {
+            updatedAt: (new Date().getMilliseconds()) * 1000000,
+            roles: new Map(),
+          },
+          items: [],
+        },
+      });
+
+      when(mockBuckets.pullPath('myBucketKey', anyString())).thenReturn(
+        makeAsyncIterableString(actualFileContent) as AsyncIterableIterator<Uint8Array>,
+      );
+
+      const result = await storage.openFileByUuid(fileUuid);
       const filesData = await result.consumeStream();
 
       expect(new TextDecoder('utf8').decode(filesData)).to.equal(actualFileContent);
