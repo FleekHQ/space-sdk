@@ -3,6 +3,7 @@ import { PrivateKey } from '@textile/crypto';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
 import { expect, use } from 'chai';
+import { v4 } from 'uuid';
 import { GundbMetadataStore } from './gundbMetadataStore';
 
 use(chaiAsPromised.default);
@@ -42,15 +43,21 @@ describe('GunsdbMetadataStore', () => {
     const dbId = 'something';
     const path = '/home/case.png';
     const store = await GundbMetadataStore.fromIdentity(username, password);
-
-    await store.upsertFileMetadata({ mimeType: 'image/png', bucketSlug, dbId, path });
-
-    const fileMetadata = await store.findFileMetadata(bucketSlug, dbId, path);
-    expect(fileMetadata).to.deep.equal({
+    const fileMetadata = {
+      uuid: v4(),
+      mimeType: 'image/png',
       bucketSlug,
       dbId,
       path,
-      mimeType: 'image/png',
-    });
+    };
+
+    await store.upsertFileMetadata(fileMetadata);
+
+    const savedMetadata = await store.findFileMetadata(bucketSlug, dbId, path);
+    expect(savedMetadata).to.deep.equal(fileMetadata);
+
+    // test retrieving by uuid
+    const savedMetadataByUuid = await store.findFileMetadataByUuid(fileMetadata.uuid);
+    expect(savedMetadataByUuid).to.deep.equal(fileMetadata);
   }).timeout(10000);
 });

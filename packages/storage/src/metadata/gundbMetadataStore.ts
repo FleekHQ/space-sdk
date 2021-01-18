@@ -194,6 +194,18 @@ export class GundbMetadataStore implements UserMetadataStore {
     path: string,
   ): Promise<FileMetadata | undefined> {
     const lookupKey = GundbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
+    return this.lookupFileMetadata(lookupKey);
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.findFileMetadataByUuid}
+   */
+  public async findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined> {
+    const lookupKey = GundbMetadataStore.getFilesUuidLookupKey(uuid);
+    return this.lookupFileMetadata(lookupKey);
+  }
+
+  private async lookupFileMetadata(lookupKey: string): Promise<FileMetadata | undefined> {
     const encryptedData = await new Promise<EncryptedMetadata | null>((resolve, reject) => {
       this.lookupUser.get(lookupKey).once((data) => {
         resolve(data);

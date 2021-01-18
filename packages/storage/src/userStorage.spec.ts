@@ -29,7 +29,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
   );
 
   // const mockMetadataStore: UserMetadataStore = mock();
-  // when(mockMetadataStore.findBucket(anyString(), anyString())).thenReturn(Promise.resolve(undefined));
+  // when(mockMetadataStore.findBucket(anyString())).thenReturn(Promise.resolve(undefined));
   // when(mockMetadataStore.createBucket(anyString(), anyString())).thenReturn(Promise.resolve({
   //   slug: 'myBucketKey',
   //   encryptionKey: new Uint8Array(80),
@@ -73,7 +73,10 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
           upsertFileMetadata(input: FileMetadata): Promise<FileMetadata> {
             return Promise.resolve({ ...input, bucketSlug: 'myBucket', dbId: '', path: '/' });
           },
-          findFileMetadata(): Promise<FileMetadata | undefined> {
+          findFileMetadata(bucketSlug, dbId, path): Promise<FileMetadata | undefined> {
+            return Promise.resolve({ uuid: 'generated-uuid', mimeType: 'generic/type', bucketSlug, dbId, path });
+          },
+          findFileMetadataByUuid(): Promise<FileMetadata | undefined> {
             return Promise.resolve({ mimeType: 'generic/type', bucketSlug: 'myBucket', dbId: '', path: '/' });
           },
         });
@@ -175,6 +178,7 @@ describe('UserStorage', () => {
       }]);
       expect(result.items[0].isBackupInProgress).to.equal(false);
       expect(result.items[0].isRestoreInProgress).to.equal(false);
+      expect(result.items[0].uuid).to.equal('generated-uuid');
     });
   });
 

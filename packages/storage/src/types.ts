@@ -50,6 +50,7 @@ export interface DirectoryEntry {
   members: FileMember[];
   isBackupInProgress: boolean;
   isRestoreInProgress: boolean;
+  uuid: string;
   items?: DirectoryEntry[];
 }
 

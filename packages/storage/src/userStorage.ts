@@ -3,10 +3,11 @@ import { publicKeyBytesFromString } from '@textile/crypto';
 import { Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
 import ee from 'event-emitter';
 import dayjs from 'dayjs';
+import { flattenDeep } from 'lodash';
 import { v4 } from 'uuid';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
-import { BucketMetadata, UserMetadataStore } from './metadata/metadataStore';
+import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
 import { AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
@@ -85,7 +86,7 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
-  private static parsePathItems(its: PathItem[]): DirectoryEntry[] {
+  private static parsePathItems(its: PathItem[], metadataMap: Record<string, FileMetadata>): DirectoryEntry[] {
     const filteredEntries = its.filter((it:PathItem) => !isMetaFileName(it.name));
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
@@ -131,7 +132,8 @@ export class UserStorage {
         members,
         isBackupInProgress: false,
         isRestoreInProgress: false,
-        items: UserStorage.parsePathItems(it.items),
+        uuid: metadataMap[it.path]?.uuid || '',
+        items: UserStorage.parsePathItems(it.items, metadataMap),
       });
     });
 
@@ -164,8 +166,10 @@ export class UserStorage {
         };
       }
 
+      const uuidMap = await this.getFileMetadataMap(bucket.slug, bucket.dbId, result.item?.items || []);
+
       return {
-        items: UserStorage.parsePathItems(result.item?.items) || [],
+        items: UserStorage.parsePathItems(result.item?.items || [], uuidMap) || [],
       };
     } catch (e) {
       if (e.message.includes('no link named')) {
@@ -234,10 +238,12 @@ export class UserStorage {
    *     {
    *       path: 'file.txt',
    *       content: '',
+   *       mimeType: 'plain/text',
    *     },
    *     {
    *       path: 'space.png',
    *       content: '',
+   *       mimeType: 'image/png',
    *     }
    *   ],
    * });
@@ -355,6 +361,33 @@ export class UserStorage {
     });
 
     return summary;
+  }
+
+  // Note: this might be slow for large list of items or deeply nested paths.
+  // This is currently a limitation of the metadatastore.
+  // TODO: Make this lookup faster
+  private async getFileMetadataMap(
+    bucketSlug: string,
+    dbId: string,
+    items: PathItem[],
+  ): Promise<Record<string, FileMetadata>> {
+    const metadataStore = await this.getMetadataStore();
+    const result: Record<string, FileMetadata> = {};
+
+    const extractPathRecursive = (item: PathItem): string[] => ([
+      item.path,
+      ...flattenDeep(item.items.map(extractPathRecursive)),
+    ]);
+    const paths = flattenDeep(items.map(extractPathRecursive));
+
+    await Promise.all(paths.map(async (path: string) => {
+      const metadata = await metadataStore.findFileMetadata(bucketSlug, dbId, path);
+      if (metadata) {
+        result[path] = metadata;
+      }
+    }));
+
+    return result;
   }
 
   private async getOrCreateBucket(client: Buckets, name: string): Promise<BucketMetadataWithThreads> {

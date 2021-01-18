@@ -40,6 +40,14 @@ export interface UserMetadataStore {
     dbId: string,
     path: string,
   ) => Promise<FileMetadata | undefined>;
+
+  /**
+   * Find existing metadata information about the file with uuid
+   *
+   */
+  findFileMetadataByUuid: (
+    uuid: string,
+  ) => Promise<FileMetadata | undefined>;
 }
 
 /**
