@@ -208,7 +208,7 @@ describe('Users storing data', () => {
       .to.eventually.be.rejectedWith(FileNotFoundError);
   }).timeout(TestsDefaultTimeout);
 
-  it('should subscribe to textile events', async (done) => {
+  it('should subscribe to textile events', async () => {
     const { user } = await authenticateAnonymousUser();
     const txtContent = 'Some manual text should be in the file';
 
@@ -218,7 +218,7 @@ describe('Users storing data', () => {
     const ee = await storage.txlSubscribe();
 
     const eventData = new Promise<TxlSubscribeEventData>((resolve) => {
-      ee.once('data', (d:TxlSubscribeEventData) => d);
+      ee.once('data', (d:TxlSubscribeEventData) => resolve(d));
     });
 
     const uploadResponse = await storage.addItems({
@@ -239,6 +239,5 @@ describe('Users storing data', () => {
 
     const data = await eventData;
     expect(data.bucketName).to.equal('personal');
-    done();
-  });
+  }).timeout(TestsDefaultTimeout);
 });
