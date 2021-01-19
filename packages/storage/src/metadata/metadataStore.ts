@@ -48,6 +48,14 @@ export interface UserMetadataStore {
   findFileMetadataByUuid: (
     uuid: string,
   ) => Promise<FileMetadata | undefined>;
+
+  /**
+   * Make the file with uuid publicly accessible by storing in a datastore domain that is public.
+   *
+   */
+  setFilePublic: (
+    metadata: FileMetadata
+  ) => Promise<void>;
 }
 
 /**
@@ -81,6 +89,7 @@ export interface BucketMetadata {
 export interface FileMetadata {
   uuid?: string;
   mimeType?: string;
+  bucketKey?: string;
   bucketSlug: string;
   dbId: string;
   path: string;

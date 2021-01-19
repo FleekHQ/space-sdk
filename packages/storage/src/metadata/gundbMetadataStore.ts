@@ -1,4 +1,4 @@
-/* eslint-disable no-underscore-dangle */
+/* eslint-disable no-underscore-dangle,@typescript-eslint/no-var-requires,global-require */
 import { isNode } from 'browser-or-node';
 import Pino from 'pino';
 import { IGunChainReference } from 'gun/types/chain';
@@ -7,16 +7,16 @@ import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadataStore
 
 let Gun: IGunStatic;
 if (isNode) {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
   Gun = require('gun');
 } else {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
   Gun = require('gun/gun');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
   require('gun/sea');
+  require('gun/lib/radix');
+  require('gun/lib/radisk');
+  require('gun/lib/store');
+  require('gun/lib/rindexed');
 }
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 const crypto = require('crypto-browserify');
 
 // this is an hack to enable using IGunChainReference in async functions
@@ -25,6 +25,8 @@ export type GunChainReference<Data> = Omit<IGunChainReference<Data>, 'then'>;
 // 32 bytes aes key + 16 bytes salt/IV + 32 bytes HMAC key
 const BucketEncryptionKeyLength = 32 + 16 + 32;
 const BucketMetadataCollection = 'BucketMetadata';
+const PublicStoreUsername = '66f47ce32570335085b39bdf';
+const PublicStorePassword = '830a20694358651ef14e472fd71c4f9f843ecd50784b241a6c9999dba4c6fced0f90c686bdee28edc';
 
 interface AckError {
   err: string;
@@ -32,10 +34,15 @@ interface AckError {
 
 // Remapped bucket metadata type compatible with Gundb
 type GunBucketMetadata = Omit<BucketMetadata, 'encryptionKey'> & { encryptionKey: string };
+type GunFileMetadata = { data: string };
 type EncryptedMetadata = { data: string; };
 
 interface LookupDataState {
   [dbIdBucket: string]: EncryptedMetadata;
+}
+
+interface LookupFileMetadataState {
+  [lookupId: string]: GunFileMetadata;
 }
 
 interface ListDataState {
@@ -44,7 +51,9 @@ interface ListDataState {
 
 // Data schema of records stored in gundb
 // currently only a single bucket metadata collection
-export type GunDataState = LookupDataState | ListDataState;
+export type GunDataState = LookupDataState | ListDataState | LookupFileMetadataState;
+
+type GunInit = (() => GunChainReference<GunDataState>);
 
 /**
  * A Users Storage Metadata store backed by gundsdb.
@@ -53,12 +62,14 @@ export type GunDataState = LookupDataState | ListDataState;
  *
  */
 export class GundbMetadataStore implements UserMetadataStore {
-  private readonly gun: GunChainReference<GunDataState>;
+  private gunInit: GunInit;
 
   // in memory cache list of buckets
   private bucketsListCache: BucketMetadata[];
 
   private _user?: GunChainReference<GunDataState>;
+
+  private _publicUser?: GunChainReference<GunDataState>;
 
   private logger?: Pino.Logger;
 
@@ -69,17 +80,21 @@ export class GundbMetadataStore implements UserMetadataStore {
   private constructor(
     private readonly username: string,
     private readonly userpass: string,
-    gunOrServer?: GunChainReference<GunDataState> | string,
+    gunOrServer?: GunInit | string | string[],
     logger?: Pino.Logger | boolean,
   ) {
     if (gunOrServer) {
-      if (typeof gunOrServer === 'string') {
-        this.gun = Gun({ web: gunOrServer });
+      if (typeof gunOrServer === 'string' || Array.isArray(gunOrServer)) {
+        this.gunInit = () => Gun(gunOrServer);
       } else {
-        this.gun = gunOrServer;
+        this.gunInit = gunOrServer;
       }
     } else {
-      this.gun = Gun(['https://gun.space.storage/gun']);
+      this.gunInit = () => Gun({
+        localStorage: false,
+        radisk: true,
+        peers: 'https://gun.space.storage/gun',
+      } as any);
     }
 
     this.bucketsListCache = [];
@@ -106,11 +121,16 @@ export class GundbMetadataStore implements UserMetadataStore {
   static async fromIdentity(
     username: string,
     userpass: string,
-    gunOrServer?: GunChainReference<GunDataState> | string,
+    gunOrServer?: GunInit | string | string[],
     logger?: Pino.Logger | boolean,
   ): Promise<GundbMetadataStore> {
     const store = new GundbMetadataStore(username, userpass, gunOrServer, logger);
-    await store.authenticateUser();
+
+    store._user = store.gunInit().user();
+    await store.authenticateUser(store._user, username, userpass);
+    store._publicUser = store.gunInit().user();
+    await store.authenticateUser(store._publicUser, PublicStoreUsername, PublicStorePassword);
+
     await store.startCachingBucketsList();
 
     return store;
@@ -225,7 +245,28 @@ export class GundbMetadataStore implements UserMetadataStore {
   public async findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined> {
     this.logger?.info({ uuid }, 'Store.findFileMetadataByUuid');
     const lookupKey = GundbMetadataStore.getFilesUuidLookupKey(uuid);
-    return this.lookupFileMetadata(lookupKey);
+
+    // NOTE: This can be speedup by making this fetch promise a race instead of sequential
+    return this.lookupFileMetadata(lookupKey).then((data) => {
+      if (!data) {
+        return this.lookupPublicFileMetadata(lookupKey);
+      }
+      return data;
+    });
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.setFilePublic}
+   */
+  public async setFilePublic(metadata: FileMetadata): Promise<void> {
+    if (metadata.uuid === undefined) {
+      throw new Error('metadata file must have a uuid');
+    }
+
+    const lookupKey = GundbMetadataStore.getFilesUuidLookupKey(metadata.uuid);
+    this.logger?.info({ metadata, lookupKey }, 'Making file metadata public');
+
+    this.publicLookupChain.get(lookupKey).put({ data: JSON.stringify(metadata) });
   }
 
   private async lookupFileMetadata(lookupKey: string): Promise<FileMetadata | undefined> {
@@ -239,6 +280,7 @@ export class GundbMetadataStore implements UserMetadataStore {
         if (!encryptedData) {
           this.logger?.info({ lookupKey }, 'FileMetadata not found');
           resolve(undefined);
+          return;
         }
 
         try {
@@ -248,6 +290,21 @@ export class GundbMetadataStore implements UserMetadataStore {
         } catch (e) {
           reject(e);
         }
+      });
+    });
+  }
+
+  private async lookupPublicFileMetadata(lookupKey: string): Promise<FileMetadata | undefined> {
+    return new Promise<FileMetadata | undefined>((resolve, reject) => {
+      this.publicLookupChain.get(lookupKey).get('data').once((data) => {
+        if (!data) {
+          this.logger?.info({ lookupKey }, 'Public FileMetadata not found');
+          resolve(undefined);
+          return;
+        }
+
+        this.logger?.info({ lookupKey }, 'Public FileMetadata found');
+        resolve(JSON.parse(data));
       });
     });
   }
@@ -289,6 +346,15 @@ export class GundbMetadataStore implements UserMetadataStore {
     return this._user!;
   }
 
+  private get publicUser(): GunChainReference<GunDataState> {
+    if (!this._publicUser || !(this._publicUser as unknown as { is?: Record<never, never>; }).is) {
+      throw new Error('gundb user not authenticated');
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return this._publicUser!;
+  }
+
   // use this alias getter for lookuping up users metadata so typescript works as expected
   private get lookupUser(): GunChainReference<LookupDataState> {
     return this.user as GunChainReference<LookupDataState>;
@@ -299,25 +365,32 @@ export class GundbMetadataStore implements UserMetadataStore {
     return this.user as GunChainReference<ListDataState>;
   }
 
-  private async authenticateUser(): Promise<void> {
+  private get publicLookupChain(): GunChainReference<LookupFileMetadataState> {
+    return this.publicUser as GunChainReference<LookupFileMetadataState>;
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  private async authenticateUser<T>(
+    user: GunChainReference<T>,
+    username: string,
+    userpass: string,
+  ): Promise<void> {
+    this.logger?.info({ username }, 'Authenticating user');
     // user.is checks if user is currently logged in
-    if (this._user && (this._user as unknown as { is?: Record<never, never>; }).is) {
+    if ((user as unknown as { is?: Record<never, never>; }).is) {
+      this.logger?.info({ username }, 'User already authenticated');
       return;
     }
 
-    this._user = this.gun.user();
-
     await new Promise((resolve, reject) => {
-      // eslint-disable-next-line no-unused-expressions
-      this._user?.create(this.username, this.userpass, (ack) => {
+      user.create(username, userpass, (ack) => {
         // if ((ack as AckError).err) {
         //   // error here means user either exists or is being created, see gundb user docs.
         //   // so ignoring
         //   return;
         // }
 
-        // eslint-disable-next-line no-unused-expressions
-        this._user?.auth(this.username, this.userpass, (auth) => {
+        user.auth(username, userpass, (auth) => {
           if ((auth as AckError).err) {
             reject(new Error(`gundb failed to authenticate user: ${(auth as AckError).err}`));
             return;

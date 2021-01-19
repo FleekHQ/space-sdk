@@ -81,6 +81,16 @@ export interface OpenUuidFileRequest {
   progress?: (bytesRead?: number) => void;
 }
 
+export interface MakeFilePublicRequest {
+  path: string;
+  bucket: string;
+  /**
+   * Specifies if public access to file should be accessible.
+   *
+   */
+  allowAccess: boolean;
+}
+
 export interface OpenFileResponse {
   stream: AsyncIterableIterator<Uint8Array>;
   /**

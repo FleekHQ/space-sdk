@@ -11,7 +11,8 @@ import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from '
 import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
-import { AddItemsRequest,
+import {
+  AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
@@ -20,16 +21,20 @@ import { AddItemsRequest,
   FileMember,
   ListDirectoryRequest,
   ListDirectoryResponse,
+  MakeFilePublicRequest,
   OpenUuidFileRequest,
   OpenFileRequest,
   OpenFileResponse,
   OpenUuidFileResponse,
-  TxlSubscribeResponse } from './types';
-import { filePathFromIpfsPath,
+  TxlSubscribeResponse,
+} from './types';
+import {
+  filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
   reOrderPathByParents,
-  sanitizePath } from './utils/pathUtils';
+  sanitizePath,
+} from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
@@ -124,7 +129,12 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
-  private static parsePathItems(its: PathItem[], metadataMap: Record<string, FileMetadata>, bucket: string, dbId: string): DirectoryEntry[] {
+  private static parsePathItems(
+    its: PathItem[],
+    metadataMap: Record<string, FileMetadata>,
+    bucket: string,
+    dbId: string,
+  ): DirectoryEntry[] {
     const filteredEntries = its.filter((it:PathItem) => !isMetaFileName(it.name));
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
@@ -331,14 +341,15 @@ export class UserStorage {
       throw new FileNotFoundError();
     }
 
-    const existingRoot = await UserStorage.getExistingBucket(client, fileMetadata.bucketSlug, fileMetadata.dbId);
-    if (!existingRoot) {
-      throw new DirEntryNotFoundError(fileMetadata.path, fileMetadata.bucketSlug);
-    }
-
     try {
+      client.withThread(fileMetadata.dbId);
+      const bucketKey = fileMetadata.bucketKey || '';
       // fetch entry information
-      const existingFile = await client.listPath(existingRoot.key, fileMetadata.path);
+      const existingFile = await client.listPath(bucketKey, fileMetadata.path);
+      if (!existingFile.item) {
+        throw new FileNotFoundError();
+      }
+
       const [fileEntry] = UserStorage.parsePathItems(
         [existingFile.item!],
         { [fileMetadata.path]: fileMetadata },
@@ -346,7 +357,8 @@ export class UserStorage {
         fileMetadata.dbId,
       );
 
-      const fileData = client.pullPath(existingRoot.key, fileMetadata.path, { progress: request.progress });
+      const fileData = client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress });
+
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
@@ -360,6 +372,42 @@ export class UserStorage {
         throw e;
       }
     }
+  }
+
+  /**
+   * Allow or revoke public access to a file.
+   *
+   * @example
+   * ```typescript
+   * const spaceStorage = new UserStorage(spaceUser);
+   *
+   * await spaceStorage.setFilePublicAccess({
+   *    bucket: 'personal',
+   *    path: '/file.txt',
+   *    allowAccess: true, // <- set to false to revoke public access
+   * });
+   * ```
+   */
+  public async setFilePublicAccess(request: MakeFilePublicRequest): Promise<void> {
+    const metadataStore = await this.getMetadataStore();
+    const client = this.getUserBucketsClient();
+    const bucket = await this.getOrCreateBucket(client, request.bucket);
+    const path = sanitizePath(request.path);
+
+    const metadata = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, path);
+    if (metadata === undefined) {
+      throw new DirEntryNotFoundError(path, bucket.slug);
+    }
+
+    const roles = new Map();
+    if (request.allowAccess) {
+      await metadataStore.setFilePublic(metadata!);
+      roles.set('*', PathAccessRole.PATH_ACCESS_ROLE_WRITER);
+    } else {
+      roles.set('*', PathAccessRole.PATH_ACCESS_ROLE_UNSPECIFIED);
+    }
+
+    await client.pushPathAccessRoles(bucket.root?.key || '', path, roles);
   }
 
   /**
@@ -497,6 +545,7 @@ export class UserStorage {
           const metadata = await metadataStore.upsertFileMetadata({
             uuid: v4(),
             mimeType: file.mimeType,
+            bucketKey: bucket.root?.key,
             bucketSlug: bucket.slug,
             dbId: bucket.dbId,
             path,

@@ -142,6 +142,8 @@ export interface FileMember {
 // @public
 export interface FileMetadata {
     // (undocumented)
+    bucketKey?: string;
+    // (undocumented)
     bucketSlug: string;
     // (undocumented)
     dbId: string;
@@ -178,10 +180,10 @@ export class GundbMetadataStore implements UserMetadataStore {
     findBucket(bucketSlug: string): Promise<BucketMetadata | undefined>;
     findFileMetadata(bucketSlug: string, dbId: string, path: string): Promise<FileMetadata | undefined>;
     findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined>;
-    // Warning: (ae-forgotten-export) The symbol "GunChainReference" needs to be exported by the entry point index.d.ts
-    // Warning: (ae-forgotten-export) The symbol "GunDataState" needs to be exported by the entry point index.d.ts
-    static fromIdentity(username: string, userpass: string, gunOrServer?: GunChainReference<GunDataState> | string, logger?: Pino.Logger | boolean): Promise<GundbMetadataStore>;
+    // Warning: (ae-forgotten-export) The symbol "GunInit" needs to be exported by the entry point index.d.ts
+    static fromIdentity(username: string, userpass: string, gunOrServer?: GunInit | string | string[], logger?: Pino.Logger | boolean): Promise<GundbMetadataStore>;
     listBuckets(): Promise<BucketMetadata[]>;
+    setFilePublic(metadata: FileMetadata): Promise<void>;
     upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
     }
 
@@ -223,6 +225,15 @@ export interface ListDirectoryRequest {
 export interface ListDirectoryResponse {
     // (undocumented)
     items: DirectoryEntry[];
+}
+
+// @public (undocumented)
+export interface MakeFilePublicRequest {
+    allowAccess: boolean;
+    // (undocumented)
+    bucket: string;
+    // (undocumented)
+    path: string;
 }
 
 // @public (undocumented)
@@ -336,6 +347,7 @@ export interface UserMetadataStore {
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
     findFileMetadataByUuid: (uuid: string) => Promise<FileMetadata | undefined>;
     listBuckets: () => Promise<BucketMetadata[]>;
+    setFilePublic: (metadata: FileMetadata) => Promise<void>;
     upsertFileMetadata: (data: FileMetadata) => Promise<FileMetadata>;
 }
 
@@ -371,6 +383,7 @@ export class UserStorage {
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse>;
+    setFilePublicAccess(request: MakeFilePublicRequest): Promise<void>;
     txlSubscribe(): Promise<TxlSubscribeResponse>;
     }
 
