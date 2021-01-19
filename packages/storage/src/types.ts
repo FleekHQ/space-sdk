@@ -138,6 +138,6 @@ export interface TxlSubscribeResponse {
    * this function should only be used to listen for the `'done'` event, since the listener would only be called once.
    * or else you could end up having functions leaking (unless you explicitly call the `off()` function).
    */
-  // once: (type: AddItemsEventType, listener: AddItemsListener) => void;
-  // off: (type: AddItemsEventType, listener: AddItemsListener) => void;
+  once: (type: TxlSubscribeEventType, listener: TxlSubscribeListener) => void;
+  // off: (type: TxlSubscribeEventType, listener: AddItemsListener) => void;
 }

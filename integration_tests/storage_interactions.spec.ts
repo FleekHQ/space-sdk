@@ -1,4 +1,4 @@
-import { AddItemsEventData, AddItemsResultSummary, UserStorage, ListDirectoryResponse } from '@spacehq/sdk';
+import { TxlSubscribeEventData, AddItemsEventData, AddItemsResultSummary, UserStorage, ListDirectoryResponse } from '@spacehq/sdk';
 import { isNode } from 'browser-or-node';
 import fs from 'fs';
 import { expect, use } from 'chai';
@@ -159,5 +159,41 @@ describe('Users storing data', () => {
 
     const actualBytes = await openResponse.consumeStream();
     expect(Buffer.from(actualBytes)).to.deep.equal(imageBytes);
+  });
+
+  it('should subscribe to textile events', async (done) => {
+    const { user } = await authenticateAnonymousUser();
+    const txtContent = 'Some manual text should be in the file';
+
+    const storage = new UserStorage(user);
+    await storage.initListener();
+
+    const ee = await storage.txlSubscribe();
+
+    const prom = new Promise<TxlSubscribeEventData>((resolve) => {
+      ee.once('data', (x:TxlSubscribeEventData) => {
+        console.log('x: ', x);
+      });
+    });
+
+    const uploadResponse = await storage.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'top.txt',
+          data: txtContent,
+          mimeType: 'plain/text',
+        },
+        {
+          path: 'subfolder/inner.txt',
+          data: 'some other stuffs',
+          mimeType: 'plain/text',
+        },
+      ],
+    });
+
+    await prom;
+    // expect(Buffer.from(actualBytes)).to.deep.equal(imageBytes);
+    done();
   });
 });
