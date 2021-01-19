@@ -40,6 +40,7 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
+    "@improbable-eng/grpc-web": "^0.13.0",
     "@spacehq/users": "^0.0.5",
     "@textile/crypto": "^2.0.0",
     "@textile/hub": "^4.1.0",
