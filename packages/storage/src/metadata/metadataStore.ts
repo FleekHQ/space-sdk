@@ -29,7 +29,7 @@ export interface UserMetadataStore {
    * Updates the metadata information about a specific file.
    *
    */
-  upsertFileMetadata: (bucketSlug: string, dbId: string, path: string, data: FileMetadata) => Promise<FileMetadata>;
+  upsertFileMetadata: (data: FileMetadata) => Promise<FileMetadata>;
 
   /**
    * Find existing metadata information about the file at path.
@@ -39,6 +39,14 @@ export interface UserMetadataStore {
     bucketSlug:string,
     dbId: string,
     path: string,
+  ) => Promise<FileMetadata | undefined>;
+
+  /**
+   * Find existing metadata information about the file with uuid
+   *
+   */
+  findFileMetadataByUuid: (
+    uuid: string,
   ) => Promise<FileMetadata | undefined>;
 }
 
@@ -71,5 +79,9 @@ export interface BucketMetadata {
  *
  */
 export interface FileMetadata {
+  uuid?: string;
   mimeType?: string;
+  bucketSlug: string;
+  dbId: string;
+  path: string;
 }

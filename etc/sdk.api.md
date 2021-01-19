@@ -114,6 +114,8 @@ export interface DirectoryEntry {
     sizeInBytes: number;
     // (undocumented)
     updated: string;
+    // (undocumented)
+    uuid: string;
 }
 
 // @public (undocumented)
@@ -132,7 +134,20 @@ export interface FileMember {
 // @public
 export interface FileMetadata {
     // (undocumented)
+    bucketSlug: string;
+    // (undocumented)
+    dbId: string;
+    // (undocumented)
     mimeType?: string;
+    // (undocumented)
+    path: string;
+    // (undocumented)
+    uuid?: string;
+}
+
+// @public (undocumented)
+export class FileNotFoundError extends Error {
+    constructor();
 }
 
 // @public
@@ -154,11 +169,12 @@ export class GundbMetadataStore implements UserMetadataStore {
     createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata>;
     findBucket(bucketSlug: string): Promise<BucketMetadata | undefined>;
     findFileMetadata(bucketSlug: string, dbId: string, path: string): Promise<FileMetadata | undefined>;
+    findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined>;
     // Warning: (ae-forgotten-export) The symbol "GunChainReference" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "GunDataState" needs to be exported by the entry point index.d.ts
     static fromIdentity(username: string, userpass: string, gunOrServer?: GunChainReference<GunDataState> | string): Promise<GundbMetadataStore>;
     listBuckets(): Promise<BucketMetadata[]>;
-    upsertFileMetadata(bucketSlug: string, dbId: string, path: string, metadata: FileMetadata): Promise<FileMetadata>;
+    upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
     }
 
 // Warning: (ae-internal-missing-underscore) The name "HubAuthResponse" should be prefixed with an underscore because the declaration is marked as @internal
@@ -218,6 +234,16 @@ export interface OpenFileResponse {
     stream: AsyncIterableIterator<Uint8Array>;
 }
 
+// @public (undocumented)
+export interface OpenUuidFileResponse {
+    consumeStream: () => Promise<Uint8Array>;
+    entry: DirectoryEntry;
+    // (undocumented)
+    mimeType: string | undefined;
+    // (undocumented)
+    stream: AsyncIterableIterator<Uint8Array>;
+}
+
 // @public
 export interface Public {
     bytes: Uint8Array;
@@ -264,8 +290,9 @@ export interface UserMetadataStore {
     createBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata>;
     findBucket: (bucketSlug: string) => Promise<BucketMetadata | undefined>;
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
+    findFileMetadataByUuid: (uuid: string) => Promise<FileMetadata | undefined>;
     listBuckets: () => Promise<BucketMetadata[]>;
-    upsertFileMetadata: (bucketSlug: string, dbId: string, path: string, data: FileMetadata) => Promise<FileMetadata>;
+    upsertFileMetadata: (data: FileMetadata) => Promise<FileMetadata>;
 }
 
 // @public
@@ -298,6 +325,7 @@ export class UserStorage {
     createFolder(request: CreateFolderRequest): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
+    openFileByUuid(uuid: string): Promise<OpenUuidFileResponse>;
     }
 
 // @public (undocumented)
