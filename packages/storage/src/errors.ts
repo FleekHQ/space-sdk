@@ -10,3 +10,9 @@ export class DirEntryNotFoundError extends Error {
     super(`'${filePath}' was not found in bucket '${bucket}`);
   }
 }
+
+export class FileNotFoundError extends Error {
+  constructor() {
+    super('File not found');
+  }
+}

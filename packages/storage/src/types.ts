@@ -50,6 +50,7 @@ export interface DirectoryEntry {
   members: FileMember[];
   isBackupInProgress: boolean;
   isRestoreInProgress: boolean;
+  uuid: string;
   items?: DirectoryEntry[];
 }
 
@@ -72,6 +73,23 @@ export interface OpenFileResponse {
    */
   consumeStream: () => Promise<Uint8Array>;
   mimeType: string | undefined;
+}
+
+export interface OpenUuidFileResponse {
+  stream: AsyncIterableIterator<Uint8Array>;
+  /**
+   * consumeStream aggregates the stream data and returns the compounded bytes array.
+   *
+   * Note that if the `stream` has already been consumed/used once, consumeStream would
+   * return an empty bytes array.
+   */
+  consumeStream: () => Promise<Uint8Array>;
+  mimeType: string | undefined;
+  /**
+   * Directory Entry representing the file this stream points to.
+   *
+   */
+  entry: DirectoryEntry;
 }
 
 export interface AddItemFile {

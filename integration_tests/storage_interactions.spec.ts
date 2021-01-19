@@ -1,12 +1,21 @@
-import { TxlSubscribeEventData, AddItemsEventData, AddItemsResultSummary, UserStorage, ListDirectoryResponse } from '@spacehq/sdk';
+/* eslint-disable no-unused-expressions */
+import { AddItemsEventData,
+  AddItemsResultSummary,
+  UserStorage,
+  ListDirectoryResponse,
+  DirectoryEntry,
+  FileNotFoundError,
+  TxlSubscribeEventData } from '@spacehq/sdk';
 import { isNode } from 'browser-or-node';
 import fs from 'fs';
 import { expect, use } from 'chai';
+import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
 import path from 'path';
 import { TestsDefaultTimeout } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
 
+use(chaiAsPromised.default);
 use(chaiSubset.default);
 
 describe('Users storing data', () => {
@@ -28,7 +37,6 @@ describe('Users storing data', () => {
     // validate empty .keep file is at folders root
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/topFolder/.keep' });
     const keepFilesContent = await fileResponse.consumeStream();
-    // eslint-disable-next-line no-unused-expressions
     expect(keepFilesContent).to.be.empty;
   }).timeout(TestsDefaultTimeout);
 
@@ -161,6 +169,45 @@ describe('Users storing data', () => {
     expect(Buffer.from(actualBytes)).to.deep.equal(imageBytes);
   });
 
+  it('should allow user access file via uuid', async () => {
+    const { user } = await authenticateAnonymousUser();
+    const txtContent = 'Some manual text should be in the file';
+
+    const storage = new UserStorage(user);
+    const uploadResponse = await storage.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'top.txt',
+          data: txtContent,
+          mimeType: 'plain/text',
+        },
+      ],
+    });
+    await new Promise((resolve) => {
+      uploadResponse.once('done', (data: AddItemsEventData) => {
+        resolve();
+      });
+    });
+
+    const listFolder = await storage.listDirectory({ bucket: 'personal', path: '' });
+    const file = listFolder.items.find((item: DirectoryEntry) => item.name.includes('top.txt'));
+    expect(file).to.not.be.undefined;
+    expect(file?.uuid).to.not.be.empty;
+
+    const fileResponse = await storage.openFileByUuid(file?.uuid || '');
+    expect(fileResponse.entry.name).to.equal('top.txt');
+    const actualTxtContent = await fileResponse.consumeStream();
+    expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
+
+    // ensure file is not accessible from outside of owners file
+    const { user: unauthorizedUser } = await authenticateAnonymousUser();
+    const unauthorizedStorage = new UserStorage(unauthorizedUser);
+
+    await expect(unauthorizedStorage.openFileByUuid(file?.uuid || ''))
+      .to.eventually.be.rejectedWith(FileNotFoundError);
+  }).timeout(TestsDefaultTimeout);
+
   it('should subscribe to textile events', async (done) => {
     const { user } = await authenticateAnonymousUser();
     const txtContent = 'Some manual text should be in the file';
@@ -170,10 +217,8 @@ describe('Users storing data', () => {
 
     const ee = await storage.txlSubscribe();
 
-    const prom = new Promise<TxlSubscribeEventData>((resolve) => {
-      ee.once('data', (x:TxlSubscribeEventData) => {
-        console.log('x: ', x);
-      });
+    const eventData = new Promise<TxlSubscribeEventData>((resolve) => {
+      ee.once('data', (d:TxlSubscribeEventData) => d);
     });
 
     const uploadResponse = await storage.addItems({
@@ -192,7 +237,8 @@ describe('Users storing data', () => {
       ],
     });
 
-    await prom;
+    const data = await eventData;
+    expect(data.bucketName).to.equal('personal');
     done();
   });
 });

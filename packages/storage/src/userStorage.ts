@@ -3,10 +3,12 @@ import { publicKeyBytesFromString } from '@textile/crypto';
 import { Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
 import ee from 'event-emitter';
 import dayjs from 'dayjs';
-import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
-import { GundbMetadataStore } from './metadata/gundbMetadataStore';
+import { flattenDeep } from 'lodash';
+import { v4 } from 'uuid';
+import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from './errors';
 import { Listener } from './listener/listener';
-import { BucketMetadata, UserMetadataStore } from './metadata/metadataStore';
+import { GundbMetadataStore } from './metadata/gundbMetadataStore';
+import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
 import { AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
@@ -18,8 +20,13 @@ import { AddItemsRequest,
   ListDirectoryResponse,
   OpenFileRequest,
   OpenFileResponse,
+  OpenUuidFileResponse,
   TxlSubscribeResponse } from './types';
-import { getParentPath, isTopLevelPath, reOrderPathByParents, sanitizePath } from './utils/pathUtils';
+import { filePathFromIpfsPath,
+  getParentPath,
+  isTopLevelPath,
+  reOrderPathByParents,
+  sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
@@ -103,13 +110,13 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
-  private static parsePathItems(its: PathItem[]): DirectoryEntry[] {
+  private static parsePathItems(its: PathItem[], metadataMap: Record<string, FileMetadata>): DirectoryEntry[] {
     const filteredEntries = its.filter((it:PathItem) => !isMetaFileName(it.name));
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
-      const paths = it.path.split(/\/ip[f|n]s\/[^\/]*/);
+      const path = filePathFromIpfsPath(it.path);
 
-      if (!paths) {
+      if (!path) {
         throw new Error('Unable to regex parse the path');
       }
 
@@ -136,7 +143,7 @@ export class UserStorage {
         name,
         isDir,
         count,
-        path: paths[1],
+        path,
         ipfsHash: it.cid,
         sizeInBytes: it.size,
         // using the updated date as weare in the daemon, should
@@ -149,7 +156,8 @@ export class UserStorage {
         members,
         isBackupInProgress: false,
         isRestoreInProgress: false,
-        items: UserStorage.parsePathItems(it.items),
+        uuid: metadataMap[path]?.uuid || '',
+        items: UserStorage.parsePathItems(it.items, metadataMap),
       });
     });
 
@@ -220,8 +228,10 @@ export class UserStorage {
         };
       }
 
+      const uuidMap = await this.getFileMetadataMap(bucket.slug, bucket.dbId, result.item?.items || []);
+
       return {
-        items: UserStorage.parsePathItems(result.item?.items) || [],
+        items: UserStorage.parsePathItems(result.item?.items || [], uuidMap) || [],
       };
     } catch (e) {
       if (e.message.includes('no link named')) {
@@ -273,6 +283,64 @@ export class UserStorage {
   }
 
   /**
+   * Open a file with uuid. Will only return a result if the current user
+   * has access to the file.
+   *
+   * See the sharing guide for a use case of how this method will be useful.
+   *
+   * @example
+   * ```typescript
+   * const spaceStorage = new UserStorage(spaceUser);
+   *
+   * const response = await spaceStorage.openFileByUuid('file-uu-id');
+   * const filename = response.entry.name;
+   *
+   * // response.stream is an async iterable
+   * for await (const chunk of response.stream) {
+   *    // aggregate the chunks based on your logic
+   * }
+   *
+   * // response also contains a convenience function consumeStream
+   * const fileBytes = await response.consumeStream();
+   *```
+   *
+   * @param uuid - Uuid of file to be open
+   */
+  public async openFileByUuid(uuid: string): Promise<OpenUuidFileResponse> {
+    const metadataStore = await this.getMetadataStore();
+    const client = this.getUserBucketsClient();
+    const fileMetadata = await metadataStore.findFileMetadataByUuid(uuid);
+    if (!fileMetadata) {
+      throw new FileNotFoundError();
+    }
+
+    const existingRoot = await UserStorage.getExistingBucket(client, fileMetadata.bucketSlug, fileMetadata.dbId);
+    if (!existingRoot) {
+      throw new DirEntryNotFoundError(fileMetadata.path, fileMetadata.bucketSlug);
+    }
+
+    try {
+      // fetch entry information
+      const existingFile = await client.listPath(existingRoot.key, fileMetadata.path);
+      const [fileEntry] = UserStorage.parsePathItems([existingFile.item!], { [fileMetadata.path]: fileMetadata });
+
+      const fileData = client.pullPath(existingRoot.key, fileMetadata.path);
+      return {
+        stream: fileData,
+        consumeStream: () => consumeStream(fileData),
+        mimeType: fileMetadata.mimeType,
+        entry: fileEntry,
+      };
+    } catch (e) {
+      if (e.message.includes('no link named')) {
+        throw new DirEntryNotFoundError(fileMetadata.path, fileMetadata.bucketSlug);
+      } else {
+        throw e;
+      }
+    }
+  }
+
+  /**
    * addItems is used to upload files to buckets.
    *
    * It uses an ReadableStream of Uint8Array data to read each files content to be uploaded.
@@ -290,10 +358,12 @@ export class UserStorage {
    *     {
    *       path: 'file.txt',
    *       content: '',
+   *       mimeType: 'plain/text',
    *     },
    *     {
    *       path: 'space.png',
    *       content: '',
+   *       mimeType: 'image/png',
    *     }
    *   ],
    * });
@@ -383,7 +453,6 @@ export class UserStorage {
       // eslint-disable-next-line no-restricted-syntax
       for (const file of dirFiles) {
         const path = sanitizePath(file.path);
-
         const status: AddItemsStatus = {
           path,
           status: 'success',
@@ -393,8 +462,12 @@ export class UserStorage {
           // eslint-disable-next-line no-await-in-loop
           await client.pushPath(bucket.root?.key || '', path, file.data);
           // eslint-disable-next-line no-await-in-loop
-          await metadataStore.upsertFileMetadata(bucket.slug, bucket.dbId, path, {
+          await metadataStore.upsertFileMetadata({
+            uuid: v4(),
             mimeType: file.mimeType,
+            bucketSlug: bucket.slug,
+            dbId: bucket.dbId,
+            path,
           });
           emitter.emit('data', status);
         } catch (err) {
@@ -408,6 +481,33 @@ export class UserStorage {
     });
 
     return summary;
+  }
+
+  // Note: this might be slow for large list of items or deeply nested paths.
+  // This is currently a limitation of the metadatastore.
+  // TODO: Make this lookup faster
+  private async getFileMetadataMap(
+    bucketSlug: string,
+    dbId: string,
+    items: PathItem[],
+  ): Promise<Record<string, FileMetadata>> {
+    const metadataStore = await this.getMetadataStore();
+    const result: Record<string, FileMetadata> = {};
+
+    const extractPathRecursive = (item: PathItem): string[] => ([
+      filePathFromIpfsPath(item.path),
+      ...flattenDeep(item.items.map(extractPathRecursive)),
+    ]);
+    const paths = flattenDeep(items.map(extractPathRecursive));
+
+    await Promise.all(paths.map(async (path: string) => {
+      const metadata = await metadataStore.findFileMetadata(bucketSlug, dbId, path);
+      if (metadata) {
+        result[path] = metadata;
+      }
+    }));
+
+    return result;
   }
 
   private async getOrCreateBucket(client: Buckets, name: string): Promise<BucketMetadataWithThreads> {
@@ -427,6 +527,16 @@ export class UserStorage {
     }
 
     return { ...metadata, ...getOrCreateResponse };
+  }
+
+  private static async getExistingBucket(
+    client: Buckets,
+    bucketName: string,
+    threadId: string,
+  ): Promise<Root | undefined> {
+    const existingRoots = await client.existing(threadId);
+
+    return existingRoots.find((root) => root.name === bucketName);
   }
 
   private getUserBucketsClient(): Buckets {

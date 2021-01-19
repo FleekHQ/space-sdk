@@ -88,3 +88,8 @@ export const reOrderPathByParents = <T>(paths: T[], extractor: (path: T) => stri
     },
   };
 };
+
+export const filePathFromIpfsPath = (ipfsPath: string): string => {
+  const paths = ipfsPath.split(/\/ip[f|n]s\/[^/]*/);
+  return paths[1] || '';
+};

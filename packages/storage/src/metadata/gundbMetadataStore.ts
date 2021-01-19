@@ -159,11 +159,9 @@ export class GundbMetadataStore implements UserMetadataStore {
    * {@inheritDoc @spacehq/sdk#UserMetadataStore.upsertFileMetadata}
    */
   public async upsertFileMetadata(
-    bucketSlug:string,
-    dbId: string,
-    path: string,
     metadata: FileMetadata,
   ): Promise<FileMetadata> {
+    const { bucketSlug, dbId, path } = metadata;
     const lookupKey = GundbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
     const existingFileMetadata = await this.findFileMetadata(bucketSlug, dbId, path);
 
@@ -178,6 +176,12 @@ export class GundbMetadataStore implements UserMetadataStore {
     const encryptedMetadata = await this.encrypt(JSON.stringify(updatedMetadata));
     this.lookupUser.get(lookupKey).put({ data: encryptedMetadata });
 
+    if (updatedMetadata.uuid) {
+      // store a lookup record of the file by uuid
+      this.lookupUser.get(GundbMetadataStore.getFilesUuidLookupKey(updatedMetadata.uuid))
+        .put({ data: encryptedMetadata });
+    }
+
     return updatedMetadata;
   }
 
@@ -190,6 +194,18 @@ export class GundbMetadataStore implements UserMetadataStore {
     path: string,
   ): Promise<FileMetadata | undefined> {
     const lookupKey = GundbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
+    return this.lookupFileMetadata(lookupKey);
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.findFileMetadataByUuid}
+   */
+  public async findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined> {
+    const lookupKey = GundbMetadataStore.getFilesUuidLookupKey(uuid);
+    return this.lookupFileMetadata(lookupKey);
+  }
+
+  private async lookupFileMetadata(lookupKey: string): Promise<FileMetadata | undefined> {
     const encryptedData = await new Promise<EncryptedMetadata | null>((resolve, reject) => {
       this.lookupUser.get(lookupKey).once((data) => {
         resolve(data);
@@ -202,7 +218,7 @@ export class GundbMetadataStore implements UserMetadataStore {
       return undefined;
     }
 
-    return this.decrypt(encryptedData.data);
+    return this.decrypt<FileMetadata>(encryptedData.data);
   }
 
   private async startCachingBucketsList(): Promise<void> {
@@ -229,6 +245,10 @@ export class GundbMetadataStore implements UserMetadataStore {
     return `fileMetadata/${bucketSlug}/${dbId}/${path}`;
   }
 
+  private static getFilesUuidLookupKey(uuid: string): string {
+    return `/fuuid/${uuid}`;
+  }
+
   private get user(): GunChainReference<GunDataState> {
     if (!this._user || !(this._user as unknown as { is?: Record<never, never>; }).is) {
       throw new Error('gundb user not authenticated');
@@ -240,11 +260,6 @@ export class GundbMetadataStore implements UserMetadataStore {
 
   // use this alias getter for lookuping up users metadata so typescript works as expected
   private get lookupUser(): GunChainReference<LookupDataState> {
-    return this.user as GunChainReference<LookupDataState>;
-  }
-
-  // use this alias getter for lookuping up users file metadata so typescript works as expected
-  private get lookupFile(): GunChainReference<LookupDataState> {
     return this.user as GunChainReference<LookupDataState>;
   }
 
@@ -287,8 +302,8 @@ export class GundbMetadataStore implements UserMetadataStore {
     return Gun.SEA.encrypt(data, this.userpass);
   }
 
-  private async decrypt(data: string): Promise<Record<string, string> | undefined> {
-    return ((Gun.SEA.decrypt(data, this.userpass)) as Promise<Record<string, string> | undefined>);
+  private async decrypt<T>(data: string): Promise<T | undefined> {
+    return ((Gun.SEA.decrypt(data, this.userpass)) as Promise<T | undefined>);
   }
 
   private async encryptBucketSchema(schema: BucketMetadata): Promise<EncryptedMetadata> {
@@ -301,12 +316,11 @@ export class GundbMetadataStore implements UserMetadataStore {
   }
 
   private async decryptBucketSchema(encryptedSchema: EncryptedMetadata): Promise<BucketMetadata> {
-    const decryptedSchema = await this.decrypt(encryptedSchema.data);
-    if (!decryptedSchema) {
+    const gunschema = await this.decrypt<GunBucketMetadata>(encryptedSchema.data);
+    if (!gunschema) {
       throw new Error('Unknown bucket metadata');
     }
 
-    const gunschema: GunBucketMetadata = decryptedSchema as GunBucketMetadata;
     return {
       ...gunschema,
       encryptionKey: Buffer.from(gunschema.encryptionKey, 'hex'),
