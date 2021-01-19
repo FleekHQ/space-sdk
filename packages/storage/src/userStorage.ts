@@ -1,15 +1,15 @@
 import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
 import { publicKeyBytesFromString } from '@textile/crypto';
-import { Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
+import { Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
 import ee from 'event-emitter';
 import dayjs from 'dayjs';
 import { flattenDeep } from 'lodash';
 import { v4 } from 'uuid';
 import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from './errors';
+import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
-import {
-  AddItemsRequest,
+import { AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
@@ -21,14 +21,12 @@ import {
   OpenFileRequest,
   OpenFileResponse,
   OpenUuidFileResponse,
-} from './types';
-import {
-  filePathFromIpfsPath,
+  TxlSubscribeResponse } from './types';
+import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
   reOrderPathByParents,
-  sanitizePath,
-} from './utils/pathUtils';
+  sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
@@ -43,6 +41,7 @@ export interface UserStorageConfig {
    * @param auth - Textile UserAuth object to initialize bucket
    */
   bucketsInit?: (auth: UserAuth) => Buckets;
+  threadsInit?: (auth: UserAuth) => Client;
   metadataStoreInit?: (identity: Identity) => Promise<UserMetadataStore>;
 }
 
@@ -73,8 +72,24 @@ export class UserStorage {
   // use the metadataStore getter to access this
   private userMetadataStore?: UserMetadataStore;
 
+  private listener?:Listener;
+
   constructor(private readonly user: SpaceUser, private readonly config: UserStorageConfig = {}) {
     this.config.textileHubAddress = this.config.textileHubAddress ?? DefaultTextileHubAddress;
+  }
+
+  /**
+   * Creates the listener post constructor
+   *
+   * @remarks
+   * - This should be called after the constructor if txlSubscribe will be users
+   */
+  public async initListener():Promise<void> {
+    const metadataStore = await this.getMetadataStore();
+    const buckets = await metadataStore.listBuckets();
+    const ids = buckets.map((bucket) => bucket.dbId);
+    const threadsClient = this.getUserThreadsClient();
+    this.listener = new Listener(ids, threadsClient);
   }
 
   /**
@@ -147,6 +162,45 @@ export class UserStorage {
     });
 
     return des;
+  }
+
+  /**
+   * txlSubscribe is used to listen for Textile events.
+   *
+   * It listens to all buckets for the user and produces an event when something changes in the bucket.
+   *
+   * TODO: try to make the event more granular so we can pick up specific files/folders
+   *
+   * @example
+   * ```typescript
+   * const spaceStorage = new UserStorage(spaceUser);
+   * await spaceStorage.initListener();
+   *
+   * const response = await spaceStorage.txlSubscribe();
+   *
+   * response.on('data', (data: TxlSubscriveEvent) => {
+   *  const { bucketName } = data as AddItemsStatus;
+   *  // bucketName would be the name of the bucket
+   * });
+   * ```
+   */
+  public async txlSubscribe(): Promise<TxlSubscribeResponse> {
+    const client = this.getUserBucketsClient();
+    // const bucket = await this.(client, request.bucket);
+    const emitter = ee();
+
+    if (!this.listener) {
+      throw new Error('Listener not initialized');
+    }
+
+    // using setImmediate here to ensure a cycle is skipped
+    // giving the caller a chance to listen to emitter in time to not
+    // miss an early data or error event
+    // setImmediate(() => {
+    this.listener?.subscribe(emitter);
+    // });
+
+    return emitter;
   }
 
   /**
@@ -467,6 +521,10 @@ export class UserStorage {
 
     const getOrCreateResponse = await client.getOrCreate(name, { threadID: metadata.dbId });
 
+    // note: if initListener is not call, this won't
+    // be registered
+    this.listener?.addListener(metadata.dbId);
+
     return { ...metadata, ...getOrCreateResponse };
   }
 
@@ -484,6 +542,10 @@ export class UserStorage {
     return this.initBucket(this.getUserAuth());
   }
 
+  private getUserThreadsClient(): Client {
+    return this.initThreads(this.getUserAuth());
+  }
+
   private getUserAuth(): UserAuth {
     if (this.user.storageAuth === undefined) {
       throw new UnauthenticatedError();
@@ -498,6 +560,14 @@ export class UserStorage {
     }
 
     return Buckets.withUserAuth(userAuth, { host: this.config?.textileHubAddress });
+  }
+
+  private initThreads(userAuth: UserAuth): Client {
+    if (this.config?.threadsInit) {
+      return this.config.threadsInit(userAuth);
+    }
+
+    return Client.withUserAuth(userAuth, this.config?.textileHubAddress);
   }
 
   private async getMetadataStore(): Promise<UserMetadataStore> {

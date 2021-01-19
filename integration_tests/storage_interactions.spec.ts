@@ -1,12 +1,11 @@
 /* eslint-disable no-unused-expressions */
-import {
-  AddItemsEventData,
+import { AddItemsEventData,
   AddItemsResultSummary,
   UserStorage,
   ListDirectoryResponse,
   DirectoryEntry,
   FileNotFoundError,
-} from '@spacehq/sdk';
+  TxlSubscribeEventData } from '@spacehq/sdk';
 import { isNode } from 'browser-or-node';
 import fs from 'fs';
 import { expect, use } from 'chai';
@@ -207,5 +206,38 @@ describe('Users storing data', () => {
 
     await expect(unauthorizedStorage.openFileByUuid(file?.uuid || ''))
       .to.eventually.be.rejectedWith(FileNotFoundError);
+  }).timeout(TestsDefaultTimeout);
+
+  it('should subscribe to textile events', async () => {
+    const { user } = await authenticateAnonymousUser();
+    const txtContent = 'Some manual text should be in the file';
+
+    const storage = new UserStorage(user);
+    await storage.initListener();
+
+    const ee = await storage.txlSubscribe();
+
+    const eventData = new Promise<TxlSubscribeEventData>((resolve) => {
+      ee.once('data', (d:TxlSubscribeEventData) => resolve(d));
+    });
+
+    const uploadResponse = await storage.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'top.txt',
+          data: txtContent,
+          mimeType: 'plain/text',
+        },
+        {
+          path: 'subfolder/inner.txt',
+          data: 'some other stuffs',
+          mimeType: 'plain/text',
+        },
+      ],
+    });
+
+    const data = await eventData;
+    expect(data.bucketName).to.equal('personal');
   }).timeout(TestsDefaultTimeout);
 });
