@@ -5,6 +5,7 @@
 ```ts
 
 import { Buckets } from '@textile/hub';
+import { Client } from '@textile/hub';
 import { IGunChainReference } from 'gun/types/chain';
 import { UserAuth } from '@textile/hub';
 
@@ -281,6 +282,34 @@ export interface TextileStorageAuth {
 }
 
 // @public (undocumented)
+export interface TxlSubscribeBucketEvent {
+    // (undocumented)
+    bucketName: string;
+    // (undocumented)
+    error?: Error;
+    // (undocumented)
+    status: 'success' | 'error';
+}
+
+// @public (undocumented)
+export type TxlSubscribeEventData = TxlSubscribeBucketEvent;
+
+// @public (undocumented)
+export type TxlSubscribeEventType = 'data' | 'error' | 'done';
+
+// @public (undocumented)
+export type TxlSubscribeListener = (data: TxlSubscribeEventData) => void;
+
+// @public (undocumented)
+export interface TxlSubscribeResponse {
+    // (undocumented)
+    off: (type: TxlSubscribeEventType, listener: TxlSubscribeListener) => void;
+    // (undocumented)
+    on: (type: TxlSubscribeEventType, listener: TxlSubscribeListener) => void;
+    once: (type: TxlSubscribeEventType, listener: TxlSubscribeListener) => void;
+}
+
+// @public (undocumented)
 export class UnauthenticatedError extends Error {
     constructor();
 }
@@ -323,9 +352,11 @@ export class UserStorage {
     constructor(user: SpaceUser, config?: UserStorageConfig);
     addItems(request: AddItemsRequest): Promise<AddItemsResponse>;
     createFolder(request: CreateFolderRequest): Promise<void>;
+    initListener(): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     openFileByUuid(uuid: string): Promise<OpenUuidFileResponse>;
+    txlSubscribe(): Promise<TxlSubscribeResponse>;
     }
 
 // @public (undocumented)
@@ -335,6 +366,8 @@ export interface UserStorageConfig {
     metadataStoreInit?: (identity: Identity) => Promise<UserMetadataStore>;
     // (undocumented)
     textileHubAddress?: string;
+    // (undocumented)
+    threadsInit?: (auth: UserAuth) => Client;
 }
 
 // @public
