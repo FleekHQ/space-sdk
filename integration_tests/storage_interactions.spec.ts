@@ -193,7 +193,6 @@ describe('Users storing data', () => {
     });
 
     await prom;
-    // expect(Buffer.from(actualBytes)).to.deep.equal(imageBytes);
     done();
   });
 });
