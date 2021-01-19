@@ -174,6 +174,7 @@ export class UserStorage {
    * @example
    * ```typescript
    * const spaceStorage = new UserStorage(spaceUser);
+   * await spaceStorage.initListener();
    *
    * const response = await spaceStorage.txlSubscribe();
    *
@@ -522,9 +523,7 @@ export class UserStorage {
 
     // note: if initListener is not call, this won't
     // be registered
-    if (this.listener) {
-      this.listener.addListener(metadata.dbId);
-    }
+    this.listener?.addListener(metadata.dbId);
 
     return { ...metadata, ...getOrCreateResponse };
   }
