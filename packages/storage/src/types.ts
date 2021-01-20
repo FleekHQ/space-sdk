@@ -52,6 +52,8 @@ export interface DirectoryEntry {
   isRestoreInProgress: boolean;
   uuid: string;
   items?: DirectoryEntry[];
+  bucket:string;
+  dbId: string;
 }
 
 export interface ListDirectoryResponse {

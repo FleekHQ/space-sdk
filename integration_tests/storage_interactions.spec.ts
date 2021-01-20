@@ -34,6 +34,9 @@ describe('Users storing data', () => {
       },
     ]);
 
+    expect(listFolder.items[0].dbId).to.not.be.empty;
+    expect(listFolder.items[0].bucket).to.not.be.empty;
+
     // validate empty .keep file is at folders root
     const fileResponse = await storage.openFile({ bucket: 'personal', path: '/topFolder/.keep' });
     const keepFilesContent = await fileResponse.consumeStream();
@@ -111,6 +114,8 @@ describe('Users storing data', () => {
         isDir: true,
       },
     ]);
+    expect(listFolder.items[0].bucket).to.not.be.empty;
+    expect(listFolder.items[0].dbId).to.not.be.empty;
 
     const listFolder1 = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: false });
     expect(listFolder1).to.not.be.equals(null);
@@ -194,8 +199,12 @@ describe('Users storing data', () => {
     const file = listFolder.items.find((item: DirectoryEntry) => item.name.includes('top.txt'));
     expect(file).to.not.be.undefined;
     expect(file?.uuid).to.not.be.empty;
+    expect(file?.bucket).to.not.be.empty;
+    expect(file?.dbId).to.not.be.empty;
 
     const fileResponse = await storage.openFileByUuid(file?.uuid || '');
+    expect(fileResponse?.entry?.bucket).to.not.be.empty;
+    expect(fileResponse?.entry?.dbId).to.not.be.empty;
     expect(fileResponse.entry.name).to.equal('top.txt');
     const actualTxtContent = await fileResponse.consumeStream();
     expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);

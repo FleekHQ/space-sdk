@@ -50,10 +50,10 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
     },
     {
       bucketsInit: () => instance(mockBuckets),
-      metadataStoreInit: async (): Promise<UserMetadataStore> => {
+      metadataStoreInit: async (): Promise<UserMetadataStore> =>
         // commenting this out now because it causes test to silently fail
         // return instance(mockMetadataStore); // to be fixed later
-        return Promise.resolve({
+        Promise.resolve({
           createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata> {
             return Promise.resolve({
               slug: 'myBucketKey',
@@ -85,8 +85,8 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
               path: '/',
             });
           },
-        });
-      },
+        })
+      ,
     },
   );
 
@@ -170,6 +170,8 @@ describe('UserStorage', () => {
       expect(result).to.not.equal(undefined);
       expect(result.items[0]).to.not.equal(undefined);
       expect(result.items[0].name).to.equal(childItem.name);
+      expect(result.items[0].bucket).to.not.be.empty;
+      expect(result.items[0].dbId).to.not.be.empty;
       expect(result.items[0].ipfsHash).to.equal(childItem.cid);
       expect(result.items[0].isDir).to.equal(childItem.isDir);
       expect(result.items[0].sizeInBytes).to.equal(childItem.size);
@@ -260,6 +262,8 @@ describe('UserStorage', () => {
 
       expect(new TextDecoder('utf8').decode(filesData)).to.equal(actualFileContent);
       expect(result.mimeType).to.equal('generic/type');
+      expect(result.entry.bucket).to.not.be.empty;
+      expect(result.entry.dbId).to.not.be.empty;
     });
   });
 
