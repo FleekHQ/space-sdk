@@ -110,7 +110,7 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
-  private static parsePathItems(its: PathItem[], metadataMap: Record<string, FileMetadata>): DirectoryEntry[] {
+  private static parsePathItems(its: PathItem[], metadataMap: Record<string, FileMetadata>, bucket: string, dbId: string): DirectoryEntry[] {
     const filteredEntries = its.filter((it:PathItem) => !isMetaFileName(it.name));
 
     const des:DirectoryEntry[] = filteredEntries.map((it: PathItem) => {
@@ -157,7 +157,9 @@ export class UserStorage {
         isBackupInProgress: false,
         isRestoreInProgress: false,
         uuid: metadataMap[path]?.uuid || '',
-        items: UserStorage.parsePathItems(it.items, metadataMap),
+        items: UserStorage.parsePathItems(it.items, metadataMap, bucket, dbId),
+        bucket,
+        dbId,
       });
     });
 
@@ -232,7 +234,7 @@ export class UserStorage {
       const uuidMap = await this.getFileMetadataMap(bucket.slug, bucket.dbId, result.item?.items || []);
 
       return {
-        items: UserStorage.parsePathItems(result.item?.items || [], uuidMap) || [],
+        items: UserStorage.parsePathItems(result.item?.items || [], uuidMap, bucket.slug, bucket.dbId) || [],
       };
     } catch (e) {
       if (e.message.includes('no link named')) {
@@ -323,7 +325,7 @@ export class UserStorage {
     try {
       // fetch entry information
       const existingFile = await client.listPath(existingRoot.key, fileMetadata.path);
-      const [fileEntry] = UserStorage.parsePathItems([existingFile.item!], { [fileMetadata.path]: fileMetadata });
+      const [fileEntry] = UserStorage.parsePathItems([existingFile.item!], { [fileMetadata.path]: fileMetadata }, fileMetadata.bucketSlug, fileMetadata.dbId);
 
       const fileData = client.pullPath(existingRoot.key, fileMetadata.path);
       return {
