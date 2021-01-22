@@ -247,6 +247,28 @@ export interface FullPath {
 }
 
 /**
+ * InvitationStatus represents the different statuses a file invitation could have
+ */
+export enum InvitationStatus {
+  PENDING = 0,
+  ACCEPTED,
+  REJECTED,
+}
+
+/**
+ * Invitation represents a file invitation
+ * `invitationID` is the same as the underlying message ID from Textile
+ */
+export interface Invitation {
+  inviterPublicKey: string;
+  inviteePublicKey: string;
+  invitationID?: string;
+  status: InvitationStatus;
+  itemPaths: FullPath[];
+  keys:Uint8Array[];
+}
+
+/**
  * Data object to represent public key of a user to share information with
  *
  */
@@ -316,5 +338,5 @@ export interface SharePublicKeyOutput {
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ShareViaPublicKeyResponse {
-  publicKeys: SharePublicKeyOutput[]
+  publicKeys: SharePublicKeyOutput[];
 }

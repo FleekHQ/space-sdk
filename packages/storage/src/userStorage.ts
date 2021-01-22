@@ -1,7 +1,9 @@
 /* eslint-disable no-await-in-loop */
+import { Mailbox } from '@spacehq/mailbox';
+import { tryParsePublicKey } from '@spacehq/utils';
 import { GetAddressFromPublicKey, Identity, SpaceUser } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
-import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth } from '@textile/hub';
+import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth, Users } from '@textile/hub';
 import dayjs from 'dayjs';
 import ee from 'event-emitter';
 import { flattenDeep } from 'lodash';
@@ -11,6 +13,7 @@ import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from '
 import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, SharedFileMetadata, UserMetadataStore } from './metadata/metadataStore';
+import { createFileInvitations } from './sharing/sharing';
 import {
   AcceptInvitationResponse,
   AddItemsRequest,
@@ -24,6 +27,8 @@ import {
   GetFilesSharedByMeResponse,
   GetFilesSharedWithMeResponse,
   GetRecentlySharedWithResponse,
+  Invitation,
+  InvitationStatus,
   ListDirectoryRequest,
   ListDirectoryResponse,
   MakeFilePublicRequest,
@@ -31,12 +36,12 @@ import {
   OpenFileResponse,
   OpenUuidFileRequest,
   OpenUuidFileResponse,
+  SharedWithMeFiles,
   ShareKeyType,
   SharePublicKeyInput,
   SharePublicKeyOutput,
   ShareViaPublicKeyRequest,
   ShareViaPublicKeyResponse,
-  SharedWithMeFiles,
   TxlSubscribeResponse,
 } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
@@ -50,24 +55,7 @@ import {
 } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { getStubFileEntry } from './utils/stubUtils';
-import { getDeterministicThreadID, tryParsePublicKey } from './utils/threadsUtils';
-
-/// TEMP Interfaces would be replaced by types from the @spacehq/mailbox package
-
-enum InvitationStatus {
-  PENDING = 0,
-  ACCEPTED,
-  REJECTED,
-}
-
-interface Invitation {
-  inviterPublicKey: string;
-  inviteePublicKey: string;
-  invitationID?: string;
-  status: InvitationStatus;
-  itemPaths: FullPath[];
-  keys:Uint8Array[];
-}
+import { getDeterministicThreadID } from './utils/threadsUtils';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -117,6 +105,8 @@ export class UserStorage {
 
   private listener?:Listener;
 
+  private mailbox?: Mailbox;
+
   private logger: Pino.Logger;
 
   constructor(private readonly user: SpaceUser, private readonly config: UserStorageConfig = {}) {
@@ -139,6 +129,18 @@ export class UserStorage {
     const ids = buckets.map((bucket) => bucket.dbId);
     const threadsClient = this.getUserThreadsClient();
     this.listener = new Listener(ids, threadsClient);
+  }
+
+  /**
+   * Setup mailbox
+   *
+   * @remarks
+   * - This should be called after the constructor if sharing functionalities are to be used
+   */
+  public async initMailbox():Promise<void> {
+    this.mailbox = await Mailbox.CreateMailbox(this.user, {
+      textileHubAddress: this.config.textileHubAddress,
+    });
   }
 
   /**
@@ -857,19 +859,32 @@ export class UserStorage {
         roles.set(userKey.pk, PathAccessRole.PATH_ACCESS_ROLE_WRITER);
         await client.pushPathAccessRoles(path.key, path.fullPath.path, roles);
       }
+    }
 
-      // TODO: Send a mailbox message to new user
+    const idString = Buffer.from(this.user.identity.public.pubKey).toString('hex');
+    const filteredRecipients:string[] = request.publicKeys.map((key) => key.pk).filter((key) => key !== null && key !== undefined) as string[];
+    const store = await this.getMetadataStore();
+
+    const invitations = await createFileInvitations(
+      idString,
+      paths.map((path) => path.fullPath),
+      filteredRecipients,
+      store,
+    );
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const inv of invitations) {
+      const body = new TextEncoder().encode(JSON.stringify(inv));
+      await this.mailbox?.SendMessage(inv.inviteePublicKey, body);
     }
 
     return {
-      publicKeys: userKeys.map((keys) => {
-        return {
-          id: keys.id,
-          pk: keys.pk,
-          type: keys.type,
-          tempKey: keys.tempKey,
-        };
-      }),
+      publicKeys: userKeys.map((keys) => ({
+        id: keys.id,
+        pk: keys.pk,
+        type: keys.type,
+        tempKey: keys.tempKey,
+      })),
     };
   }
 
