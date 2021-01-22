@@ -262,6 +262,32 @@ export interface IdentityStorage {
     remove: (key: string) => Promise<void>;
 }
 
+// @public
+export interface Invitation {
+    // (undocumented)
+    invitationID?: string;
+    // (undocumented)
+    inviteePublicKey: string;
+    // (undocumented)
+    inviterPublicKey: string;
+    // (undocumented)
+    itemPaths: FullPath[];
+    // (undocumented)
+    keys: Uint8Array[];
+    // (undocumented)
+    status: InvitationStatus;
+}
+
+// @public
+export enum InvitationStatus {
+    // (undocumented)
+    ACCEPTED = 1,
+    // (undocumented)
+    PENDING = 0,
+    // (undocumented)
+    REJECTED = 2
+}
+
 // @public (undocumented)
 export interface ListDirectoryRequest {
     bucket: string;
@@ -474,8 +500,6 @@ export interface UsersConfig {
 // @public
 export class UserStorage {
     constructor(user: SpaceUser, config?: UserStorageConfig);
-    // Warning: (ae-forgotten-export) The symbol "Invitation" needs to be exported by the entry point index.d.ts
-    //
     // (undocumented)
     acceptFileInvitation(invitation: Invitation): Promise<AcceptInvitationResponse>;
     addItems(request: AddItemsRequest): Promise<AddItemsResponse>;
@@ -484,6 +508,7 @@ export class UserStorage {
     getFilesSharedByMe(offset?: string): Promise<GetFilesSharedByMeResponse>;
     getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse>;
     initListener(): Promise<void>;
+    initMailbox(): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse>;
@@ -553,6 +578,9 @@ export enum VkVersion {
     VkVersion1 = "V1"
 }
 
+
+export * from "@spacehq/mailbox";
+export * from "@spacehq/utils";
 
 // (No @packageDocumentation comment for this package)
 

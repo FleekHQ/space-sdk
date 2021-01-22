@@ -390,7 +390,6 @@ describe('UserStorage', () => {
             {
               bucket: 'personal',
               path: '/randomPath',
-              bucketKey: 'myBucketKey',
             },
           ],
         }),
@@ -408,7 +407,6 @@ describe('UserStorage', () => {
             {
               bucket: 'personal',
               path: '/randomPath',
-              bucketKey: 'myBucketKey',
             },
           ],
         }),
