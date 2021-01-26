@@ -1,3 +1,4 @@
+/* eslint-disable no-await-in-loop */
 import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
 import { publicKeyBytesFromString } from '@textile/crypto';
 import { Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
@@ -413,6 +414,7 @@ export class UserStorage {
     emitter: ee.Emitter,
   ): Promise<AddItemsResultSummary> {
     const metadataStore = await this.getMetadataStore();
+    const rootKey = bucket.root?.key || '';
     const summary: AddItemsResultSummary = {
       bucket: request.bucket,
       files: [],
@@ -436,6 +438,16 @@ export class UserStorage {
             bucket: request.bucket,
             path: parentPath,
           });
+
+          // set folder entry
+          const newFolder = await client.listPath(rootKey, parentPath);
+          const [folderEntry] = UserStorage.parsePathItems(
+            [newFolder.item!],
+            {},
+            bucket.slug,
+            bucket.dbId,
+          );
+          status.entry = folderEntry;
 
           emitter.emit('data', status);
           summary.files.push(status);
@@ -462,16 +474,26 @@ export class UserStorage {
         };
 
         try {
-          // eslint-disable-next-line no-await-in-loop
-          await client.pushPath(bucket.root?.key || '', path, file.data);
-          // eslint-disable-next-line no-await-in-loop
-          await metadataStore.upsertFileMetadata({
+          await client.pushPath(rootKey, path, file.data);
+          const metadata = await metadataStore.upsertFileMetadata({
             uuid: v4(),
             mimeType: file.mimeType,
             bucketSlug: bucket.slug,
             dbId: bucket.dbId,
             path,
           });
+          // set file entry
+          const existingFile = await client.listPath(rootKey, path);
+          const [fileEntry] = UserStorage.parsePathItems(
+            [existingFile.item!],
+            {
+              [path]: metadata,
+            },
+            bucket.slug,
+            bucket.dbId,
+          );
+          status.entry = fileEntry;
+
           emitter.emit('data', status);
         } catch (err) {
           status.status = 'error';

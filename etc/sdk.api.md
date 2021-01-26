@@ -54,6 +54,8 @@ export interface AddItemsResultSummary {
 // @public (undocumented)
 export interface AddItemsStatus {
     // (undocumented)
+    entry?: DirectoryEntry;
+    // (undocumented)
     error?: Error;
     // (undocumented)
     path: string;
