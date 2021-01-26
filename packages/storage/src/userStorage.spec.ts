@@ -200,7 +200,7 @@ describe('UserStorage', () => {
 
     it('should throw if file is not found', async () => {
       const { storage, mockBuckets } = initStubbedStorage();
-      when(mockBuckets.pullPath('myBucketKey', '/file.txt')).thenThrow(
+      when(mockBuckets.pullPath('myBucketKey', '/file.txt', anything())).thenThrow(
         new Error('Error: no link named "file.txt" under QmVQWu2C3ZgdoAmBsffFASrgynAfgvYX8CCK4o9SxRvC4p'),
       );
 
@@ -212,7 +212,7 @@ describe('UserStorage', () => {
     it('should return a valid stream of files data', async () => {
       const { storage, mockBuckets } = initStubbedStorage();
       const actualFileContent = "file.txt's file content";
-      when(mockBuckets.pullPath('myBucketKey', '/file.txt')).thenReturn(
+      when(mockBuckets.pullPath('myBucketKey', '/file.txt', anything())).thenReturn(
         makeAsyncIterableString(actualFileContent) as AsyncIterableIterator<Uint8Array>,
       );
 
@@ -253,11 +253,11 @@ describe('UserStorage', () => {
         },
       });
 
-      when(mockBuckets.pullPath('myBucketKey', anyString())).thenReturn(
+      when(mockBuckets.pullPath('myBucketKey', anyString(), anything())).thenReturn(
         makeAsyncIterableString(actualFileContent) as AsyncIterableIterator<Uint8Array>,
       );
 
-      const result = await storage.openFileByUuid(fileUuid);
+      const result = await storage.openFileByUuid({ uuid: fileUuid });
       const filesData = await result.consumeStream();
 
       expect(new TextDecoder('utf8').decode(filesData)).to.equal(actualFileContent);

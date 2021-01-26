@@ -9,7 +9,8 @@ import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from '
 import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
-import { AddItemsRequest,
+import {
+  AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
@@ -18,10 +19,12 @@ import { AddItemsRequest,
   FileMember,
   ListDirectoryRequest,
   ListDirectoryResponse,
+  OpenUuidFileRequest,
   OpenFileRequest,
   OpenFileResponse,
   OpenUuidFileResponse,
-  TxlSubscribeResponse } from './types';
+  TxlSubscribeResponse,
+} from './types';
 import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
@@ -270,7 +273,7 @@ export class UserStorage {
     const fileMetadata = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, path);
 
     try {
-      const fileData = client.pullPath(bucket.root?.key || '', path);
+      const fileData = client.pullPath(bucket.root?.key || '', path, { progress: request.progress });
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
@@ -295,7 +298,9 @@ export class UserStorage {
    * ```typescript
    * const spaceStorage = new UserStorage(spaceUser);
    *
-   * const response = await spaceStorage.openFileByUuid('file-uu-id');
+   * const response = await spaceStorage.openFileByUuid({
+   *    uuid: 'file-uu-id',
+   * });
    * const filename = response.entry.name;
    *
    * // response.stream is an async iterable
@@ -307,12 +312,11 @@ export class UserStorage {
    * const fileBytes = await response.consumeStream();
    *```
    *
-   * @param uuid - Uuid of file to be open
    */
-  public async openFileByUuid(uuid: string): Promise<OpenUuidFileResponse> {
+  public async openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse> {
     const metadataStore = await this.getMetadataStore();
     const client = this.getUserBucketsClient();
-    const fileMetadata = await metadataStore.findFileMetadataByUuid(uuid);
+    const fileMetadata = await metadataStore.findFileMetadataByUuid(request.uuid);
     if (!fileMetadata) {
       throw new FileNotFoundError();
     }
@@ -325,9 +329,14 @@ export class UserStorage {
     try {
       // fetch entry information
       const existingFile = await client.listPath(existingRoot.key, fileMetadata.path);
-      const [fileEntry] = UserStorage.parsePathItems([existingFile.item!], { [fileMetadata.path]: fileMetadata }, fileMetadata.bucketSlug, fileMetadata.dbId);
+      const [fileEntry] = UserStorage.parsePathItems(
+        [existingFile.item!],
+        { [fileMetadata.path]: fileMetadata },
+        fileMetadata.bucketSlug,
+        fileMetadata.dbId,
+      );
 
-      const fileData = client.pullPath(existingRoot.key, fileMetadata.path);
+      const fileData = client.pullPath(existingRoot.key, fileMetadata.path, { progress: request.progress });
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
