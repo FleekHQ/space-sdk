@@ -90,7 +90,11 @@ export interface DirectoryEntry {
     // (undocumented)
     backupCount: number;
     // (undocumented)
+    bucket: string;
+    // (undocumented)
     created: string;
+    // (undocumented)
+    dbId: string;
     // (undocumented)
     fileExtension: string;
     // (undocumented)
