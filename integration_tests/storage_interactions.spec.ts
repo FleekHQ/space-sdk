@@ -210,7 +210,7 @@ describe('Users storing data', () => {
     expect(file?.bucket).to.not.be.empty;
     expect(file?.dbId).to.not.be.empty;
 
-    const fileResponse = await storage.openFileByUuid(file?.uuid || '');
+    const fileResponse = await storage.openFileByUuid({ uuid: file?.uuid || '' });
     expect(fileResponse?.entry?.bucket).to.not.be.empty;
     expect(fileResponse?.entry?.dbId).to.not.be.empty;
     expect(fileResponse.entry.name).to.equal('top.txt');
@@ -221,7 +221,7 @@ describe('Users storing data', () => {
     const { user: unauthorizedUser } = await authenticateAnonymousUser();
     const unauthorizedStorage = new UserStorage(unauthorizedUser);
 
-    await expect(unauthorizedStorage.openFileByUuid(file?.uuid || ''))
+    await expect(unauthorizedStorage.openFileByUuid({ uuid: file?.uuid || '' }))
       .to.eventually.be.rejectedWith(FileNotFoundError);
   }).timeout(TestsDefaultTimeout);
 

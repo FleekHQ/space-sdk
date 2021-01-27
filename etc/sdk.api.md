@@ -230,6 +230,7 @@ export interface OpenFileRequest {
     bucket: string;
     // (undocumented)
     path: string;
+    progress?: (bytesRead?: number) => void;
 }
 
 // @public (undocumented)
@@ -239,6 +240,13 @@ export interface OpenFileResponse {
     mimeType: string | undefined;
     // (undocumented)
     stream: AsyncIterableIterator<Uint8Array>;
+}
+
+// @public (undocumented)
+export interface OpenUuidFileRequest {
+    progress?: (bytesRead?: number) => void;
+    // (undocumented)
+    uuid: string;
 }
 
 // @public (undocumented)
@@ -361,7 +369,7 @@ export class UserStorage {
     initListener(): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
-    openFileByUuid(uuid: string): Promise<OpenUuidFileResponse>;
+    openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse>;
     txlSubscribe(): Promise<TxlSubscribeResponse>;
     }
 

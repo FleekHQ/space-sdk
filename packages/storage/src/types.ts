@@ -63,6 +63,22 @@ export interface ListDirectoryResponse {
 export interface OpenFileRequest {
   path: string;
   bucket: string;
+  /**
+   * progress callback if provided will be called with bytes read from
+   * remote while opening the file.
+   *
+   */
+  progress?: (bytesRead?: number) => void;
+}
+
+export interface OpenUuidFileRequest {
+  uuid: string;
+  /**
+   * progress callback if provided will be called with bytes read from
+   * remote while opening the file.
+   *
+   */
+  progress?: (bytesRead?: number) => void;
 }
 
 export interface OpenFileResponse {
