@@ -274,6 +274,32 @@ describe('UserStorage', () => {
       when(mockBuckets.pushPath('myBucketKey', anyString(), anything())).thenResolve({
         ...mock<PushPathResult>(),
       });
+
+      const childItem = {
+        name: 'entryName',
+        path: '/ipfs/Qm123/entryName',
+        cid: 'Qm...',
+        isDir: false,
+        size: 10,
+      };
+
+      when(mockBuckets.listPath('myBucketKey', anyString())).thenResolve({
+        item: {
+          ...mock<PathItem>(),
+          name: 'entryName',
+          path: '/ipfs/Qm123/entryName',
+          cid: 'Qm...',
+          isDir: false,
+          size: 10,
+          metadata: {
+            updatedAt: (new Date().getMilliseconds()) * 1000000,
+            roles: new Map<string, PathAccessRole>(),
+          },
+          count: 0,
+          items: [],
+        },
+      });
+
       // fail upload of b.txt
       when(mockBuckets.pushPath('myBucketKey', '/b.txt', anything())).thenReject(uploadError);
       const callbackData = {

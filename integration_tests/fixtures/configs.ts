@@ -17,4 +17,4 @@ export const TestUsersConfig: UsersConfig = {
   },
 };
 
-export const TestsDefaultTimeout = 100000; // 100s
+export const TestsDefaultTimeout = 500000; // 500s

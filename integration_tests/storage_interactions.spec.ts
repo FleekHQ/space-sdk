@@ -82,10 +82,18 @@ describe('Users storing data', () => {
         {
           path: '/subfolder/inner.txt',
           status: 'success',
+          entry: {
+            name: 'inner.txt',
+            isDir: false,
+          },
         },
         {
           path: '/subfolder',
           status: 'success',
+          entry: {
+            name: 'subfolder',
+            isDir: true,
+          },
         },
       ],
     });

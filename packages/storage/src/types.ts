@@ -119,6 +119,13 @@ export interface AddItemsRequest {
 export interface AddItemsStatus {
   path: string;
   status: 'success' | 'error';
+  /**
+   * Directory entry of uploaded file.
+   *
+   * Only present if status is 'success'.
+   *
+   */
+  entry?: DirectoryEntry;
   error?: Error;
 }
 
