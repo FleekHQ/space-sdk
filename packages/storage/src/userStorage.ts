@@ -483,7 +483,6 @@ export class UserStorage {
         };
 
         try {
-          await client.pushPath(rootKey, path, file.data);
           const metadata = await metadataStore.upsertFileMetadata({
             uuid: v4(),
             mimeType: file.mimeType,
@@ -491,6 +490,7 @@ export class UserStorage {
             dbId: bucket.dbId,
             path,
           });
+          await client.pushPath(rootKey, path, file.data, { progress: file.progress });
           // set file entry
           const existingFile = await client.listPath(rootKey, path);
           const [fileEntry] = UserStorage.parsePathItems(
