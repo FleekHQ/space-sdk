@@ -12,9 +12,10 @@ import { UserAuth } from '@textile/hub';
 // @public (undocumented)
 export interface AddItemFile {
     // (undocumented)
-    data: ReadableStream<Uint8Array> | ArrayBuffer | string;
+    data: ReadableStream<Uint8Array> | ArrayBuffer | string | Blob;
     mimeType: string;
     path: string;
+    progress?: (bytesRead?: number) => void;
 }
 
 // @public (undocumented)

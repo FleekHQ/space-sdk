@@ -271,7 +271,7 @@ describe('UserStorage', () => {
     it('should publish data, error and done events correctly', async () => {
       const { storage, mockBuckets } = initStubbedStorage();
       const uploadError = new Error('update is non-fast-forward');
-      when(mockBuckets.pushPath('myBucketKey', anyString(), anything())).thenResolve({
+      when(mockBuckets.pushPath('myBucketKey', anyString(), anything(), anything())).thenResolve({
         ...mock<PushPathResult>(),
       });
 
@@ -301,7 +301,7 @@ describe('UserStorage', () => {
       });
 
       // fail upload of b.txt
-      when(mockBuckets.pushPath('myBucketKey', '/b.txt', anything())).thenReject(uploadError);
+      when(mockBuckets.pushPath('myBucketKey', '/b.txt', anything(), anything())).thenReject(uploadError);
       const callbackData = {
         data: [] as AddItemsEventData[],
         error: [] as AddItemsEventData[],

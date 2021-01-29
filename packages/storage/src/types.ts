@@ -124,7 +124,13 @@ export interface AddItemFile {
    *
    */
   mimeType: string;
-  data: ReadableStream<Uint8Array> | ArrayBuffer | string;
+  data: ReadableStream<Uint8Array> | ArrayBuffer | string | Blob;
+  /**
+   * progress callback if provided will be called with bytes written to
+   * remote while uploading the file.
+   *
+   */
+  progress?: (bytesRead?: number) => void;
 }
 
 export interface AddItemsRequest {

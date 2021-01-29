@@ -90,6 +90,10 @@ describe('pathUtils', () => {
         input: '/ipfs/bafybeifyipelgeu75bzjnrw5l5xpp4nmllh3owzk5o7qci7gtatstgdoam/top.txt',
         output: '/top.txt',
       },
+      {
+        input: '/ipfs/bafybeifyipelgeu75bzjnrw5l5xpp4nmllh3owzk5o7qci7gtatstgdoam/folder/top.txt',
+        output: '/folder/top.txt',
+      },
     ];
 
     // eslint-disable-next-line mocha/no-setup-in-describe
