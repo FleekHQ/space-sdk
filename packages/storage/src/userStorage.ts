@@ -10,8 +10,7 @@ import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from '
 import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
-import {
-  AddItemsRequest,
+import { AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
@@ -24,8 +23,7 @@ import {
   OpenFileRequest,
   OpenFileResponse,
   OpenUuidFileResponse,
-  TxlSubscribeResponse,
-} from './types';
+  TxlSubscribeResponse } from './types';
 import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
@@ -49,8 +47,7 @@ export interface UserStorageConfig {
   metadataStoreInit?: (identity: Identity) => Promise<UserMetadataStore>;
 }
 
-// TODO: Change this to prod value
-const DefaultTextileHubAddress = 'https://hub-dev-web.space.storage:3007';
+const DefaultTextileHubAddress = 'https://webapi.hub.textile.io';
 
 interface BucketMetadataWithThreads extends BucketMetadata {
   root?: Root
@@ -79,7 +76,7 @@ export class UserStorage {
   private listener?:Listener;
 
   constructor(private readonly user: SpaceUser, private readonly config: UserStorageConfig = {}) {
-    this.config.textileHubAddress = this.config.textileHubAddress ?? DefaultTextileHubAddress;
+    this.config.textileHubAddress = config.textileHubAddress ?? DefaultTextileHubAddress;
   }
 
   /**
