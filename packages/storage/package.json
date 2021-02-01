@@ -1,6 +1,6 @@
 {
   "name": "@spacehq/storage",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "Space storage implementation",
   "main": "dist/index",
   "types": "dist/index",
@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@improbable-eng/grpc-web": "^0.13.0",
-    "@spacehq/users": "^0.0.8",
+    "@spacehq/users": "^0.0.9",
     "@textile/crypto": "^2.0.0",
     "@textile/hub": "^4.1.0",
     "@textile/threads-id": "^0.4.0",
