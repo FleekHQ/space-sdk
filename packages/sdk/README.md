@@ -1,5 +1,31 @@
+![](https://fleek-team-bucket.storage.fleek.co/Blog%20Inline/sdk.png)
+
 # Space SDK
- Javascript/Typescript library for interacting with Space in the browser.
+
+ Javascript/Typescript library for interacting with Space in web/browser  applications via an implementation of the Space API. Build websites or applications that can easily leverage Open Web protocols (IPFS, Textile, GunDB, Ethereum) to enable Web3-ready features like:
+
+ - File and directory storage / retrieval in user-controlled, encrypted, and distributed storage.
+ - Key-pair based identity management and challenge-based authentication.
+ - Decentralized and secure key and bucket metadata storage.
+ - Private and end-to-end encrypted, or public file sharing.
+
+ The Space SDK is  a close friend of the [Space Daemon](https://github.com/FleekHQ/space-daemon/), its desktop-focused counterpart.
+
+ **You can find the SDK's documentation here:**
+* [Space SDK Documentation](https://fleekhq.github.io/space-sdk/docs/)
+* [Entire Space SDK package breakdown](https://fleekhq.github.io/space-sdk/docs/sdk)
+
+
+
+### Default Implementations
+The Space SDK is modular and protocol agnostic. You can use the APIs and interfaces as is, with Space's default implementations, or replace them with your own custom ones.
+|Feature   	|Description  	| Service/Protocol
+|-:	|-	|-	|
+| Users 	|  Key-pair based identity creation, and challenge authentication.	| Textile Users API
+| Storage 	|  File, directory, and bucket creation/listing.	| IPFS / Textile 
+| Metadata 	|  Secure Bucket/directory schema storage	| GunDB
+| Sharing 	|  **Coming soon!**	| Textile |
+
  
 ## Introduction
 `@spacehq/sdk` provides a suit of functionality to perform different action on Space.
@@ -23,7 +49,8 @@ Space SDK provides an interface perform the following actions:
 
 - Sharing buckets
 
-Full SDK Documentation can be [here](https://fleekhq.github.io/space-sdk/)
+---
+
 
 ### 1. Identities
 This involves managing users and their identities.
@@ -91,7 +118,7 @@ uploadResponse.once('done', (data: AddItemsEventData) => {
 This includes operations to share your storage items with existing user (identites)  
 
 ```typescript
-// WIP
+// WIP - Coming soon!
 ```
 
 ## Migrating from Space Daemon
