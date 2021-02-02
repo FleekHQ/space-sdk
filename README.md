@@ -56,8 +56,6 @@ Space SDK provides an interface perform the following actions:
 
 Full SDK Documentation with examples can be found [here](https://fleekhq.github.io/space-sdk/)
 
-Full SDK Documentation can be [here](https://fleekhq.github.io/space-sdk/)
-
 ### 1. Identities
 This involves managing users and their identities.
 

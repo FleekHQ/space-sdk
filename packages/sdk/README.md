@@ -9,7 +9,7 @@
  - Decentralized and secure key and bucket metadata storage.
  - Private and end-to-end encrypted, or public file sharing.
 
- The Space SDK is  a close friend of the [Space Daemon](https://github.com/FleekHQ/space-daemon/), its desktop-focused counterpart. 
+ The Space SDK is  a close friend of the [Space Daemon](https://github.com/FleekHQ/space-daemon/), its desktop-focused counterpart.
 
  **You can find the SDK's documentation here:**
 * [Space SDK Documentation](https://fleekhq.github.io/space-sdk/docs/)
