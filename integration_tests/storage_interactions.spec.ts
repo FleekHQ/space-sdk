@@ -110,6 +110,14 @@ describe('Users storing data', () => {
       ],
     });
 
+    let summary2: AddItemsResultSummary | undefined;
+    await new Promise((resolve) => {
+      anotheruploadResponse.once('done', (data: AddItemsEventData) => {
+        summary2 = data as AddItemsResultSummary;
+        resolve();
+      });
+    });
+
     // validate files are in the directory
     const listFolder = await storage.listDirectory({ bucket: 'personal', path: '' });
     expect(listFolder.items).to.containSubset([
