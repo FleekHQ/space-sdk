@@ -206,19 +206,25 @@ export class GundbMetadataStore implements UserMetadataStore {
   }
 
   private async lookupFileMetadata(lookupKey: string): Promise<FileMetadata | undefined> {
-    const encryptedData = await new Promise<EncryptedMetadata | null>((resolve, reject) => {
-      this.lookupUser.get(lookupKey).once((data) => {
-        resolve(data);
+    return new Promise<FileMetadata | undefined>((resolve, reject) => {
+      // using ts-ignore to allow extra non-documented parameters on callback
+      // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+      // @ts-ignore
+      this.lookupUser.get(lookupKey).get('data').once(async (
+        encryptedData: any,
+      ) => {
+        if (!encryptedData) {
+          resolve(undefined);
+        }
+
+        try {
+          const decryptedMetadata = await this.decrypt<FileMetadata>(encryptedData);
+          resolve(decryptedMetadata);
+        } catch (e) {
+          reject(e);
+        }
       });
     });
-    // unregister lookup
-    this.lookupUser.get(lookupKey).off();
-
-    if (!encryptedData) {
-      return undefined;
-    }
-
-    return this.decrypt<FileMetadata>(encryptedData.data);
   }
 
   private async startCachingBucketsList(): Promise<void> {
