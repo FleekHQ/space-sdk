@@ -7,6 +7,7 @@
 import { Buckets } from '@textile/hub';
 import { Client } from '@textile/hub';
 import { IGunChainReference } from 'gun/types/chain';
+import Pino from 'pino';
 import { UserAuth } from '@textile/hub';
 
 // @public (undocumented)
@@ -179,7 +180,7 @@ export class GundbMetadataStore implements UserMetadataStore {
     findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined>;
     // Warning: (ae-forgotten-export) The symbol "GunChainReference" needs to be exported by the entry point index.d.ts
     // Warning: (ae-forgotten-export) The symbol "GunDataState" needs to be exported by the entry point index.d.ts
-    static fromIdentity(username: string, userpass: string, gunOrServer?: GunChainReference<GunDataState> | string): Promise<GundbMetadataStore>;
+    static fromIdentity(username: string, userpass: string, gunOrServer?: GunChainReference<GunDataState> | string, logger?: Pino.Logger | boolean): Promise<GundbMetadataStore>;
     listBuckets(): Promise<BucketMetadata[]>;
     upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
     }
@@ -376,6 +377,7 @@ export class UserStorage {
 // @public (undocumented)
 export interface UserStorageConfig {
     bucketsInit?: (auth: UserAuth) => Buckets;
+    debugMode?: boolean;
     // (undocumented)
     metadataStoreInit?: (identity: Identity) => Promise<UserMetadataStore>;
     // (undocumented)
