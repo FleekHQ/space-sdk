@@ -33,6 +33,7 @@
     "@types/event-emitter": "^0.3.3",
     "@types/gun": "^0.9.2",
     "@types/node": "^14.14.11",
+    "@types/pino": "^6.3.5",
     "@types/uuid": "^8.3.0",
     "@types/varint": "^5.0.0",
     "rimraf": "^3.0.2",
@@ -53,6 +54,7 @@
     "gun": "^0.2020.520",
     "lodash": "^4.17.20",
     "multihashes": "^3.1.0",
+    "pino": "^6.11.0",
     "uuid": "^8.3.2",
     "varint": "^6.0.0"
   },

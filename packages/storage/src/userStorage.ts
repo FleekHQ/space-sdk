@@ -3,6 +3,7 @@ import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
 import { publicKeyBytesFromString } from '@textile/crypto';
 import { Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
 import ee from 'event-emitter';
+import Pino from 'pino';
 import dayjs from 'dayjs';
 import { flattenDeep } from 'lodash';
 import { v4 } from 'uuid';
@@ -45,6 +46,12 @@ export interface UserStorageConfig {
   bucketsInit?: (auth: UserAuth) => Buckets;
   threadsInit?: (auth: UserAuth) => Client;
   metadataStoreInit?: (identity: Identity) => Promise<UserMetadataStore>;
+  /**
+   * If set to true, would enable logging and some other debugging features.
+   * Should only be set to true in development
+   *
+   */
+  debugMode?: boolean;
 }
 
 const DefaultTextileHubAddress = 'https://webapi.hub.textile.io';
@@ -75,8 +82,14 @@ export class UserStorage {
 
   private listener?:Listener;
 
+  private logger: Pino.Logger;
+
   constructor(private readonly user: SpaceUser, private readonly config: UserStorageConfig = {}) {
     this.config.textileHubAddress = config.textileHubAddress ?? DefaultTextileHubAddress;
+    this.logger = Pino({
+      enabled: config.debugMode || false,
+      // prettyPrint: true,
+    }).child({ pk: user.identity.public.toString() });
   }
 
   /**
@@ -233,7 +246,6 @@ export class UserStorage {
       }
 
       const uuidMap = await this.getFileMetadataMap(bucket.slug, bucket.dbId, result.item?.items || []);
-
       return {
         items: UserStorage.parsePathItems(result.item?.items || [], uuidMap, bucket.slug, bucket.dbId) || [],
       };
@@ -438,6 +450,7 @@ export class UserStorage {
           path: parentPath,
           status: 'success',
         };
+        this.logger.info({ path: parentPath }, 'Uploading parent directory');
 
         try {
           await this.createFolder({
@@ -478,6 +491,7 @@ export class UserStorage {
           path,
           status: 'success',
         };
+        this.logger.info({ path }, 'Uploading file');
 
         try {
           const metadata = await metadataStore.upsertFileMetadata({
@@ -531,12 +545,14 @@ export class UserStorage {
     ]);
     const paths = flattenDeep(items.map(extractPathRecursive));
 
+    this.logger.info('Building FileMetadata Map');
     await Promise.all(paths.map(async (path: string) => {
       const metadata = await metadataStore.findFileMetadata(bucketSlug, dbId, path);
       if (metadata) {
         result[path] = metadata;
       }
     }));
+    this.logger.info({ paths, map: result }, 'FileMetadata Map complete');
 
     return result;
   }
@@ -617,6 +633,6 @@ export class UserStorage {
   private getDefaultUserMetadataStore(): Promise<UserMetadataStore> {
     const username = Buffer.from(this.user.identity.public.pubKey).toString('hex');
     const password = getDeterministicThreadID(this.user.identity).toString();
-    return GundbMetadataStore.fromIdentity(username, password);
+    return GundbMetadataStore.fromIdentity(username, password, undefined, this.logger);
   }
 }
