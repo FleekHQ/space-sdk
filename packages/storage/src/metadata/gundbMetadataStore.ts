@@ -1,5 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 import { isNode } from 'browser-or-node';
+import Pino from 'pino';
 import { IGunChainReference } from 'gun/types/chain';
 import { IGunStatic } from 'gun/types/static';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadataStore';
@@ -59,16 +60,17 @@ export class GundbMetadataStore implements UserMetadataStore {
 
   private _user?: GunChainReference<GunDataState>;
 
+  private logger?: Pino.Logger;
+
   /**
    * Creates a new instance of this metadata store for users identity.
    *
-   * @param identity - Identity of user owning this store
-   * @param gunOrServer - initialized gun instance or peer server
    */
   private constructor(
     private readonly username: string,
     private readonly userpass: string,
     gunOrServer?: GunChainReference<GunDataState> | string,
+    logger?: Pino.Logger | boolean,
   ) {
     if (gunOrServer) {
       if (typeof gunOrServer === 'string') {
@@ -81,6 +83,16 @@ export class GundbMetadataStore implements UserMetadataStore {
     }
 
     this.bucketsListCache = [];
+
+    if (logger) {
+      if (typeof logger === 'boolean') {
+        this.logger = Pino({ enabled: logger || false, level: 'trace' });
+      } else {
+        this.logger = logger;
+      }
+
+      this.logger = this.logger.child({ storeUser: username });
+    }
   }
 
   /**
@@ -89,13 +101,15 @@ export class GundbMetadataStore implements UserMetadataStore {
    * @param username - Username of user
    * @param userpass - Password of user
    * @param gunOrServer - initialized gun instance or peer server
+   * @param logger - Optional pino logger instance for debug mode
    */
   static async fromIdentity(
     username: string,
     userpass: string,
     gunOrServer?: GunChainReference<GunDataState> | string,
+    logger?: Pino.Logger | boolean,
   ): Promise<GundbMetadataStore> {
-    const store = new GundbMetadataStore(username, userpass, gunOrServer);
+    const store = new GundbMetadataStore(username, userpass, gunOrServer, logger);
     await store.authenticateUser();
     await store.startCachingBucketsList();
 
@@ -132,10 +146,17 @@ export class GundbMetadataStore implements UserMetadataStore {
    * {@inheritDoc @spacehq/sdk#UserMetadataStore.findBucket}
    */
   public async findBucket(bucketSlug: string): Promise<BucketMetadata | undefined> {
+    this.logger?.info({ bucketSlug }, 'Store.findBucket');
     const lookupKey = this.getBucketsLookupKey(bucketSlug);
-    const encryptedData = await new Promise<EncryptedMetadata | undefined>((resolve, reject) => {
-      this.lookupUser.get(lookupKey).once((data) => {
-        resolve(data);
+    const encryptedData = await new Promise<string | undefined>((resolve, reject) => {
+      this.lookupUser.get(lookupKey).get('data').once((data) => {
+        if (!data) {
+          this.logger?.info({ bucketSlug }, 'Bucket Metadata not found');
+          return resolve(undefined);
+        }
+
+        this.logger?.info({ bucketSlug }, 'Bucket Metadata found');
+        return resolve(data);
       });
     });
     // unregister lookup
@@ -145,7 +166,7 @@ export class GundbMetadataStore implements UserMetadataStore {
       return undefined;
     }
 
-    return this.decryptBucketSchema(encryptedData);
+    return this.decryptBucketSchema({ data: encryptedData });
   }
 
   /**
@@ -172,7 +193,7 @@ export class GundbMetadataStore implements UserMetadataStore {
         ...metadata,
       };
     }
-
+    this.logger?.info({ updatedMetadata }, 'Upserting metadata');
     const encryptedMetadata = await this.encrypt(JSON.stringify(updatedMetadata));
     this.lookupUser.get(lookupKey).put({ data: encryptedMetadata });
 
@@ -193,6 +214,7 @@ export class GundbMetadataStore implements UserMetadataStore {
     dbId: string,
     path: string,
   ): Promise<FileMetadata | undefined> {
+    this.logger?.info({ bucketSlug, dbId, path }, 'Store.findFileMetadata');
     const lookupKey = GundbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
     return this.lookupFileMetadata(lookupKey);
   }
@@ -201,6 +223,7 @@ export class GundbMetadataStore implements UserMetadataStore {
    * {@inheritDoc @spacehq/sdk#UserMetadataStore.findFileMetadataByUuid}
    */
   public async findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined> {
+    this.logger?.info({ uuid }, 'Store.findFileMetadataByUuid');
     const lookupKey = GundbMetadataStore.getFilesUuidLookupKey(uuid);
     return this.lookupFileMetadata(lookupKey);
   }
@@ -214,11 +237,13 @@ export class GundbMetadataStore implements UserMetadataStore {
         encryptedData: any,
       ) => {
         if (!encryptedData) {
+          this.logger?.info({ lookupKey }, 'FileMetadata not found');
           resolve(undefined);
         }
 
         try {
           const decryptedMetadata = await this.decrypt<FileMetadata>(encryptedData);
+          this.logger?.debug({ decryptedMetadata, lookupKey }, 'FileMetadata found');
           resolve(decryptedMetadata);
         } catch (e) {
           reject(e);

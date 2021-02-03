@@ -34,6 +34,7 @@
     "default-case": 0,
     "import/prefer-default-export": "off",
     "no-useless-constructor": "off",
+    "no-unused-expressions": "off",
     "max-len": ["warn", { "code":  120 } ],
     "mocha/no-mocha-arrows": "off",
     "import/no-unresolved": "off",
