@@ -5,7 +5,8 @@ export const consumeStream = async (iterator: AsyncIterable<Uint8Array>): Promis
   // eslint-disable-next-line no-restricted-syntax
   for await (const chunk of iterator) {
     if (bytesBuffer.length === 0) {
-      bytesBuffer = chunk;
+      bytesBuffer = new Uint8Array(chunk.byteLength);
+      bytesBuffer.set(chunk);
     } else {
       const extendedBuffer = new Uint8Array(chunk.length + bytesBuffer.length);
       extendedBuffer.set(bytesBuffer);
