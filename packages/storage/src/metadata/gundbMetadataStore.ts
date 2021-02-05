@@ -79,7 +79,7 @@ export class GundbMetadataStore implements UserMetadataStore {
         this.gun = gunOrServer;
       }
     } else {
-      this.gun = Gun(['http://35.167.205.98:5555/gun']);
+      this.gun = Gun(['https://gun.space.storage/gun']);
     }
 
     this.bucketsListCache = [];
