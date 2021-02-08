@@ -16,6 +16,7 @@
 <tr><td><a href="/space-sdk/docs/sdk.usermetadatastore.findfilemetadata">findFileMetadata</a></td><td>(bucketSlug: string, dbId: string, path: string) =&gt; Promise&lt;<a href="/space-sdk/docs/sdk.filemetadata">FileMetadata</a> | undefined&gt;</td><td>Find existing metadata information about the file at path.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.usermetadatastore.findfilemetadatabyuuid">findFileMetadataByUuid</a></td><td>(uuid: string) =&gt; Promise&lt;<a href="/space-sdk/docs/sdk.filemetadata">FileMetadata</a> | undefined&gt;</td><td>Find existing metadata information about the file with uuid</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.usermetadatastore.listbuckets">listBuckets</a></td><td>() =&gt; Promise&lt;<a href="/space-sdk/docs/sdk.bucketmetadata">BucketMetadata</a><!-- -->[]&gt;</td><td>Returns a list of all bucket schemas belonging to the current user</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.usermetadatastore.setfilepublic">setFilePublic</a></td><td>(metadata: <a href="/space-sdk/docs/sdk.filemetadata">FileMetadata</a><!-- -->) =&gt; Promise&lt;void&gt;</td><td>Make the file with uuid publicly accessible by storing in a datastore domain that is public.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.usermetadatastore.upsertfilemetadata">upsertFileMetadata</a></td><td>(data: <a href="/space-sdk/docs/sdk.filemetadata">FileMetadata</a><!-- -->) =&gt; Promise&lt;<a href="/space-sdk/docs/sdk.filemetadata">FileMetadata</a><!-- -->&gt;</td><td>Updates the metadata information about a specific file.</td></tr>
 </tbody>
 </table>
