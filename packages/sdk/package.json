@@ -1,6 +1,6 @@
 {
   "name": "@spacehq/sdk",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "Space SDK Library",
   "main": "dist/index",
   "types": "dist/index",
@@ -33,7 +33,7 @@
     "typescript": "^3.9.3"
   },
   "dependencies": {
-    "@spacehq/storage": "^0.0.13",
-    "@spacehq/users": "^0.0.13"
+    "@spacehq/storage": "^0.0.14",
+    "@spacehq/users": "^0.0.14"
   }
 }
