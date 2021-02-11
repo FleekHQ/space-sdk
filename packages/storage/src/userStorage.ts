@@ -139,19 +139,23 @@ export class UserStorage {
 
     for (let i = 0; i < newItems.length; i += 1) {
       const ms = await client.pullPathAccessRoles(key, newItems[i].path);
-      const members: FileMember[] = [];
 
-      ms.forEach((v, k) => {
-        members.push({
-          publicKey: k,
-          role: v,
+      if (ms) {
+        const members: FileMember[] = [];
+
+        ms.forEach((v, k) => {
+          members.push({
+            publicKey: k,
+            address: key === '*' ? '' : GetAddressFromPublicKey(k),
+            role: v,
+          });
         });
-      });
 
-      newItems[i].members = members;
+        newItems[i].members = members;
 
-      if ((newItems[i]?.items?.length || 0) > 0) {
-        newItems[i].items = await this.addMembersToPathItems(newItems[i].items as DirectoryEntry[], client, store, key);
+        if ((newItems[i]?.items?.length || 0) > 0) {
+          newItems[i].items = await this.addMembersToPathItems(newItems[i].items as DirectoryEntry[], client, store, key);
+        }
       }
     }
 
