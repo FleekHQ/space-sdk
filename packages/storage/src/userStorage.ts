@@ -146,7 +146,7 @@ export class UserStorage {
         ms.forEach((v, k) => {
           members.push({
             publicKey: k,
-            address: key === '*' ? '' : GetAddressFromPublicKey(k),
+            address: k === '*' ? '' : GetAddressFromPublicKey(k),
             role: v,
           });
         });
