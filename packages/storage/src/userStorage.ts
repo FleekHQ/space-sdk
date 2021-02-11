@@ -380,12 +380,12 @@ export class UserStorage {
       );
 
       const fileData = client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress });
-
+      const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems([fileEntry], client, metadataStore);
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
         mimeType: fileMetadata.mimeType,
-        entry: fileEntry,
+        entry: fileEntryWithmembers,
       };
     } catch (e) {
       if (e.message.includes('no link named')) {
@@ -536,7 +536,8 @@ export class UserStorage {
             bucket.slug,
             bucket.dbId,
           );
-          status.entry = folderEntry;
+          const [folderEntryWithmembers] = await UserStorage.addMembersToPathItems([folderEntry], client, metadataStore);
+          status.entry = folderEntryWithmembers;
 
           emitter.emit('data', status);
           summary.files.push(status);
@@ -583,7 +584,10 @@ export class UserStorage {
             bucket.slug,
             bucket.dbId,
           );
-          status.entry = fileEntry;
+
+          const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems([fileEntry], client, metadataStore);
+
+          status.entry = fileEntryWithmembers;
 
           emitter.emit('data', status);
         } catch (err) {
