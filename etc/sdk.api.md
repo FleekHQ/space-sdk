@@ -7,6 +7,7 @@
 import { Buckets } from '@textile/hub';
 import { Client } from '@textile/hub';
 import { IGunChainReference } from 'gun/types/chain';
+import { PathAccessRole } from '@textile/hub';
 import Pino from 'pino';
 import { UserAuth } from '@textile/hub';
 
@@ -77,6 +78,7 @@ export class BrowserStorage {
 
 // @public
 export interface BucketMetadata {
+    bucketKey: string;
     dbId: string;
     encryptionKey: Uint8Array;
     slug: string;
@@ -137,6 +139,8 @@ export interface FileMember {
     address?: string;
     // (undocumented)
     publicKey: string;
+    // (undocumented)
+    role: PathAccessRole;
 }
 
 // @public
@@ -176,7 +180,7 @@ export const GetAddressFromPublicKey: (pubkey: string) => string;
 
 // @public
 export class GundbMetadataStore implements UserMetadataStore {
-    createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata>;
+    createBucket(bucketSlug: string, dbId: string, bucketKey: string): Promise<BucketMetadata>;
     findBucket(bucketSlug: string): Promise<BucketMetadata | undefined>;
     findFileMetadata(bucketSlug: string, dbId: string, path: string): Promise<FileMetadata | undefined>;
     findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined>;
@@ -342,7 +346,7 @@ export class UnauthenticatedError extends Error {
 
 // @public
 export interface UserMetadataStore {
-    createBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata>;
+    createBucket: (bucketSlug: string, dbId: string, bucketKey: string) => Promise<BucketMetadata>;
     findBucket: (bucketSlug: string) => Promise<BucketMetadata | undefined>;
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
     findFileMetadataByUuid: (uuid: string) => Promise<FileMetadata | undefined>;
