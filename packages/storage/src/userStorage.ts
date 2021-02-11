@@ -125,17 +125,20 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
-  private static async addMembersToPathItems(items:DirectoryEntry[], client:Buckets, store: UserMetadataStore):Promise<DirectoryEntry[]> {
+  private static async addMembersToPathItems(items:DirectoryEntry[], client:Buckets, store: UserMetadataStore, bucketKey?: string):Promise<DirectoryEntry[]> {
     const newItems = items;
+    let key = bucketKey;
 
-    const bucketData = await store.findBucket(items[0].bucket);
-
-    if (!bucketData) {
-      throw new Error('Unable to find bucket metadata');
+    if (!key) {
+      const bucketData = await store.findBucket(items[0].bucket);
+      if (!bucketData) {
+        throw new Error('Unable to find bucket metadata');
+      }
+      key = bucketData?.bucketKey;
     }
 
     for (let i = 0; i < newItems.length; i += 1) {
-      const ms = await client.pullPathAccessRoles(bucketData?.bucketKey, newItems[i].path);
+      const ms = await client.pullPathAccessRoles(key, newItems[i].path);
       const members: FileMember[] = [];
 
       ms.forEach((v, k) => {
@@ -147,8 +150,8 @@ export class UserStorage {
 
       newItems[i].members = members;
 
-      if (newItems[i] && newItems[i].items) {
-        newItems[i].items = await this.addMembersToPathItems(newItems[i].items as DirectoryEntry[], client, store);
+      if ((newItems[i]?.items?.length || 0) > 0) {
+        newItems[i].items = await this.addMembersToPathItems(newItems[i].items as DirectoryEntry[], client, store, key);
       }
     }
 
@@ -380,7 +383,8 @@ export class UserStorage {
       );
 
       const fileData = client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress });
-      const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems([fileEntry], client, metadataStore);
+
+      const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems([fileEntry], client, metadataStore, fileMetadata.bucketKey);
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
@@ -635,9 +639,11 @@ export class UserStorage {
   private async getOrCreateBucket(client: Buckets, name: string): Promise<BucketMetadataWithThreads> {
     const metadataStore = await this.getMetadataStore();
     let metadata = await metadataStore.findBucket(name);
-    let dbId = metadata?.dbId;
-    if (!dbId) {
+    let dbId;
+    if (!metadata) {
       dbId = ThreadID.fromRandom(ThreadID.Variant.Raw, 32).toString();
+    } else {
+      dbId = metadata.dbId;
     }
 
     const getOrCreateResponse = await client.getOrCreate(name, { threadID: dbId });
@@ -646,7 +652,9 @@ export class UserStorage {
       throw new Error('Did not receive bucket root');
     }
 
-    metadata = await metadataStore.createBucket(name, dbId, getOrCreateResponse.root.key);
+    if (!metadata) {
+      metadata = await metadataStore.createBucket(name, dbId, getOrCreateResponse.root.key);
+    }
 
     // note: if initListener is not call, this won't
     // be registered
