@@ -139,7 +139,7 @@ export class GundbMetadataStore implements UserMetadataStore {
   /**
    * {@inheritDoc @spacehq/sdk#UserMetadataStore.createBucket}
    */
-  public async createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata> {
+  public async createBucket(bucketSlug: string, dbId: string, bucketKey: string): Promise<BucketMetadata> {
     // throw if dbId with bucketSlug doesn't already
     const existingBucket = await this.findBucket(bucketSlug);
     if (existingBucket) {
@@ -150,6 +150,7 @@ export class GundbMetadataStore implements UserMetadataStore {
       dbId,
       encryptionKey: crypto.randomBytes(BucketEncryptionKeyLength),
       slug: bucketSlug,
+      bucketKey,
     };
     const encryptedMetadata = await this.encryptBucketSchema(schema);
     const lookupKey = this.getBucketsLookupKey(bucketSlug);

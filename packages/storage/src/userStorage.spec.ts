@@ -56,6 +56,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
         Promise.resolve({
           createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata> {
             return Promise.resolve({
+              bucketKey: 'testkey',
               slug: 'myBucketKey',
               encryptionKey: new Uint8Array(80),
               dbId: 'dbId',
@@ -63,6 +64,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
           },
           findBucket(bucketSlug: string): Promise<BucketMetadata | undefined> {
             return Promise.resolve({
+              bucketKey: 'testkey',
               slug: 'myBucketKey',
               encryptionKey: new Uint8Array(80),
               dbId: 'dbId',
@@ -143,9 +145,6 @@ describe('UserStorage', () => {
         size: 10,
       };
 
-      const roles = new Map<string, PathAccessRole>();
-      const pubkey = 'bbaareieswor4fnmzdwmv6fwij2rxyyjmpc2izognkiqnfxlvnzzsvs7y5y';
-      roles.set(pubkey, PathAccessRole.PATH_ACCESS_ROLE_ADMIN);
       const updatedAt = (new Date().getMilliseconds()) * 1000000;
 
       const { storage, mockBuckets } = initStubbedStorage();
@@ -157,7 +156,7 @@ describe('UserStorage', () => {
               ...childItem,
               metadata: {
                 updatedAt,
-                roles,
+                roles: new Map(),
               },
               items: [],
               count: 1,
@@ -165,6 +164,11 @@ describe('UserStorage', () => {
           ],
         },
       });
+
+      const mockMembers = new Map<string, PathAccessRole>();
+      const pubkey = 'bbaareieswor4fnmzdwmv6fwij2rxyyjmpc2izognkiqnfxlvnzzsvs7y5y';
+      mockMembers.set(pubkey, PathAccessRole.PATH_ACCESS_ROLE_WRITER);
+      when(mockBuckets.pullPathAccessRoles(anyString(), anyString())).thenResolve(mockMembers);
 
       const result = await storage.listDirectory(listDirectoryRequest);
 
@@ -184,7 +188,8 @@ describe('UserStorage', () => {
       expect(result.items[0].isLocallyAvailable).to.equal(false);
       expect(result.items[0].backupCount).to.equal(1);
       expect(result.items[0].members).to.deep.equal([{
-        publicKey: Buffer.from(publicKeyBytesFromString(pubkey)).toString('hex'),
+        publicKey: pubkey,
+        role: PathAccessRole.PATH_ACCESS_ROLE_WRITER,
         address: GetAddressFromPublicKey(pubkey),
       }]);
       expect(result.items[0].isBackupInProgress).to.equal(false);
@@ -259,6 +264,10 @@ describe('UserStorage', () => {
       when(mockBuckets.pullPath('myBucketKey', anyString(), anything())).thenReturn(
         makeAsyncIterableString(actualFileContent) as AsyncIterableIterator<Uint8Array>,
       );
+
+      const mockMembers = new Map<string, PathAccessRole>();
+      mockMembers.set('dummykey', PathAccessRole.PATH_ACCESS_ROLE_WRITER);
+      when(mockBuckets.pullPathAccessRoles('myBucketKey', '/ipfs/Qm123/file.txt')).thenResolve(mockMembers);
 
       const result = await storage.openFileByUuid({ uuid: fileUuid });
       const filesData = await result.consumeStream();

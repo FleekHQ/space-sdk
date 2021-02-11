@@ -9,9 +9,10 @@ export interface UserMetadataStore {
    * It should fail if a bucketSlug with similar dbId already exists.
    *
    * @param bucketSlug - unqiue slug representing bucket provided by user.
-   * @param dbId - unique id representing bucket provided by user storage.
+   * @param dbId - unique id representing bucket thread provided by user storage.
+   * @param bucketKey -  unique id representing bucket provided by user storage.
    */
-  createBucket: (bucketSlug: string, dbId: string) => Promise<BucketMetadata>;
+  createBucket: (bucketSlug: string, dbId: string, bucketKey: string) => Promise<BucketMetadata>;
 
   /**
    * Find bucket metadata with slug belonging to the current user matching
@@ -64,6 +65,10 @@ export interface UserMetadataStore {
  *
  */
 export interface BucketMetadata {
+  /**
+   * unique id that Textile uses internally for buckets
+   */
+  bucketKey: string;
   /**
    * unique user specified bucket slug
    */

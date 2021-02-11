@@ -5,14 +5,13 @@ import { Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } f
 import ee from 'event-emitter';
 import Pino from 'pino';
 import dayjs from 'dayjs';
-import { flattenDeep } from 'lodash';
+import { flattenDeep, kebabCase } from 'lodash';
 import { v4 } from 'uuid';
 import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from './errors';
 import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
-import {
-  AddItemsRequest,
+import { AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
@@ -26,15 +25,12 @@ import {
   OpenFileRequest,
   OpenFileResponse,
   OpenUuidFileResponse,
-  TxlSubscribeResponse,
-} from './types';
-import {
-  filePathFromIpfsPath,
+  TxlSubscribeResponse } from './types';
+import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
   reOrderPathByParents,
-  sanitizePath,
-} from './utils/pathUtils';
+  sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
@@ -129,6 +125,43 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
+  private static async addMembersToPathItems(items:DirectoryEntry[], client:Buckets, store: UserMetadataStore, bucketKey?: string):Promise<DirectoryEntry[]> {
+    const newItems = items;
+    let key = bucketKey;
+
+    if (!key) {
+      const bucketData = await store.findBucket(items[0].bucket);
+      if (!bucketData) {
+        throw new Error('Unable to find bucket metadata');
+      }
+      key = bucketData?.bucketKey;
+    }
+
+    for (let i = 0; i < newItems.length; i += 1) {
+      const ms = await client.pullPathAccessRoles(key, newItems[i].path);
+
+      if (ms) {
+        const members: FileMember[] = [];
+
+        ms.forEach((v, k) => {
+          members.push({
+            publicKey: k,
+            address: k === '*' ? '' : GetAddressFromPublicKey(k),
+            role: v,
+          });
+        });
+
+        newItems[i].members = members;
+
+        if ((newItems[i]?.items?.length || 0) > 0) {
+          newItems[i].items = await this.addMembersToPathItems(newItems[i].items as DirectoryEntry[], client, store, key);
+        }
+      }
+    }
+
+    return newItems;
+  }
+
   private static parsePathItems(
     its: PathItem[],
     metadataMap: Record<string, FileMetadata>,
@@ -147,14 +180,6 @@ export class UserStorage {
       if (!it.metadata || !it.metadata.updatedAt) {
         throw new Error('Unable to parse updatedAt from bucket file');
       }
-
-      const members:FileMember[] = [];
-      it.metadata.roles.forEach((val:PathAccessRole, key:string) => {
-        members.push({
-          publicKey: key === '*' ? '*' : Buffer.from(publicKeyBytesFromString(key)).toString('hex'),
-          address: key === '*' ? '' : GetAddressFromPublicKey(key),
-        });
-      });
 
       const { name, isDir, count } = it;
 
@@ -177,7 +202,7 @@ export class UserStorage {
         fileExtension: it.name.indexOf('.') >= 0 ? it.name.substr(it.name.lastIndexOf('.') + 1) : '',
         isLocallyAvailable: false,
         backupCount: 1,
-        members,
+        members: [],
         isBackupInProgress: false,
         isRestoreInProgress: false,
         uuid: metadataMap[path]?.uuid || '',
@@ -244,6 +269,7 @@ export class UserStorage {
     const client = this.getUserBucketsClient();
     const bucket = await this.getOrCreateBucket(client, request.bucket);
     const path = sanitizePath(request.path);
+    const store = await this.getMetadataStore();
 
     const depth = request.recursive ? Number.MAX_SAFE_INTEGER : 0;
     try {
@@ -256,8 +282,11 @@ export class UserStorage {
       }
 
       const uuidMap = await this.getFileMetadataMap(bucket.slug, bucket.dbId, result.item?.items || []);
+
+      const items = UserStorage.parsePathItems(result.item?.items || [], uuidMap, bucket.slug, bucket.dbId) || [];
+      const itemsWithMembers = await UserStorage.addMembersToPathItems(items, client, store);
       return {
-        items: UserStorage.parsePathItems(result.item?.items || [], uuidMap, bucket.slug, bucket.dbId) || [],
+        items: itemsWithMembers,
       };
     } catch (e) {
       if (e.message.includes('no link named')) {
@@ -359,11 +388,12 @@ export class UserStorage {
 
       const fileData = client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress });
 
+      const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems([fileEntry], client, metadataStore, fileMetadata.bucketKey);
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
         mimeType: fileMetadata.mimeType,
-        entry: fileEntry,
+        entry: fileEntryWithmembers,
       };
     } catch (e) {
       if (e.message.includes('no link named')) {
@@ -514,7 +544,8 @@ export class UserStorage {
             bucket.slug,
             bucket.dbId,
           );
-          status.entry = folderEntry;
+          const [folderEntryWithmembers] = await UserStorage.addMembersToPathItems([folderEntry], client, metadataStore);
+          status.entry = folderEntryWithmembers;
 
           emitter.emit('data', status);
           summary.files.push(status);
@@ -561,7 +592,10 @@ export class UserStorage {
             bucket.slug,
             bucket.dbId,
           );
-          status.entry = fileEntry;
+
+          const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems([fileEntry], client, metadataStore);
+
+          status.entry = fileEntryWithmembers;
 
           emitter.emit('data', status);
         } catch (err) {
@@ -609,12 +643,22 @@ export class UserStorage {
   private async getOrCreateBucket(client: Buckets, name: string): Promise<BucketMetadataWithThreads> {
     const metadataStore = await this.getMetadataStore();
     let metadata = await metadataStore.findBucket(name);
+    let dbId;
     if (!metadata) {
-      const dbId = ThreadID.fromRandom(ThreadID.Variant.Raw, 32).toString();
-      metadata = await metadataStore.createBucket(name, dbId);
+      dbId = ThreadID.fromRandom(ThreadID.Variant.Raw, 32).toString();
+    } else {
+      dbId = metadata.dbId;
     }
 
-    const getOrCreateResponse = await client.getOrCreate(name, { threadID: metadata.dbId });
+    const getOrCreateResponse = await client.getOrCreate(name, { threadID: dbId });
+
+    if (!getOrCreateResponse.root) {
+      throw new Error('Did not receive bucket root');
+    }
+
+    if (!metadata) {
+      metadata = await metadataStore.createBucket(name, dbId, getOrCreateResponse.root.key);
+    }
 
     // note: if initListener is not call, this won't
     // be registered

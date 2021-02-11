@@ -1,3 +1,5 @@
+import { PathAccessRole } from '@textile/hub';
+
 export interface CreateFolderRequest {
   /**
    * Storage bucket to create the empty folder
@@ -31,6 +33,7 @@ export interface ListDirectoryRequest {
 export interface FileMember {
   publicKey:string;
   address?:string;
+  role: PathAccessRole;
 }
 
 /**
