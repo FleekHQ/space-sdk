@@ -56,6 +56,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
         Promise.resolve({
           createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata> {
             return Promise.resolve({
+              bucketKey: 'testkey',
               slug: 'myBucketKey',
               encryptionKey: new Uint8Array(80),
               dbId: 'dbId',
@@ -63,6 +64,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
           },
           findBucket(bucketSlug: string): Promise<BucketMetadata | undefined> {
             return Promise.resolve({
+              bucketKey: 'testkey',
               slug: 'myBucketKey',
               encryptionKey: new Uint8Array(80),
               dbId: 'dbId',

@@ -20,12 +20,13 @@ describe('GunsdbMetadataStore', () => {
   }
 
   it('should work', async () => {
+    const bucketKey = 'somekey';
     const bucket = 'personal';
     const dbId = 'something';
     const store = await GundbMetadataStore.fromIdentity(username, password);
 
     // test create bucket data
-    const newSchema = await store.createBucket(bucket, dbId);
+    const newSchema = await store.createBucket(bucketKey, bucket, dbId);
     expect(newSchema).to.containSubset({ dbId, slug: bucket });
 
     // eslint-disable-next-line no-unused-expressions

@@ -25,12 +25,20 @@ export interface ListDirectoryRequest {
   recursive?: boolean;
 }
 
+enum Roles {
+  NONE = 0,
+  READ,
+  WRITE,
+  ADMIN,
+}
+
 /**
  * Represents a member on a shared file
  */
 export interface FileMember {
   publicKey:string;
   address?:string;
+  role: Roles;
 }
 
 /**
