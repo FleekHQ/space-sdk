@@ -126,6 +126,10 @@ export class UserStorage {
   }
 
   private static async addMembersToPathItems(items:DirectoryEntry[], client:Buckets, store: UserMetadataStore, bucketKey?: string):Promise<DirectoryEntry[]> {
+    if (items.length === 0) {
+      return [];
+    }
+
     const newItems = items;
     let key = bucketKey;
 
