@@ -57,6 +57,19 @@ export interface UserMetadataStore {
   setFilePublic: (
     metadata: FileMetadata
   ) => Promise<void>;
+
+  /**
+   * Inserts a new shared with me file. If a file with the same
+   * dbId, path and bucket slug exists, the existing record would be updated and returned.
+   *
+   */
+  upsertSharedWithMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
+
+  /**
+   * List all shared with me files for the existing user
+   *
+   */
+  listSharedWithMeFiles: () => Promise<SharedFileMetadata[]>;
 }
 
 /**
@@ -98,4 +111,16 @@ export interface FileMetadata {
   bucketSlug: string;
   dbId: string;
   path: string;
+}
+
+/**
+ * Represents files that were shared with the current store user
+ *
+ */
+export interface SharedFileMetadata extends FileMetadata {
+  /**
+   * public key of sharer
+   *
+   */
+  sharedBy: string;
 }
