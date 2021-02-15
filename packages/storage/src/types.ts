@@ -183,6 +183,34 @@ export interface AddItemsResponse {
   off: (type: AddItemsEventType, listener: AddItemsListener) => void;
 }
 
+/**
+ * SharedWithMeFiles Represents a file created for the user
+ *
+ */
+export interface SharedWithMeFiles {
+  entry: DirectoryEntry;
+  /**
+   * sharedBy is the public key of the owner of the files
+   *
+   */
+  sharedBy: string;
+}
+
+export interface GetFilesSharedWithMeResponse {
+  files: SharedWithMeFiles[];
+  nextOffset?: string;
+}
+
+export interface GetFilesSharedByMeResponse {
+  files: SharedWithMeFiles[];
+  nextOffset?: string;
+}
+
+export interface GetRecentlySharedWithResponse {
+  members: FileMember[];
+  nextOffset?: string;
+}
+
 export interface TxlSubscribeBucketEvent {
   bucketName: string;
   status: 'success' | 'error';

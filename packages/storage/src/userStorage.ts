@@ -1,38 +1,46 @@
 /* eslint-disable no-await-in-loop */
-import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
-import { publicKeyBytesFromString } from '@textile/crypto';
-import { Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
-import ee from 'event-emitter';
-import Pino from 'pino';
+import { GetAddressFromPublicKey, Identity, SpaceUser } from '@spacehq/users';
+import { PrivateKey } from '@textile/crypto';
+import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth } from '@textile/hub';
 import dayjs from 'dayjs';
-import { flattenDeep, kebabCase } from 'lodash';
+import ee from 'event-emitter';
+import { flattenDeep } from 'lodash';
+import Pino from 'pino';
 import { v4 } from 'uuid';
 import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from './errors';
 import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
-import { AddItemsRequest,
+import {
+  AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
   CreateFolderRequest,
   DirectoryEntry,
   FileMember,
+  GetFilesSharedByMeResponse,
+  GetFilesSharedWithMeResponse,
+  GetRecentlySharedWithResponse,
   ListDirectoryRequest,
   ListDirectoryResponse,
   MakeFilePublicRequest,
-  OpenUuidFileRequest,
   OpenFileRequest,
   OpenFileResponse,
+  OpenUuidFileRequest,
   OpenUuidFileResponse,
-  TxlSubscribeResponse } from './types';
-import { filePathFromIpfsPath,
+  TxlSubscribeResponse,
+} from './types';
+import { isMetaFileName } from './utils/fsUtils';
+import {
+  filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
   reOrderPathByParents,
-  sanitizePath } from './utils/pathUtils';
+  sanitizePath,
+} from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
-import { isMetaFileName } from './utils/fsUtils';
+import { getStubFileEntry } from './utils/stubUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
 
 export interface UserStorageConfig {
@@ -613,6 +621,67 @@ export class UserStorage {
     });
 
     return summary;
+  }
+
+  /**
+   * Return the list of shared files accepted by user
+   *
+   * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   *
+   */
+  public async getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse> {
+    return {
+      files: [
+        {
+          entry: getStubFileEntry('index.html'),
+          sharedBy: this.user.identity.public.toString(),
+        },
+        {
+          entry: getStubFileEntry('file.txt'),
+          sharedBy: this.user.identity.public.toString(),
+        },
+      ],
+      nextOffset: undefined,
+    };
+  }
+
+  /**
+   * Return the list of files the current storage user has shared with other users in the past
+   *
+   * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   *
+   */
+  public async getFilesSharedByMe(offset?: string): Promise<GetFilesSharedByMeResponse> {
+    return {
+      files: [
+        {
+          entry: getStubFileEntry('for others.txt'),
+          sharedBy: this.user.identity.public.toString(),
+        },
+      ],
+      nextOffset: undefined,
+    };
+  }
+
+  /**
+   * Returns a list of public keys of clients to which files where shared with
+   *
+   */
+  public async getFilesRecentlySharedWith(offset?: string): Promise<GetRecentlySharedWithResponse> {
+    return {
+      members: [
+        {
+          publicKey: PrivateKey.fromRandom().public.toString(),
+          address: 'address-value-not-missing-here',
+          role: PathAccessRole.PATH_ACCESS_ROLE_WRITER,
+        },
+        {
+          publicKey: this.user.identity.public.toString(),
+          role: PathAccessRole.PATH_ACCESS_ROLE_WRITER,
+        },
+      ],
+      nextOffset: undefined,
+    };
   }
 
   // Note: this might be slow for large list of items or deeply nested paths.
