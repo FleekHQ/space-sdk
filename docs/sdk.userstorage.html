@@ -88,6 +88,9 @@
 <tbody>
 <tr><td><a href="/space-sdk/docs/sdk.userstorage.additems">addItems(request)</a></td><td></td><td>addItems is used to upload files to buckets.<!-- -->It uses an ReadableStream of Uint8Array data to read each files content to be uploaded.<!-- -->Uploads will sequential and asynchronous with updates being delivered through the event emitter returned by the function.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.userstorage.createfolder">createFolder(request)</a></td><td></td><td>Creates an empty folder at the requested path and bucket.</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.userstorage.getfilesrecentlysharedwith">getFilesRecentlySharedWith(offset)</a></td><td></td><td>Returns a list of public keys of clients to which files where shared with</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.userstorage.getfilessharedbyme">getFilesSharedByMe(offset)</a></td><td></td><td>Return the list of files the current storage user has shared with other users in the past</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.userstorage.getfilessharedwithme">getFilesSharedWithMe(offset)</a></td><td></td><td>Return the list of shared files accepted by user</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.userstorage.initlistener">initListener()</a></td><td></td><td>Creates the listener post constructor</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.userstorage.listdirectory">listDirectory(request)</a></td><td></td><td>Returns all bucket entries at the specified path.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.userstorage.openfile">openFile(request)</a></td><td></td><td>openFile returns a stream (AsyncIterableIterator) of the file at the path in the bucket.</td></tr>
