@@ -28,6 +28,7 @@ import {
   OpenUuidFileResponse,
   TxlSubscribeResponse,
   GetFilesSharedWithMeResponse,
+  GetFilesSharedByMeResponse,
 } from './types';
 import { filePathFromIpfsPath,
   getParentPath,
@@ -622,8 +623,10 @@ export class UserStorage {
   /**
    * Return the list of shared files accepted by user
    *
+   * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   *
    */
-  public async getFilesSharedWithMe(): Promise<GetFilesSharedWithMeResponse> {
+  public async getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse> {
     return {
       files: [
         {
@@ -632,6 +635,24 @@ export class UserStorage {
         },
         {
           entry: getStubFileEntry('file.txt'),
+          sharedBy: this.user.identity.public.toString(),
+        },
+      ],
+      nextOffset: undefined,
+    };
+  }
+
+  /**
+   * Return the list of files the current storage user has shared with other users in the past
+   *
+   * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   *
+   */
+  public async getFilesSharedByMe(offset?: string): Promise<GetFilesSharedByMeResponse> {
+    return {
+      files: [
+        {
+          entry: getStubFileEntry('for others.txt'),
           sharedBy: this.user.identity.public.toString(),
         },
       ],

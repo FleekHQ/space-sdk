@@ -205,6 +205,11 @@ export interface GetFilesSharedWithMeResponse {
   nextOffset?: string;
 }
 
+export interface GetFilesSharedByMeResponse {
+  files: SharedWithMeFiles[];
+  nextOffset?: string;
+}
+
 export interface TxlSubscribeBucketEvent {
   bucketName: string;
   status: 'success' | 'error';
