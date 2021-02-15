@@ -1,11 +1,11 @@
 /* eslint-disable no-await-in-loop */
-import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
-import { publicKeyBytesFromString } from '@textile/crypto';
-import { Client, Buckets, PathItem, UserAuth, PathAccessRole, Root, ThreadID } from '@textile/hub';
-import ee from 'event-emitter';
-import Pino from 'pino';
+import { GetAddressFromPublicKey, Identity, SpaceUser } from '@spacehq/users';
+import { PrivateKey } from '@textile/crypto';
+import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth } from '@textile/hub';
 import dayjs from 'dayjs';
-import { flattenDeep, kebabCase } from 'lodash';
+import ee from 'event-emitter';
+import { flattenDeep } from 'lodash';
+import Pino from 'pino';
 import { v4 } from 'uuid';
 import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from './errors';
 import { Listener } from './listener/listener';
@@ -19,25 +19,28 @@ import {
   CreateFolderRequest,
   DirectoryEntry,
   FileMember,
+  GetFilesSharedByMeResponse,
+  GetFilesSharedWithMeResponse,
+  GetRecentlySharedWithResponse,
   ListDirectoryRequest,
   ListDirectoryResponse,
   MakeFilePublicRequest,
-  OpenUuidFileRequest,
   OpenFileRequest,
   OpenFileResponse,
+  OpenUuidFileRequest,
   OpenUuidFileResponse,
   TxlSubscribeResponse,
-  GetFilesSharedWithMeResponse,
-  GetFilesSharedByMeResponse,
 } from './types';
-import { filePathFromIpfsPath,
+import { isMetaFileName } from './utils/fsUtils';
+import {
+  filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
   reOrderPathByParents,
-  sanitizePath } from './utils/pathUtils';
+  sanitizePath,
+} from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
-import { isMetaFileName } from './utils/fsUtils';
-import { getStubFileEntry } from './utils/stubUtils'
+import { getStubFileEntry } from './utils/stubUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
 
 export interface UserStorageConfig {
@@ -654,6 +657,27 @@ export class UserStorage {
         {
           entry: getStubFileEntry('for others.txt'),
           sharedBy: this.user.identity.public.toString(),
+        },
+      ],
+      nextOffset: undefined,
+    };
+  }
+
+  /**
+   * Returns a list of public keys of clients to which files where shared with
+   *
+   */
+  public async getFilesRecentlySharedWith(offset?: string): Promise<GetRecentlySharedWithResponse> {
+    return {
+      members: [
+        {
+          publicKey: PrivateKey.fromRandom().public.toString(),
+          address: 'address-value-not-missing-here',
+          role: PathAccessRole.PATH_ACCESS_ROLE_WRITER,
+        },
+        {
+          publicKey: this.user.identity.public.toString(),
+          role: PathAccessRole.PATH_ACCESS_ROLE_WRITER,
         },
       ],
       nextOffset: undefined,

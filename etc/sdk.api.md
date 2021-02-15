@@ -178,6 +178,30 @@ export class FileStorage {
 // @public (undocumented)
 export const GetAddressFromPublicKey: (pubkey: string) => string;
 
+// @public (undocumented)
+export interface GetFilesSharedByMeResponse {
+    // (undocumented)
+    files: SharedWithMeFiles[];
+    // (undocumented)
+    nextOffset?: string;
+}
+
+// @public (undocumented)
+export interface GetFilesSharedWithMeResponse {
+    // (undocumented)
+    files: SharedWithMeFiles[];
+    // (undocumented)
+    nextOffset?: string;
+}
+
+// @public (undocumented)
+export interface GetRecentlySharedWithResponse {
+    // (undocumented)
+    members: FileMember[];
+    // (undocumented)
+    nextOffset?: string;
+}
+
 // @public
 export class GundbMetadataStore implements UserMetadataStore {
     createBucket(bucketSlug: string, dbId: string, bucketKey: string): Promise<BucketMetadata>;
@@ -283,6 +307,13 @@ export interface Public {
 }
 
 // @public
+export interface SharedWithMeFiles {
+    // (undocumented)
+    entry: DirectoryEntry;
+    sharedBy: string;
+}
+
+// @public
 export interface SpaceUser {
     // (undocumented)
     identity: Identity;
@@ -383,6 +414,9 @@ export class UserStorage {
     constructor(user: SpaceUser, config?: UserStorageConfig);
     addItems(request: AddItemsRequest): Promise<AddItemsResponse>;
     createFolder(request: CreateFolderRequest): Promise<void>;
+    getFilesRecentlySharedWith(offset?: string): Promise<GetRecentlySharedWithResponse>;
+    getFilesSharedByMe(offset?: string): Promise<GetFilesSharedByMeResponse>;
+    getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse>;
     initListener(): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;

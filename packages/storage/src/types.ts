@@ -196,10 +196,6 @@ export interface SharedWithMeFiles {
   sharedBy: string;
 }
 
-export interface AcceptInvitationResponse {
-  files: SharedWithMeFiles[];
-}
-
 export interface GetFilesSharedWithMeResponse {
   files: SharedWithMeFiles[];
   nextOffset?: string;
@@ -207,6 +203,11 @@ export interface GetFilesSharedWithMeResponse {
 
 export interface GetFilesSharedByMeResponse {
   files: SharedWithMeFiles[];
+  nextOffset?: string;
+}
+
+export interface GetRecentlySharedWithResponse {
+  members: FileMember[];
   nextOffset?: string;
 }
 
