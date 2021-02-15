@@ -11,7 +11,8 @@ import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from '
 import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
-import { AddItemsRequest,
+import {
+  AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
   AddItemsStatus,
@@ -25,7 +26,9 @@ import { AddItemsRequest,
   OpenFileRequest,
   OpenFileResponse,
   OpenUuidFileResponse,
-  TxlSubscribeResponse } from './types';
+  TxlSubscribeResponse,
+  GetFilesSharedWithMeResponse,
+} from './types';
 import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
@@ -33,6 +36,7 @@ import { filePathFromIpfsPath,
   sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { isMetaFileName } from './utils/fsUtils';
+import { getStubFileEntry } from './utils/stubUtils'
 import { getDeterministicThreadID } from './utils/threadsUtils';
 
 export interface UserStorageConfig {
@@ -613,6 +617,26 @@ export class UserStorage {
     });
 
     return summary;
+  }
+
+  /**
+   * Return the list of shared files accepted by user
+   *
+   */
+  public async getFilesSharedWithMe(): Promise<GetFilesSharedWithMeResponse> {
+    return {
+      files: [
+        {
+          entry: getStubFileEntry('index.html'),
+          sharedBy: this.user.identity.public.toString(),
+        },
+        {
+          entry: getStubFileEntry('file.txt'),
+          sharedBy: this.user.identity.public.toString(),
+        },
+      ],
+      nextOffset: undefined,
+    };
   }
 
   // Note: this might be slow for large list of items or deeply nested paths.
