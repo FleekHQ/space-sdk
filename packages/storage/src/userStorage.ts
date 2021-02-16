@@ -710,13 +710,17 @@ export class UserStorage {
    *
    */
   public async getFilesSharedByMe(offset?: string): Promise<GetFilesSharedByMeResponse> {
+    const client = this.getUserBucketsClient();
+    const metadataStore = await this.getMetadataStore();
+
+    const sharedFilesMetadata = await metadataStore.listSharedByMeFiles();
+
+    const filePaths = await Promise.all(
+      sharedFilesMetadata.map(async (metadata) => this.buildSharedFileFromMetadata(client, metadata)),
+    );
+
     return {
-      files: [
-        {
-          entry: getStubFileEntry('for others.txt'),
-          sharedBy: this.user.identity.public.toString(),
-        },
-      ],
+      files: filePaths,
       nextOffset: undefined,
     };
   }
@@ -900,6 +904,9 @@ export class UserStorage {
       await this.mailbox?.sendMessage(inv.inviteePublicKey, body);
     }
 
+    this.addPathToRecentlyShared(paths, store)
+      .catch((err) => this.logger?.error({ err }, 'Unable to successfully track recently shared paths'));
+
     return {
       publicKeys: userKeys.map((keys) => ({
         id: keys.id,
@@ -908,6 +915,24 @@ export class UserStorage {
         tempKey: keys.tempKey,
       })),
     };
+  }
+
+  private async addPathToRecentlyShared(
+    paths: { key: string; fullPath: FullPath }[],
+    store: UserMetadataStore,
+  ): Promise<void> {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const { fullPath, key } of paths) {
+      const fileMetadata = await store.findFileMetadata(fullPath.bucket, fullPath.dbId || '', fullPath.path);
+      await store.upsertSharedByMeFile({
+        bucketKey: key,
+        bucketSlug: fullPath.bucket,
+        dbId: fullPath.dbId || '',
+        path: fullPath.path,
+        sharedBy: this.user.identity.public.toString(),
+        uuid: fileMetadata?.uuid,
+      });
+    }
   }
 
   // eslint-disable-next-line class-methods-use-this

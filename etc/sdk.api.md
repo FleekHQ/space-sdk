@@ -229,9 +229,11 @@ export class GundbMetadataStore implements UserMetadataStore {
     // Warning: (ae-forgotten-export) The symbol "GunInit" needs to be exported by the entry point index.d.ts
     static fromIdentity(username: string, userpass: string, gunOrServer?: GunInit | string | string[], logger?: Pino.Logger | boolean): Promise<GundbMetadataStore>;
     listBuckets(): Promise<BucketMetadata[]>;
+    listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
     listSharedWithMeFiles(): Promise<SharedFileMetadata[]>;
     setFilePublic(metadata: FileMetadata): Promise<void>;
     upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
+    upsertSharedByMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
     upsertSharedWithMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
     }
 
@@ -468,9 +470,11 @@ export interface UserMetadataStore {
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
     findFileMetadataByUuid: (uuid: string) => Promise<FileMetadata | undefined>;
     listBuckets: () => Promise<BucketMetadata[]>;
+    listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
     listSharedWithMeFiles: () => Promise<SharedFileMetadata[]>;
     setFilePublic: (metadata: FileMetadata) => Promise<void>;
     upsertFileMetadata: (data: FileMetadata) => Promise<FileMetadata>;
+    upsertSharedByMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
     upsertSharedWithMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
 }
 

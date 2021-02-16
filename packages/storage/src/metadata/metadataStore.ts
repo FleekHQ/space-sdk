@@ -70,6 +70,19 @@ export interface UserMetadataStore {
    *
    */
   listSharedWithMeFiles: () => Promise<SharedFileMetadata[]>;
+
+  /**
+   * Inserts a new file. If a file with the same
+   * dbId, path and bucket slug exists, the existing record would be updated and returned.
+   *
+   */
+  upsertSharedByMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
+
+  /**
+   * List all shared files current user has shared with other users.
+   *
+   */
+  listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
 }
 
 /**

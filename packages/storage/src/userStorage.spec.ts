@@ -98,6 +98,12 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
           async listSharedWithMeFiles(): Promise<SharedFileMetadata[]> {
             return [];
           },
+          async upsertSharedByMeFile(data: SharedFileMetadata): Promise<SharedFileMetadata> {
+            return data;
+          },
+          async listSharedByMeFiles(): Promise<SharedFileMetadata[]> {
+            return [];
+          },
         }),
     },
   );
