@@ -1,5 +1,5 @@
 import { Identity } from '@spacehq/users';
-import { PrivateKey } from '@textile/crypto';
+import { PrivateKey, PublicKey } from '@textile/crypto';
 import { ThreadID } from '@textile/threads-id';
 import { encode } from 'varint';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -51,4 +51,28 @@ export const getManagedThreadKey = (identity: PrivateKey, threadKeyVariant: Thre
   const derivedPk: Buffer = pbkdf2Sync(pk, salt, 256, keyLen, 'sha512');
 
   return derivedPk.slice(0, keyBytes * 2);
+};
+
+const isPkHex = (input: string): boolean => {
+  const re = /[0-9A-Fa-f]{64}/g;
+  return re.test(input);
+};
+
+/**
+ * Tries to generate a ed25519 public key from the string input
+ *
+ * It supports multibase and hex as input
+ */
+export const tryParsePublicKey = (pk: string): PublicKey => {
+  const keyLength = 32;
+  if (isPkHex(pk)) {
+    return new PublicKey(Buffer.from(pk, 'hex').slice(0, keyLength));
+  }
+
+  const key = PublicKey.fromString(pk);
+  if (key.pubKey.byteLength !== keyLength) {
+    throw new Error(`invalid public key: ${pk}`);
+  }
+
+  return key;
 };
