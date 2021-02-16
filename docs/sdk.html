@@ -16,6 +16,7 @@
 <tr><td><a href="/space-sdk/docs/sdk.unauthenticatederror">UnauthenticatedError</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.users">Users</a></td><td>Users a client wrapper for interacting with the Textile Users API.<!-- -->This API has the ability to:<!-- -->- Create new identity<!-- -->- Authenticate via identity against ws challenge</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.userstorage">UserStorage</a></td><td>UserStorage performs storage actions on behalf of the user provided.</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.validationerror">ValidationError</a></td><td></td></tr>
 </tbody>
 </table>
 <h2><a class="anchor" aria-hidden="true" id="enumerations"></a><a href="#enumerations" aria-hidden="true" class="hash-link"><svg class="hash-link-icon" aria-hidden="true" height="16" version="1.1" viewBox="0 0 16 16" width="16"><path fill-rule="evenodd" d="M4 9h1v1H4c-1.5 0-3-1.69-3-3.5S2.55 3 4 3h4c1.45 0 3 1.69 3 3.5 0 1.41-.91 2.72-2 3.25V8.59c.58-.45 1-1.27 1-2.09C10 5.22 8.98 4 8 4H4c-.98 0-2 1.22-2 2.5S3 9 4 9zm9-3h-1v1h1c1 0 2 1.22 2 2.5S13.98 12 13 12H9c-.98 0-2-1.22-2-2.5 0-.83.42-1.64 1-2.09V6.25c-1.09.53-2 1.84-2 3.25C6 11.31 7.55 13 9 13h4c1.45 0 3-1.69 3-3.5S14.5 6 13 6z"></path></svg></a>Enumerations</h2>
@@ -24,6 +25,7 @@
 <tr><th>Enumeration</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><a href="/space-sdk/docs/sdk.sharekeytype">ShareKeyType</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.vaultbackuptype">VaultBackupType</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.vaultitemtype">VaultItemType</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.vkversion">VkVersion</a></td><td></td></tr>
@@ -35,6 +37,7 @@
 <tr><th>Interface</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><a href="/space-sdk/docs/sdk.acceptinvitationresponse">AcceptInvitationResponse</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.additemfile">AddItemFile</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.additemsrequest">AddItemsRequest</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.additemsresponse">AddItemsResponse</a></td><td></td></tr>
@@ -45,6 +48,7 @@
 <tr><td><a href="/space-sdk/docs/sdk.directoryentry">DirectoryEntry</a></td><td>Represents an item stored in a storages directory</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.filemember">FileMember</a></td><td>Represents a member on a shared file</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.filemetadata">FileMetadata</a></td><td>Represents metadata information about a file stored in users storage</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.fullpath">FullPath</a></td><td>FullPath represents full path information to a file. <code>dbId</code> is optional and only required for when re-sharing files in another db.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.getfilessharedbymeresponse">GetFilesSharedByMeResponse</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.getfilessharedwithmeresponse">GetFilesSharedWithMeResponse</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.getrecentlysharedwithresponse">GetRecentlySharedWithResponse</a></td><td></td></tr>
@@ -58,7 +62,12 @@
 <tr><td><a href="/space-sdk/docs/sdk.openuuidfilerequest">OpenUuidFileRequest</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.openuuidfileresponse">OpenUuidFileResponse</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.public">Public</a></td><td>Public is any entity associated with a given <a href="/space-sdk/docs/sdk.identity">Identity</a> that is capable of verifying a signature produced by said identity. In most cases, a public key will be obtained as a property of an object implementing the <a href="/space-sdk/docs/sdk.identity">Identity</a> key interface.</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.sharedfilemetadata">SharedFileMetadata</a></td><td>Represents files that were shared with the current store user</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.sharedwithmefiles">SharedWithMeFiles</a></td><td>SharedWithMeFiles Represents a file created for the user</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.sharepublickeyinput">SharePublicKeyInput</a></td><td>Data object to represent public key of a user to share information with</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.sharepublickeyoutput">SharePublicKeyOutput</a></td><td>Data object to represent public key of a user to share information with</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.shareviapublickeyrequest">ShareViaPublicKeyRequest</a></td><td></td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.shareviapublickeyresponse">ShareViaPublicKeyResponse</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.spaceuser">SpaceUser</a></td><td>Represents an authenticated KeyPair identity with valid API session token.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.textilestorageauth">TextileStorageAuth</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.txlsubscribebucketevent">TxlSubscribeBucketEvent</a></td><td></td></tr>
