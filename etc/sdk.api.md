@@ -12,6 +12,12 @@ import Pino from 'pino';
 import { UserAuth } from '@textile/hub';
 
 // @public (undocumented)
+export interface AcceptInvitationResponse {
+    // (undocumented)
+    files: SharedWithMeFiles[];
+}
+
+// @public (undocumented)
 export interface AddItemFile {
     // (undocumented)
     data: ReadableStream<Uint8Array> | ArrayBuffer | string | Blob;
@@ -211,8 +217,10 @@ export class GundbMetadataStore implements UserMetadataStore {
     // Warning: (ae-forgotten-export) The symbol "GunInit" needs to be exported by the entry point index.d.ts
     static fromIdentity(username: string, userpass: string, gunOrServer?: GunInit | string | string[], logger?: Pino.Logger | boolean): Promise<GundbMetadataStore>;
     listBuckets(): Promise<BucketMetadata[]>;
+    listSharedWithMeFiles(): Promise<SharedFileMetadata[]>;
     setFilePublic(metadata: FileMetadata): Promise<void>;
     upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
+    upsertSharedWithMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
     }
 
 // Warning: (ae-internal-missing-underscore) The name "HubAuthResponse" should be prefixed with an underscore because the declaration is marked as @internal
@@ -307,6 +315,11 @@ export interface Public {
 }
 
 // @public
+export interface SharedFileMetadata extends FileMetadata {
+    sharedBy: string;
+}
+
+// @public
 export interface SharedWithMeFiles {
     // (undocumented)
     entry: DirectoryEntry;
@@ -382,8 +395,10 @@ export interface UserMetadataStore {
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
     findFileMetadataByUuid: (uuid: string) => Promise<FileMetadata | undefined>;
     listBuckets: () => Promise<BucketMetadata[]>;
+    listSharedWithMeFiles: () => Promise<SharedFileMetadata[]>;
     setFilePublic: (metadata: FileMetadata) => Promise<void>;
     upsertFileMetadata: (data: FileMetadata) => Promise<FileMetadata>;
+    upsertSharedWithMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
 }
 
 // @public
@@ -412,6 +427,10 @@ export interface UsersConfig {
 // @public
 export class UserStorage {
     constructor(user: SpaceUser, config?: UserStorageConfig);
+    // Warning: (ae-forgotten-export) The symbol "Invitation" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    acceptFileInvitation(invitation: Invitation): Promise<AcceptInvitationResponse>;
     addItems(request: AddItemsRequest): Promise<AddItemsResponse>;
     createFolder(request: CreateFolderRequest): Promise<void>;
     getFilesRecentlySharedWith(offset?: string): Promise<GetRecentlySharedWithResponse>;

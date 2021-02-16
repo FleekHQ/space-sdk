@@ -6,10 +6,12 @@ import * as chaiSubset from 'chai-subset';
 import { expect, use } from 'chai';
 import { v4 } from 'uuid';
 import { GundbMetadataStore } from './gundbMetadataStore';
+import { SharedFileMetadata } from './metadataStore';
 
 use(chaiAsPromised.default);
 use(chaiSubset.default);
 
+const TestTimeout = 90000;
 const identity: Identity = PrivateKey.fromRandom();
 const username = Buffer.from(identity.public.pubKey).toString('hex');
 const password = Buffer.from(identity.privKey).toString('hex');
@@ -43,7 +45,7 @@ describe('GunsdbMetadataStore', () => {
 
     const existingBuckets = await newStore.listBuckets();
     expect(existingBuckets).to.containSubset([{ dbId, slug: bucket }]);
-  }).timeout(90000);
+  }).timeout(TestTimeout);
 
   it('should work for file metadata', async () => {
     const bucketSlug = 'personal';
@@ -66,7 +68,7 @@ describe('GunsdbMetadataStore', () => {
     // test retrieving by uuid
     const savedMetadataByUuid = await store.findFileMetadataByUuid(fileMetadata.uuid);
     expect(savedMetadataByUuid).to.deep.equal(fileMetadata);
-  }).timeout(90000);
+  }).timeout(TestTimeout);
 
   it('should fetch public file metadata correctly', async () => {
     const store = await GundbMetadataStore.fromIdentity(username, password, undefined, false);
@@ -91,5 +93,30 @@ describe('GunsdbMetadataStore', () => {
     );
     const savedMetadataByUuid = await newStore.findFileMetadataByUuid(fileMetadata.uuid);
     expect(savedMetadataByUuid).to.deep.equal(fileMetadata);
-  }).timeout(90000);
+  }).timeout(TestTimeout);
+
+  it('should upsert and fetch shared files metadata correclty', async () => {
+    const store = await GundbMetadataStore.fromIdentity(username, password, undefined, false);
+    const sharedFileMetadata: SharedFileMetadata = {
+      uuid: v4(),
+      mimeType: 'image/png',
+      bucketSlug: 'personal',
+      dbId: 'something',
+      path: '/home/case.png',
+      sharedBy: 'sharers-pk',
+    };
+
+    await store.upsertSharedWithMeFile(sharedFileMetadata);
+
+    // ensure fetching file by uuid works
+    const fileByUuid = await store.findFileMetadataByUuid(sharedFileMetadata.uuid || '');
+    expect(fileByUuid).to.deep.equal(sharedFileMetadata);
+
+    // assert listing files work
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    const sharedWithMeFiles = await store.listSharedWithMeFiles();
+    expect(sharedWithMeFiles).to.have.length(1);
+    expect(sharedWithMeFiles[0]).to.deep.equal(sharedFileMetadata);
+  }).timeout(TestTimeout);
 });

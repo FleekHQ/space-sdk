@@ -3,7 +3,7 @@ import { isNode } from 'browser-or-node';
 import Pino from 'pino';
 import { IGunChainReference } from 'gun/types/chain';
 import { IGunStatic } from 'gun/types/static';
-import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadataStore';
+import { BucketMetadata, FileMetadata, SharedFileMetadata, UserMetadataStore } from './metadataStore';
 
 let Gun: IGunStatic;
 if (isNode) {
@@ -25,6 +25,7 @@ export type GunChainReference<Data> = Omit<IGunChainReference<Data>, 'then'>;
 // 32 bytes aes key + 16 bytes salt/IV + 32 bytes HMAC key
 const BucketEncryptionKeyLength = 32 + 16 + 32;
 const BucketMetadataCollection = 'BucketMetadata';
+const SharedFileMetadataCollection = 'SharedFileMetadata';
 const PublicStoreUsername = '66f47ce32570335085b39bdf';
 const PublicStorePassword = '830a20694358651ef14e472fd71c4f9f843ecd50784b241a6c9999dba4c6fced0f90c686bdee28edc';
 
@@ -67,6 +68,8 @@ export class GundbMetadataStore implements UserMetadataStore {
   // in memory cache list of buckets
   private bucketsListCache: BucketMetadata[];
 
+  private sharedFilesListCache: SharedFileMetadata[];
+
   private _user?: GunChainReference<GunDataState>;
 
   private _publicUser?: GunChainReference<GunDataState>;
@@ -98,6 +101,7 @@ export class GundbMetadataStore implements UserMetadataStore {
     }
 
     this.bucketsListCache = [];
+    this.sharedFilesListCache = [];
 
     if (logger) {
       if (typeof logger === 'boolean') {
@@ -132,6 +136,7 @@ export class GundbMetadataStore implements UserMetadataStore {
     await store.authenticateUser(store._publicUser, PublicStoreUsername, PublicStorePassword);
 
     await store.startCachingBucketsList();
+    await store.startCachingSharedFilesList();
 
     return store;
   }
@@ -237,7 +242,7 @@ export class GundbMetadataStore implements UserMetadataStore {
   ): Promise<FileMetadata | undefined> {
     this.logger?.info({ bucketSlug, dbId, path }, 'Store.findFileMetadata');
     const lookupKey = GundbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
-    return this.lookupFileMetadata(lookupKey);
+    return this.lookupUserData(lookupKey);
   }
 
   /**
@@ -248,12 +253,13 @@ export class GundbMetadataStore implements UserMetadataStore {
     const lookupKey = GundbMetadataStore.getFilesUuidLookupKey(uuid);
 
     // NOTE: This can be speedup by making this fetch promise a race instead of sequential
-    return this.lookupFileMetadata(lookupKey).then((data) => {
-      if (!data) {
-        return this.lookupPublicFileMetadata(lookupKey);
-      }
-      return data;
-    });
+    return this.lookupUserData<FileMetadata>(lookupKey)
+      .then((data) => {
+        if (!data) {
+          return this.lookupPublicFileMetadata(lookupKey);
+        }
+        return data;
+      });
   }
 
   /**
@@ -270,8 +276,46 @@ export class GundbMetadataStore implements UserMetadataStore {
     this.publicLookupChain.get(lookupKey).put({ data: JSON.stringify(metadata) });
   }
 
-  private async lookupFileMetadata(lookupKey: string): Promise<FileMetadata | undefined> {
-    return new Promise<FileMetadata | undefined>((resolve, reject) => {
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.upsertSharedWithMeFile}
+   */
+  public async upsertSharedWithMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata> {
+    const { bucketSlug, dbId, path } = fileData;
+    const lookupKey = GundbMetadataStore.getFilesLookupKey(bucketSlug, dbId, path);
+    const existingFileMetadata = await this.lookupUserData<SharedFileMetadata>(lookupKey);
+
+    let updatedMetadata = fileData;
+    if (existingFileMetadata) {
+      updatedMetadata = {
+        ...existingFileMetadata,
+        ...fileData,
+      };
+    }
+    this.logger?.info({ updatedMetadata }, 'Upserting upsertSharedWithMeFile');
+    const encryptedMetadata = await this.encrypt(JSON.stringify(updatedMetadata));
+    const nodeRef = this.lookupUser.get(lookupKey).put({ data: encryptedMetadata });
+
+    if (updatedMetadata.uuid) {
+      this.lookupUser.get(GundbMetadataStore.getFilesUuidLookupKey(updatedMetadata.uuid))
+        .put({ data: encryptedMetadata });
+    }
+
+    this.listUser.get(SharedFileMetadataCollection).set(nodeRef as unknown as EncryptedMetadata);
+
+    return updatedMetadata;
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.listSharedWithMeFiles}
+   */
+  public async listSharedWithMeFiles(): Promise<SharedFileMetadata[]> {
+    return new Promise((resolve) => {
+      setImmediate(() => { resolve(this.sharedFilesListCache); });
+    });
+  }
+
+  private async lookupUserData<T>(lookupKey: string): Promise<T | undefined> {
+    return new Promise<T | undefined>((resolve, reject) => {
       // using ts-ignore to allow extra non-documented parameters on callback
       // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
       // @ts-ignore
@@ -285,7 +329,7 @@ export class GundbMetadataStore implements UserMetadataStore {
         }
 
         try {
-          const decryptedMetadata = await this.decrypt<FileMetadata>(encryptedData);
+          const decryptedMetadata = await this.decrypt<T>(encryptedData);
           this.logger?.debug({ decryptedMetadata, lookupKey }, 'FileMetadata found');
           resolve(decryptedMetadata);
         } catch (e) {
@@ -324,6 +368,21 @@ export class GundbMetadataStore implements UserMetadataStore {
 
     // wait a few seconds so results would start filling cache before returning
     await new Promise((resolve) => setTimeout(resolve, 3000));
+  }
+
+  private async startCachingSharedFilesList(): Promise<void> {
+    this.listUser.get(SharedFileMetadataCollection).map().once(async (data) => {
+      if (data) {
+        try {
+          const decryptedData = await this.decrypt<SharedFileMetadata>(data.data);
+          if (decryptedData) {
+            this.sharedFilesListCache.push(decryptedData);
+          }
+        } catch (err) {
+          // an error occurred. most likely not our data
+        }
+      }
+    });
   }
 
   private getBucketsLookupKey(bucketSlug: string): string {

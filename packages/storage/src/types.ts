@@ -201,6 +201,10 @@ export interface GetFilesSharedWithMeResponse {
   nextOffset?: string;
 }
 
+export interface AcceptInvitationResponse {
+  files: SharedWithMeFiles[];
+}
+
 export interface GetFilesSharedByMeResponse {
   files: SharedWithMeFiles[];
   nextOffset?: string;

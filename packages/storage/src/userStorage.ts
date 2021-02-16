@@ -10,8 +10,9 @@ import { v4 } from 'uuid';
 import { DirEntryNotFoundError, FileNotFoundError, UnauthenticatedError } from './errors';
 import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
-import { BucketMetadata, FileMetadata, UserMetadataStore } from './metadata/metadataStore';
+import { BucketMetadata, FileMetadata, SharedFileMetadata, UserMetadataStore } from './metadata/metadataStore';
 import {
+  AcceptInvitationResponse,
   AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
@@ -29,6 +30,7 @@ import {
   OpenFileResponse,
   OpenUuidFileRequest,
   OpenUuidFileResponse,
+  SharedWithMeFiles,
   TxlSubscribeResponse,
 } from './types';
 import { isMetaFileName } from './utils/fsUtils';
@@ -42,6 +44,30 @@ import {
 import { consumeStream } from './utils/streamUtils';
 import { getStubFileEntry } from './utils/stubUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
+
+/// TEMP Interfaces would be replaced by types from the @spacehq/mailbox package
+
+enum InvitationStatus {
+  PENDING = 0,
+  ACCEPTED,
+  REJECTED,
+}
+
+interface FullPath {
+  dbId: string;
+  bucketKey: string;
+  bucket: string;
+  path: string;
+}
+
+interface Invitation {
+  inviterPublicKey: string;
+  inviteePublicKey: string;
+  invitationID?: string;
+  status: InvitationStatus;
+  itemPaths: FullPath[];
+  keys:Uint8Array[];
+}
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
@@ -623,25 +649,36 @@ export class UserStorage {
     return summary;
   }
 
-  /**
-   * Return the list of shared files accepted by user
+  /*
+   * Accepts an invitation to access a file.
    *
-   * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   * Typically the invitation is gotten from a Space Mailbox for the user.
    *
    */
-  public async getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse> {
+  public async acceptFileInvitation(invitation: Invitation): Promise<AcceptInvitationResponse> {
+    if (invitation.status !== InvitationStatus.ACCEPTED) {
+      throw new Error('Cannot add files with Invitation not accepted');
+    }
+
+    const metadataStore = await this.getMetadataStore();
+    const client = this.getUserBucketsClient();
+
+    const filesPaths = await Promise.all(invitation.itemPaths.map(async (fullPath) => {
+      const fileMetadata = await metadataStore.upsertSharedWithMeFile({
+        bucketKey: fullPath.bucketKey,
+        bucketSlug: fullPath.bucket,
+        path: fullPath.path,
+        dbId: fullPath.dbId,
+        mimeType: '', // TODO: Update invitation to include mimeType from sender
+        sharedBy: invitation.inviterPublicKey,
+        uuid: v4(),
+      });
+
+      return this.buildSharedFileFromMetadata(client, fileMetadata);
+    }));
+
     return {
-      files: [
-        {
-          entry: getStubFileEntry('index.html'),
-          sharedBy: this.user.identity.public.toString(),
-        },
-        {
-          entry: getStubFileEntry('file.txt'),
-          sharedBy: this.user.identity.public.toString(),
-        },
-      ],
-      nextOffset: undefined,
+      files: filesPaths,
     };
   }
 
@@ -681,6 +718,53 @@ export class UserStorage {
         },
       ],
       nextOffset: undefined,
+    };
+  }
+
+  /**
+   * Return the list of shared files accepted by user
+   *
+   * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   *
+   */
+  public async getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse> {
+    const metadataStore = await this.getMetadataStore();
+    const client = this.getUserBucketsClient();
+    const sharedFileMetadata = await metadataStore.listSharedWithMeFiles();
+
+    const filesPaths = await Promise.all(sharedFileMetadata.map(async (fileMetadata) => {
+      return this.buildSharedFileFromMetadata(client, fileMetadata);
+    }));
+
+    return {
+      files: filesPaths,
+      nextOffset: undefined, // TODO: Implement pagination
+    };
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  private async buildSharedFileFromMetadata(
+    client: Buckets,
+    fileMetadata: SharedFileMetadata,
+  ): Promise<SharedWithMeFiles> {
+    client.withThread(fileMetadata.dbId);
+    const bucketKey = fileMetadata.bucketKey || '';
+
+    const existingFile = await client.listPath(bucketKey, fileMetadata.path);
+    if (!existingFile.item) {
+      throw new DirEntryNotFoundError(fileMetadata.path, bucketKey);
+    }
+
+    const [fileEntry] = UserStorage.parsePathItems(
+      [existingFile.item!],
+      { [fileMetadata.path]: fileMetadata },
+      fileMetadata.bucketSlug,
+      fileMetadata.dbId,
+    );
+
+    return {
+      entry: fileEntry,
+      sharedBy: fileMetadata.sharedBy,
     };
   }
 
