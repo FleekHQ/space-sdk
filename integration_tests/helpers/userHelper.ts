@@ -1,5 +1,4 @@
-import { SpaceUser, Users } from '@spacehq/sdk';
-import { Identity } from '@textile/crypto';
+import { Identity, SpaceUser, Users } from '@spacehq/sdk';
 import { TestUsersConfig } from '../fixtures/configs';
 
 export const authenticateAnonymousUser = async (

@@ -142,7 +142,9 @@ describe('Users storing data', () => {
       expect(listFolder1.items[0].items).to.not.be.equals(null);
     }
 
-    const listFolder1Rec:ListDirectoryResponse = await storage.listDirectory({ bucket: 'personal', path: 'firstfolder', recursive: true });
+    const listFolder1Rec:ListDirectoryResponse = await storage.listDirectory(
+      { bucket: 'personal', path: 'firstfolder', recursive: true },
+    );
     expect(listFolder1Rec).to.not.be.equals(null);
     if (listFolder1Rec.items && listFolder1Rec.items[0].items) {
       expect(listFolder1Rec.items[0].items.length).to.be.greaterThan(0);

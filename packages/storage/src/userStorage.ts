@@ -14,8 +14,7 @@ import { Listener } from './listener/listener';
 import { GundbMetadataStore } from './metadata/gundbMetadataStore';
 import { BucketMetadata, FileMetadata, SharedFileMetadata, UserMetadataStore } from './metadata/metadataStore';
 import { createFileInvitations } from './sharing/sharing';
-import {
-  AcceptInvitationResponse,
+import { AcceptInvitationResponse,
   AddItemsRequest,
   AddItemsResponse,
   AddItemsResultSummary,
@@ -42,17 +41,14 @@ import {
   SharePublicKeyOutput,
   ShareViaPublicKeyRequest,
   ShareViaPublicKeyResponse,
-  TxlSubscribeResponse,
-} from './types';
+  TxlSubscribeResponse } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
 import { isMetaFileName } from './utils/fsUtils';
-import {
-  filePathFromIpfsPath,
+import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
   reOrderPathByParents,
-  sanitizePath,
-} from './utils/pathUtils';
+  sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
 import { getStubFileEntry } from './utils/stubUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
@@ -138,7 +134,7 @@ export class UserStorage {
    * - This should be called after the constructor if sharing functionalities are to be used
    */
   public async initMailbox():Promise<void> {
-    this.mailbox = await Mailbox.CreateMailbox(this.user, {
+    this.mailbox = await Mailbox.createMailbox(this.user, {
       textileHubAddress: this.config.textileHubAddress,
     });
   }
@@ -161,7 +157,12 @@ export class UserStorage {
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
-  private static async addMembersToPathItems(items:DirectoryEntry[], client:Buckets, store: UserMetadataStore, bucketKey?: string):Promise<DirectoryEntry[]> {
+  private static async addMembersToPathItems(
+    items:DirectoryEntry[],
+    client:Buckets,
+    store: UserMetadataStore,
+    bucketKey?: string,
+  ): Promise<DirectoryEntry[]> {
     if (items.length === 0) {
       return [];
     }
@@ -194,7 +195,12 @@ export class UserStorage {
         newItems[i].members = members;
 
         if ((newItems[i]?.items?.length || 0) > 0) {
-          newItems[i].items = await this.addMembersToPathItems(newItems[i].items as DirectoryEntry[], client, store, key);
+          newItems[i].items = await this.addMembersToPathItems(
+            newItems[i].items as DirectoryEntry[],
+            client,
+            store,
+            key,
+          );
         }
       }
     }
@@ -420,6 +426,7 @@ export class UserStorage {
       }
 
       const [fileEntry] = UserStorage.parsePathItems(
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
         [existingFile.item!],
         { [fileMetadata.path]: fileMetadata },
         fileMetadata.bucketSlug,
@@ -428,7 +435,12 @@ export class UserStorage {
 
       const fileData = client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress });
 
-      const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems([fileEntry], client, metadataStore, fileMetadata.bucketKey);
+      const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems(
+        [fileEntry],
+        client,
+        metadataStore,
+        fileMetadata.bucketKey,
+      );
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
@@ -471,6 +483,7 @@ export class UserStorage {
 
     const roles = new Map();
     if (request.allowAccess) {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       await metadataStore.setFilePublic(metadata!);
       roles.set('*', PathAccessRole.PATH_ACCESS_ROLE_WRITER);
     } else {
@@ -579,12 +592,17 @@ export class UserStorage {
           // set folder entry
           const newFolder = await client.listPath(rootKey, parentPath);
           const [folderEntry] = UserStorage.parsePathItems(
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             [newFolder.item!],
             {},
             bucket.slug,
             bucket.dbId,
           );
-          const [folderEntryWithmembers] = await UserStorage.addMembersToPathItems([folderEntry], client, metadataStore);
+          const [folderEntryWithmembers] = await UserStorage.addMembersToPathItems(
+            [folderEntry],
+            client,
+            metadataStore,
+          );
           status.entry = folderEntryWithmembers;
 
           emitter.emit('data', status);
@@ -625,6 +643,7 @@ export class UserStorage {
           // set file entry
           const existingFile = await client.listPath(rootKey, path);
           const [fileEntry] = UserStorage.parsePathItems(
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
             [existingFile.item!],
             {
               [path]: metadata,
@@ -758,6 +777,7 @@ export class UserStorage {
     }
 
     const [fileEntry] = UserStorage.parsePathItems(
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
       [existingFile.item!],
       { [fileMetadata.path]: fileMetadata },
       fileMetadata.bucketSlug,
@@ -862,7 +882,9 @@ export class UserStorage {
     }
 
     const idString = Buffer.from(this.user.identity.public.pubKey).toString('hex');
-    const filteredRecipients:string[] = request.publicKeys.map((key) => key.pk).filter((key) => key !== null && key !== undefined) as string[];
+    const filteredRecipients:string[] = request.publicKeys
+      .map((key) => key.pk)
+      .filter((key) => key !== null && key !== undefined) as string[];
     const store = await this.getMetadataStore();
 
     const invitations = await createFileInvitations(
@@ -875,7 +897,7 @@ export class UserStorage {
     // eslint-disable-next-line no-restricted-syntax
     for (const inv of invitations) {
       const body = new TextEncoder().encode(JSON.stringify(inv));
-      await this.mailbox?.SendMessage(inv.inviteePublicKey, body);
+      await this.mailbox?.sendMessage(inv.inviteePublicKey, body);
     }
 
     return {
