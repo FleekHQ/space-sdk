@@ -135,9 +135,9 @@ export class Users {
     const identities = await storage.list();
     const users = new Users(config, storage);
     // authenticate identities
-    for (const id of identities) {
+    await Promise.all(identities.map(async (id: Identity) => {
       await users.authenticate(id).catch((e) => onError && onError(e, id));
-    }
+    }));
     return users;
   }
 

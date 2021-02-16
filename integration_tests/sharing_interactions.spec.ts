@@ -1,10 +1,8 @@
 /* eslint-disable no-unused-expressions */
-import {
-  AddItemsEventData,
+import { AddItemsEventData,
   AddItemsResultSummary,
   UserStorage,
-  ShareKeyType,
-} from '@spacehq/sdk';
+  ShareKeyType } from '@spacehq/sdk';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';

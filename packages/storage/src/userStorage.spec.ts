@@ -53,6 +53,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
       metadataStoreInit: async (): Promise<UserMetadataStore> =>
         // commenting this out now because it causes test to silently fail
         // return instance(mockMetadataStore); // to be fixed later
+        // eslint-disable-next-line implicit-arrow-linebreak
         Promise.resolve({
           createBucket(bucketSlug: string, dbId: string): Promise<BucketMetadata> {
             return Promise.resolve({

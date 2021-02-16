@@ -1,9 +1,6 @@
-import { Users, Update, ThreadID, InboxListOptions, UserAuth, UserMessage, PrivateKey, Public, privateKeyFromString, PublicKey } from '@textile/hub';
+import { SpaceUser } from '@spacehq/users';
 import { tryParsePublicKey } from '@spacehq/utils';
-import { Identity, SpaceUser, GetAddressFromPublicKey } from '@spacehq/users';
-import { grpc } from '@improbable-eng/grpc-web';
-import ee from 'event-emitter';
-import { threadId } from 'worker_threads';
+import { Users, UserAuth, UserMessage } from '@textile/hub';
 
 export interface MailboxConfig {
   textileHubAddress?: string;
@@ -19,23 +16,23 @@ const DefaultTextileHubAddress = 'https://webapi.hub.textile.io';
  * ```typescript
  *
  * const mb = await Mailbox.CreateMailbox(user);
- * await mb.SendMessage(pubkey, body);
+ * await mb.sendMessage(pubkey, body);
  * ```
  */
 export class Mailbox {
-  constructor(private readonly user: SpaceUser, private readonly config: MailboxConfig = {}) {
+  private constructor(private readonly user: SpaceUser, private readonly config: MailboxConfig = {}) {
     this.config.textileHubAddress = config.textileHubAddress ?? DefaultTextileHubAddress;
   }
 
   /**
-   * Initalized the mailbox on the Textile hub server for this user
+   * Initializes the mailbox on the Textile hub server for this user
    *
    * @example
    * ```typescript
-   * const mb = await MailBox.CreateMailbox(user);
+   * const mb = await MailBox.createMailbox(user);
    * ```
    */
-  public static async CreateMailbox(user: SpaceUser, config: MailboxConfig = {}):Promise<Mailbox> {
+  public static async createMailbox(user: SpaceUser, config: MailboxConfig = {}):Promise<Mailbox> {
     const mb = new Mailbox(user, config);
     await mb.getUsersClient().setupMailbox();
     return mb;
@@ -55,11 +52,11 @@ export class Mailbox {
    *
    * @example
    * ```typescript
-   * const mb = await Mailbox.CreateMailbox(user);
-   * const sentMsg = await mb.SendMessage(pubkey, body);
+   * const mb = await Mailbox.createMailbox(user);
+   * const sentMsg = await mb.sendMessage(pubkey, body);
    * ```
    */
-  public async SendMessage(to: string, body:Uint8Array): Promise<UserMessage> {
+  public async sendMessage(to: string, body:Uint8Array): Promise<UserMessage> {
     const toKey = tryParsePublicKey(to);
     const res = await this.getUsersClient().sendMessage(this.user.identity, toKey, body);
     return res;

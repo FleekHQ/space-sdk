@@ -1,14 +1,17 @@
 import { FullPath, Invitation, InvitationStatus } from '../types';
-import { BucketMetadata, FileMetadata, UserMetadataStore } from '../metadata/metadataStore';
+import { UserMetadataStore } from '../metadata/metadataStore';
 
 /**
  * Makes invitation objects that could then be
  * later sent to recipients
  *
- * @param inviter Sending public key
- * * @param inviter Sending public key
  */
-export const createFileInvitations = async (inviter: string, paths: FullPath[], pubkeys: string[], store: UserMetadataStore): Promise<Invitation[]> => {
+export const createFileInvitations = async (
+  inviter: string,
+  paths: FullPath[],
+  pubkeys: string[],
+  store: UserMetadataStore,
+): Promise<Invitation[]> => {
   const invites:Invitation[] = [];
 
   const bucketsP = paths.map((path) => store.findBucket(path.bucket));
