@@ -3,9 +3,11 @@ import { AddItemsEventData,
   AddItemsResultSummary,
   UserStorage,
   ShareKeyType } from '@spacehq/sdk';
+import { tryParsePublicKey } from '@spacehq/utils';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
+import { NotificationType } from '../packages/sdk/src';
 import { TestsDefaultTimeout } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
 
@@ -94,6 +96,9 @@ describe('Users sharing data', () => {
   it('users can receive share invitations', async () => {
     const { user: user1 } = await authenticateAnonymousUser();
     const { user: user2 } = await authenticateAnonymousUser();
+    const user1Pk = Buffer.from(user1.identity.public.pubKey).toString('hex');
+    const user2Pk = Buffer.from(user2.identity.public.pubKey).toString('hex');
+
     const txtContent = 'Some manual text should be in the file';
 
     const storage1 = new UserStorage(user1);
@@ -121,7 +126,7 @@ describe('Users sharing data', () => {
     const shareResult = await storage1.shareViaPublicKey({
       publicKeys: [{
         id: 'new-space-user@fleek.co',
-        pk: Buffer.from(user2.identity.public.pubKey).toString('hex'),
+        pk: user2Pk,
       }],
       paths: [{
         bucket: 'personal',
@@ -134,6 +139,19 @@ describe('Users sharing data', () => {
     expect(shareResult.publicKeys[0].pk).not.to.be.empty;
 
     const received = await storage2.getNotifications();
-    console.log('received: ', JSON.stringify(received, null, 2));
+    expect(received.notifications[0]).not.to.be.null;
+    expect(received.notifications[0].from).to.equal(tryParsePublicKey(user1Pk).toString());
+    expect(received.notifications[0].to).to.equal(tryParsePublicKey(user2Pk).toString());
+    expect(received.notifications[0].id).not.to.be.null;
+    expect(received.notifications[0].createdAt).not.to.be.null;
+    expect(received.notifications[0].type).to.equal(NotificationType.INVITATION);
+    expect(received.notifications[0].relatedObject).not.to.be.null;
+    expect(received.notifications[0].relatedObject?.inviteePublicKey).to.equal(user2Pk);
+    expect(received.notifications[0].relatedObject?.inviterPublicKey).to.equal(user1Pk);
+    expect(received.notifications[0].relatedObject?.itemPaths).to.deep.equal([{
+      bucket: 'personal',
+      path: '/top.txt',
+    }]);
+    expect(received.notifications[0].relatedObject?.keys[0]).not.to.be.null;
   }).timeout(TestsDefaultTimeout);
 });

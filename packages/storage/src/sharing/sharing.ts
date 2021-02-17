@@ -28,8 +28,8 @@ export const createFileInvitations = async (
 
   pubkeys.forEach((pubkey) => {
     const invite:Invitation = {
-      inviteePublicKey: inviter,
-      inviterPublicKey: pubkey,
+      inviteePublicKey: pubkey,
+      inviterPublicKey: inviter,
       itemPaths: paths,
       status: InvitationStatus.PENDING,
       keys: keysCleaned,

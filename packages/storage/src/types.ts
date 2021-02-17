@@ -351,6 +351,8 @@ export enum NotificationType {
 
 export interface Notification {
   id: string;
+  from: string;
+  to: string;
   body: Uint8Array;
   decryptedBody: Uint8Array;
   type: NotificationType;

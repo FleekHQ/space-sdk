@@ -947,10 +947,8 @@ export class UserStorage {
       store,
     );
 
-    console.log('about to send msg:');
     // eslint-disable-next-line no-restricted-syntax
     for (const inv of invitations) {
-      console.log('sending inv: ', JSON.stringify(inv, null, 2));
       const msg = {
         type: NotificationType.INVITATION,
         body: inv,

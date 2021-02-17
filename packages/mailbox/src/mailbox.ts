@@ -57,15 +57,17 @@ export class Mailbox {
       seek, limit,
     });
 
-    console.log('mailbox.listInboxMessages: ', JSON.stringify(res, null, 2));
+    console.log('raw inbox:', JSON.stringify(res, null, 2));
 
     const inbox:DecryptedUserMessage[] = [];
-    res.forEach(async (msg) => {
-      inbox.push(await this.messageDecoder(this.user, msg));
-    });
+    // eslint-disable-next-line no-restricted-syntax
+    for (const msg of res) {
+      // eslint-disable-next-line no-await-in-loop
+      const decryptedMsg = await this.messageDecoder(this.user, msg);
+      inbox.push(decryptedMsg);
+    }
 
-    console.log('mailbox.listInboxMessages: decrypted', JSON.stringify(inbox, null, 2));
-
+    console.log('returnin inbox: ', JSON.stringify(inbox, null, 2));
     return inbox;
   }
 
@@ -80,8 +82,8 @@ export class Mailbox {
    */
   public async sendMessage(to: string, body:Uint8Array): Promise<UserMessage> {
     const toKey = tryParsePublicKey(to);
+    console.log('sending message to txl key: ', toKey.toString());
     const res = await this.getUsersClient().sendMessage(this.user.identity, toKey, body);
-    console.log('sent msg: ', JSON.stringify(res, null, 2));
     return res;
   }
 
