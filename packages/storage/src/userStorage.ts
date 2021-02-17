@@ -754,7 +754,7 @@ export class UserStorage {
   public async getNotifications(seek?: string, limit?:number): Promise<GetNotificationsResponse> {
     const msgs = await this.mailbox?.listInboxMessages(seek, limit);
     const notifs:Notification[] = [];
-    const lastSeenAt = new Date().getMilliseconds();
+    const lastSeenAt = new Date().getTime();
     let lastId = '';
 
     if (!msgs) {
@@ -767,6 +767,7 @@ export class UserStorage {
 
     // eslint-disable-next-line no-restricted-syntax
     for (const msg of msgs) {
+      console.log('parsing msg:', JSON.stringify(msg, null, 2));
       const body = JSON.parse(new TextDecoder().decode(Buffer.from(msg.decryptedBody)));
 
       const notif:Notification = {
@@ -774,6 +775,8 @@ export class UserStorage {
         decryptedBody: msg.decryptedBody,
         type: body.type as NotificationType,
       };
+
+      console.log('msg => notif:', JSON.stringify(notif));
 
       switch (body.type) {
         case NotificationType.INVITATION:
@@ -944,8 +947,10 @@ export class UserStorage {
       store,
     );
 
+    console.log('about to send msg:');
     // eslint-disable-next-line no-restricted-syntax
     for (const inv of invitations) {
+      console.log('sending inv: ', JSON.stringify(inv, null, 2));
       const msg = {
         type: NotificationType.INVITATION,
         body: inv,

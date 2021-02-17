@@ -57,10 +57,14 @@ export class Mailbox {
       seek, limit,
     });
 
+    console.log('mailbox.listInboxMessages: ', JSON.stringify(res, null, 2));
+
     const inbox:DecryptedUserMessage[] = [];
     res.forEach(async (msg) => {
       inbox.push(await this.messageDecoder(this.user, msg));
     });
+
+    console.log('mailbox.listInboxMessages: decrypted', JSON.stringify(inbox, null, 2));
 
     return inbox;
   }
@@ -77,6 +81,7 @@ export class Mailbox {
   public async sendMessage(to: string, body:Uint8Array): Promise<UserMessage> {
     const toKey = tryParsePublicKey(to);
     const res = await this.getUsersClient().sendMessage(this.user.identity, toKey, body);
+    console.log('sent msg: ', JSON.stringify(res, null, 2));
     return res;
   }
 

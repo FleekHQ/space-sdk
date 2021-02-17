@@ -90,4 +90,50 @@ describe('Users sharing data', () => {
     expect(shareResult.publicKeys[0].type).to.equal(ShareKeyType.Existing);
     expect(shareResult.publicKeys[0].pk).not.to.be.empty;
   }).timeout(TestsDefaultTimeout);
+
+  it('users can receive share invitations', async () => {
+    const { user: user1 } = await authenticateAnonymousUser();
+    const { user: user2 } = await authenticateAnonymousUser();
+    const txtContent = 'Some manual text should be in the file';
+
+    const storage1 = new UserStorage(user1);
+    const uploadResponse = await storage1.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'top.txt',
+          data: txtContent,
+          mimeType: 'plain/text',
+        },
+      ],
+    });
+
+    await new Promise<AddItemsEventData>((resolve) => {
+      uploadResponse.once('done', resolve);
+    });
+
+    await storage1.initMailbox();
+
+    const storage2 = new UserStorage(user2);
+    await storage2.initMailbox();
+
+    // share with new user
+    const shareResult = await storage1.shareViaPublicKey({
+      publicKeys: [{
+        id: 'new-space-user@fleek.co',
+        pk: Buffer.from(user2.identity.public.pubKey).toString('hex'),
+      }],
+      paths: [{
+        bucket: 'personal',
+        path: '/top.txt',
+      }],
+    });
+
+    expect(shareResult.publicKeys).not.to.be.empty;
+    expect(shareResult.publicKeys[0].type).to.equal(ShareKeyType.Existing);
+    expect(shareResult.publicKeys[0].pk).not.to.be.empty;
+
+    const received = await storage2.getNotifications();
+    console.log('received: ', JSON.stringify(received, null, 2));
+  }).timeout(TestsDefaultTimeout);
 });
