@@ -746,9 +746,11 @@ export class UserStorage {
   }
 
   /**
-   * Return the list of shared files accepted by user
+   * Returns notifications for the user. If the notification is detected to be a supported
+   * type, it is enhanced with additional information stored in the relatedObject field.
    *
-   * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   * @param seek - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   * @param limit - optional limit value to return a specificed amount of results
    *
    */
   public async getNotifications(seek?: string, limit?:number): Promise<GetNotificationsResponse> {
