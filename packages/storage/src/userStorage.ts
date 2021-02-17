@@ -41,7 +41,10 @@ import { AcceptInvitationResponse,
   SharePublicKeyOutput,
   ShareViaPublicKeyRequest,
   ShareViaPublicKeyResponse,
-  TxlSubscribeResponse } from './types';
+  TxlSubscribeResponse,
+  NotificationType,
+  Notification,
+  GetNotificationsResponse } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { filePathFromIpfsPath,
@@ -745,6 +748,55 @@ export class UserStorage {
   }
 
   /**
+   * Returns notifications for the user. If the notification is detected to be a supported
+   * type, it is enhanced with additional information stored in the relatedObject field.
+   *
+   * @param seek - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   * @param limit - optional limit value to return a specificed amount of results
+   *
+   */
+  public async getNotifications(seek?: string, limit?:number): Promise<GetNotificationsResponse> {
+    const msgs = await this.mailbox?.listInboxMessages(seek, limit);
+    const notifs:Notification[] = [];
+    const lastSeenAt = new Date().getTime();
+    let lastId = '';
+
+    if (!msgs) {
+      return {
+        notifications: notifs,
+        nextOffset: '',
+        lastSeenAt,
+      };
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const msg of msgs) {
+      const body = JSON.parse(new TextDecoder().decode(Buffer.from(msg.decryptedBody)));
+
+      const notif:Notification = {
+        ...msg,
+        decryptedBody: msg.decryptedBody,
+        type: body.type as NotificationType,
+      };
+
+      switch (body.type) {
+        case NotificationType.INVITATION:
+          notif.relatedObject = body.body as Invitation;
+      }
+
+      notifs.push(notif);
+      lastId = msg.id;
+    }
+
+    // set lastoffset to id of last msg
+    return {
+      notifications: notifs,
+      nextOffset: lastId,
+      lastSeenAt,
+    };
+  }
+
+  /**
    * Return the list of shared files accepted by user
    *
    * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
@@ -898,7 +950,11 @@ export class UserStorage {
 
     // eslint-disable-next-line no-restricted-syntax
     for (const inv of invitations) {
-      const body = new TextEncoder().encode(JSON.stringify(inv));
+      const msg = {
+        type: NotificationType.INVITATION,
+        body: inv,
+      };
+      const body = new TextEncoder().encode(JSON.stringify(msg));
       await this.mailbox?.sendMessage(inv.inviteePublicKey, body);
     }
 
