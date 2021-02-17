@@ -2,12 +2,11 @@
 import { AddItemsEventData,
   AddItemsResultSummary,
   UserStorage,
-  ShareKeyType } from '@spacehq/sdk';
+  ShareKeyType, NotificationType } from '@spacehq/sdk';
 import { tryParsePublicKey } from '@spacehq/utils';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
-import { NotificationType } from '../packages/sdk/src';
 import { TestsDefaultTimeout } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
 
