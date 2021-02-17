@@ -767,7 +767,6 @@ export class UserStorage {
 
     // eslint-disable-next-line no-restricted-syntax
     for (const msg of msgs) {
-      console.log('parsing msg:', JSON.stringify(msg, null, 2));
       const body = JSON.parse(new TextDecoder().decode(Buffer.from(msg.decryptedBody)));
 
       const notif:Notification = {
@@ -775,8 +774,6 @@ export class UserStorage {
         decryptedBody: msg.decryptedBody,
         type: body.type as NotificationType,
       };
-
-      console.log('msg => notif:', JSON.stringify(notif));
 
       switch (body.type) {
         case NotificationType.INVITATION:

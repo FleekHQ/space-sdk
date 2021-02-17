@@ -122,7 +122,6 @@ export class Mailbox {
   messageDecoder = async (user: SpaceUser, message: UserMessage): Promise<DecryptedUserMessage> => {
     const identity = new PrivateKey(user.identity.privKey.slice(0, 32));
     const decryptedBody = await identity.decrypt(message.body);
-    console.log('decrypted body: ', decryptedBody);
     return { decryptedBody, ...message };
   }
 }

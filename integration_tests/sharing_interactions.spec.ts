@@ -147,10 +147,10 @@ describe('Users sharing data', () => {
     expect(received.notifications[0].relatedObject).not.to.be.null;
     expect(received.notifications[0].relatedObject?.inviteePublicKey).to.equal(user2Pk);
     expect(received.notifications[0].relatedObject?.inviterPublicKey).to.equal(user1Pk);
-    expect(received.notifications[0].relatedObject?.itemPaths).to.deep.equal([{
-      bucket: 'personal',
-      path: '/top.txt',
-    }]);
+    expect(received.notifications[0].relatedObject?.itemPaths[0].bucket).to.equal('personal');
+    expect(received.notifications[0].relatedObject?.itemPaths[0].path).to.equal('/top.txt');
+    expect(received.notifications[0].relatedObject?.itemPaths[0].dbId).not.to.be.null;
+    expect(received.notifications[0].relatedObject?.itemPaths[0].bucketKey).not.to.be.null;
     expect(received.notifications[0].relatedObject?.keys[0]).not.to.be.null;
   }).timeout(TestsDefaultTimeout);
 });

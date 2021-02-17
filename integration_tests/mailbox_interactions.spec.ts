@@ -29,6 +29,5 @@ describe('Mailbox interactions', () => {
     expect(sentmsg.from).to.eq(tryParsePublicKey(Buffer.from(user1.identity.public.pubKey).toString('hex')).toString());
 
     const msgs = await mb2.listInboxMessages();
-    console.log('msgs: ', msgs);
   }).timeout(TestsDefaultTimeout);
 });
