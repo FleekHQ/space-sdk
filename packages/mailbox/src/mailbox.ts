@@ -52,12 +52,12 @@ export class Mailbox {
    * const msgs = await mb.ListInboxMessages(seek, limit);
    * ```
    */
-  public async listInboxMessages(seek?:string, limit?:number):Promise<UserMessage[]> {
+  public async listInboxMessages(seek?:string, limit?:number):Promise<DecryptedUserMessage[]> {
     const res = await this.getUsersClient().listInboxMessages({
       seek, limit,
     });
 
-    const inbox:UserMessage[] = [];
+    const inbox:DecryptedUserMessage[] = [];
     res.forEach(async (msg) => {
       inbox.push(await this.messageDecoder(this.user, msg));
     });

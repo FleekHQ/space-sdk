@@ -351,12 +351,12 @@ export enum NotificationType {
 
 export interface Notification {
   id: string;
-  subject: string;
-  body: string;
+  body: Uint8Array;
+  decryptedBody: Uint8Array;
   type: NotificationType;
   createdAt: number;
-  readAt: number;
-  relatedObject: Invitation;
+  readAt?: number;
+  relatedObject?: Invitation;
 }
 
 export interface GetNotificationsResponse {

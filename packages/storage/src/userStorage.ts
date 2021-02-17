@@ -753,22 +753,31 @@ export class UserStorage {
    */
   public async getNotifications(seek?: string, limit?:number): Promise<GetNotificationsResponse> {
     const msgs = await this.mailbox?.listInboxMessages(seek, limit);
-
     const notifs:Notification[] = [];
-    let lastId;
+    const lastSeenAt = new Date().getMilliseconds();
+    let lastId = '';
+
+    if (!msgs) {
+      return {
+        notifications: notifs,
+        nextOffset: '',
+        lastSeenAt,
+      };
+    }
 
     // eslint-disable-next-line no-restricted-syntax
     for (const msg of msgs) {
-      const notif = {
-        ...msg,
-        body: msg.decryptedBody,
-      };
-
       const body = JSON.parse(new TextDecoder().decode(Buffer.from(msg.decryptedBody)));
+
+      const notif:Notification = {
+        ...msg,
+        decryptedBody: msg.decryptedBody,
+        type: body.type as NotificationType,
+      };
 
       switch (body.type) {
         case NotificationType.INVITATION:
-          notif.relatedObject = body.body;
+          notif.relatedObject = body.body as Invitation;
       }
 
       notifs.push(notif);
@@ -779,7 +788,7 @@ export class UserStorage {
     return {
       notifications: notifs,
       nextOffset: lastId,
-      lastSeenAt: new Date().getMilliseconds(),
+      lastSeenAt,
     };
   }
 
