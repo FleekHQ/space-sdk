@@ -222,6 +222,7 @@ export interface GetRecentlySharedWithResponse {
 
 // @public
 export class GundbMetadataStore implements UserMetadataStore {
+    addUserRecentlySharedWith(user: ShareUserMetadata): Promise<ShareUserMetadata>;
     createBucket(bucketSlug: string, dbId: string, bucketKey: string): Promise<BucketMetadata>;
     findBucket(bucketSlug: string): Promise<BucketMetadata | undefined>;
     findFileMetadata(bucketSlug: string, dbId: string, path: string): Promise<FileMetadata | undefined>;
@@ -231,6 +232,7 @@ export class GundbMetadataStore implements UserMetadataStore {
     listBuckets(): Promise<BucketMetadata[]>;
     listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
     listSharedWithMeFiles(): Promise<SharedFileMetadata[]>;
+    listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]>;
     setFilePublic(metadata: FileMetadata): Promise<void>;
     upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
     upsertSharedByMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
@@ -389,6 +391,14 @@ export interface SharePublicKeyOutput {
 }
 
 // @public (undocumented)
+export interface ShareUserMetadata {
+    // (undocumented)
+    publicKey: string;
+    // (undocumented)
+    role: number;
+}
+
+// @public (undocumented)
 export interface ShareViaPublicKeyRequest {
     // (undocumented)
     paths: FullPath[];
@@ -465,6 +475,7 @@ export class UnauthenticatedError extends Error {
 
 // @public
 export interface UserMetadataStore {
+    addUserRecentlySharedWith(user: ShareUserMetadata): Promise<ShareUserMetadata>;
     createBucket: (bucketSlug: string, dbId: string, bucketKey: string) => Promise<BucketMetadata>;
     findBucket: (bucketSlug: string) => Promise<BucketMetadata | undefined>;
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
@@ -472,6 +483,7 @@ export interface UserMetadataStore {
     listBuckets: () => Promise<BucketMetadata[]>;
     listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
     listSharedWithMeFiles: () => Promise<SharedFileMetadata[]>;
+    listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]>;
     setFilePublic: (metadata: FileMetadata) => Promise<void>;
     upsertFileMetadata: (data: FileMetadata) => Promise<FileMetadata>;
     upsertSharedByMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
@@ -508,9 +520,9 @@ export class UserStorage {
     acceptFileInvitation(invitation: Invitation): Promise<AcceptInvitationResponse>;
     addItems(request: AddItemsRequest): Promise<AddItemsResponse>;
     createFolder(request: CreateFolderRequest): Promise<void>;
-    getFilesRecentlySharedWith(offset?: string): Promise<GetRecentlySharedWithResponse>;
     getFilesSharedByMe(offset?: string): Promise<GetFilesSharedByMeResponse>;
     getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse>;
+    getRecentlySharedWith(offset?: string): Promise<GetRecentlySharedWithResponse>;
     initListener(): Promise<void>;
     initMailbox(): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;

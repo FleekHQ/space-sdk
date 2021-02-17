@@ -83,6 +83,18 @@ export interface UserMetadataStore {
    *
    */
   listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
+
+  /**
+   * Add user to set of users current user has recently shared files with.
+   *
+   */
+  addUserRecentlySharedWith(user: ShareUserMetadata): Promise<ShareUserMetadata>;
+
+  /**
+   * List set of users the current user has recently shared files with
+   *
+   */
+  listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]>;
 }
 
 /**
@@ -136,4 +148,9 @@ export interface SharedFileMetadata extends FileMetadata {
    *
    */
   sharedBy: string;
+}
+
+export interface ShareUserMetadata {
+  publicKey: string;
+  role: number;
 }

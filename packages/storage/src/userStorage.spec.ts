@@ -1,5 +1,5 @@
 import { Identity, GetAddressFromPublicKey } from '@spacehq/users';
-import { PrivateKey, publicKeyBytesFromString } from '@textile/crypto';
+import { PrivateKey } from '@textile/crypto';
 import { Buckets, PathAccessRole, PathItem, PushPathResult, Root } from '@textile/hub';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
@@ -8,7 +8,11 @@ import dayjs from 'dayjs';
 import { anyString, anything, deepEqual, instance, mock, verify, when } from 'ts-mockito';
 import { v4 } from 'uuid';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
-import { BucketMetadata, FileMetadata, SharedFileMetadata, UserMetadataStore } from './metadata/metadataStore';
+import { BucketMetadata,
+  FileMetadata,
+  SharedFileMetadata,
+  UserMetadataStore,
+  ShareUserMetadata } from './metadata/metadataStore';
 import { makeAsyncIterableString } from './testHelpers';
 import { AddItemsEventData } from './types';
 import { UserStorage } from './userStorage';
@@ -102,6 +106,12 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
             return data;
           },
           async listSharedByMeFiles(): Promise<SharedFileMetadata[]> {
+            return [];
+          },
+          async addUserRecentlySharedWith(data: ShareUserMetadata): Promise<ShareUserMetadata> {
+            return data;
+          },
+          async listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]> {
             return [];
           },
         }),
