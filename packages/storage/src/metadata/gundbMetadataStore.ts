@@ -3,7 +3,11 @@ import { isNode } from 'browser-or-node';
 import Pino from 'pino';
 import { IGunChainReference } from 'gun/types/chain';
 import { IGunStatic } from 'gun/types/static';
-import { BucketMetadata, FileMetadata, SharedFileMetadata, UserMetadataStore } from './metadataStore';
+import { BucketMetadata,
+  FileMetadata,
+  SharedFileMetadata,
+  ShareUserMetadata,
+  UserMetadataStore } from './metadataStore';
 
 let Gun: IGunStatic;
 if (isNode) {
@@ -26,6 +30,8 @@ export type GunChainReference<Data> = Omit<IGunChainReference<Data>, 'then'>;
 const BucketEncryptionKeyLength = 32 + 16 + 32;
 const BucketMetadataCollection = 'BucketMetadata';
 const SharedFileMetadataCollection = 'SharedFileMetadata';
+const SharedByMeFileMetadataCollection = 'SharedByMeFileMetadata';
+const RecentlySharedWithMetadataCollection = 'RecentlySharedWithMetadata';
 const PublicStoreUsername = '66f47ce32570335085b39bdf';
 const PublicStorePassword = '830a20694358651ef14e472fd71c4f9f843ecd50784b241a6c9999dba4c6fced0f90c686bdee28edc';
 
@@ -66,9 +72,13 @@ export class GundbMetadataStore implements UserMetadataStore {
   private gunInit: GunInit;
 
   // in memory cache list of buckets
-  private bucketsListCache: BucketMetadata[];
+  private readonly bucketsListCache: BucketMetadata[];
 
-  private sharedFilesListCache: SharedFileMetadata[];
+  private readonly sharedFilesListCache: SharedFileMetadata[];
+
+  private readonly sharedByMeFilesListCache: SharedFileMetadata[];
+
+  private readonly recentlySharedWithListCache: ShareUserMetadata[];
 
   private _user?: GunChainReference<GunDataState>;
 
@@ -102,6 +112,8 @@ export class GundbMetadataStore implements UserMetadataStore {
 
     this.bucketsListCache = [];
     this.sharedFilesListCache = [];
+    this.sharedByMeFilesListCache = [];
+    this.recentlySharedWithListCache = [];
 
     if (logger) {
       if (typeof logger === 'boolean') {
@@ -136,7 +148,9 @@ export class GundbMetadataStore implements UserMetadataStore {
     await store.authenticateUser(store._publicUser, PublicStoreUsername, PublicStorePassword);
 
     await store.startCachingBucketsList();
-    await store.startCachingSharedFilesList();
+    await store.startCachingList(SharedFileMetadataCollection, store.sharedFilesListCache);
+    await store.startCachingList(SharedByMeFileMetadataCollection, store.sharedByMeFilesListCache);
+    await store.startCachingList(RecentlySharedWithMetadataCollection, store.recentlySharedWithListCache);
 
     return store;
   }
@@ -314,6 +328,69 @@ export class GundbMetadataStore implements UserMetadataStore {
     });
   }
 
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.upsertSharedByMeFile}
+   */
+  public async upsertSharedByMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata> {
+    const { bucketSlug, dbId, path } = fileData;
+    const lookupKey = GundbMetadataStore.getSharedByMeLookupKey(bucketSlug, dbId, path);
+    const existingFileMetadata = await this.lookupUserData<SharedFileMetadata>(lookupKey);
+
+    let updatedMetadata = fileData;
+    if (existingFileMetadata) {
+      updatedMetadata = {
+        ...existingFileMetadata,
+        ...fileData,
+      };
+    }
+    this.logger?.info({ updatedMetadata }, 'Upserting upsertSharedByMeFile');
+    const encryptedMetadata = await this.encrypt(JSON.stringify(updatedMetadata));
+    const nodeRef = this.lookupUser.get(lookupKey).put({ data: encryptedMetadata });
+    this.listUser.get(SharedByMeFileMetadataCollection).set(nodeRef as unknown as EncryptedMetadata);
+    return updatedMetadata;
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.listSharedByMeFiles}
+   */
+  public async listSharedByMeFiles(): Promise<SharedFileMetadata[]> {
+    return new Promise((resolve) => {
+      setImmediate(() => { resolve(this.sharedByMeFilesListCache); });
+    });
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.addUserRecentlySharedWith}
+   */
+  public async addUserRecentlySharedWith(user: ShareUserMetadata): Promise<ShareUserMetadata> {
+    const lookupKey = GundbMetadataStore.getRecentSharedLookupKey(user.publicKey);
+    const existingUser = await this.lookupUserData<ShareUserMetadata>(lookupKey);
+
+    let updatedUser = user;
+    if (existingUser) {
+      updatedUser = {
+        ...existingUser,
+        ...user,
+      };
+    }
+    this.logger?.info({ updatedUser }, 'Upserting addUserRecentlySharedWith');
+
+    const encryptedMetadata = await this.encrypt(JSON.stringify(updatedUser));
+    const nodeRef = this.lookupUser.get(lookupKey).put({ data: encryptedMetadata });
+    this.listUser.get(RecentlySharedWithMetadataCollection).set(nodeRef as unknown as EncryptedMetadata);
+
+    return updatedUser;
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.listUsersRecentlySharedWith}
+   */
+  public async listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]> {
+    return new Promise((resolve) => {
+      setImmediate(() => { resolve(this.recentlySharedWithListCache); });
+    });
+  }
+
   private async lookupUserData<T>(lookupKey: string): Promise<T | undefined> {
     return new Promise<T | undefined>((resolve, reject) => {
       // using ts-ignore to allow extra non-documented parameters on callback
@@ -370,13 +447,13 @@ export class GundbMetadataStore implements UserMetadataStore {
     await new Promise((resolve) => setTimeout(resolve, 3000));
   }
 
-  private async startCachingSharedFilesList(): Promise<void> {
-    this.listUser.get(SharedFileMetadataCollection).map().once(async (data) => {
+  private async startCachingList<T>(collection: string, cache: T[]): Promise<void> {
+    this.listUser.get(collection).map().once(async (data) => {
       if (data) {
         try {
-          const decryptedData = await this.decrypt<SharedFileMetadata>(data.data);
+          const decryptedData = await this.decrypt<T>(data.data);
           if (decryptedData) {
-            this.sharedFilesListCache.push(decryptedData);
+            cache.push(decryptedData);
           }
         } catch (err) {
           // an error occurred. most likely not our data
@@ -391,6 +468,14 @@ export class GundbMetadataStore implements UserMetadataStore {
 
   private static getFilesLookupKey(bucketSlug: string, dbId: string, path: string): string {
     return `fileMetadata/${bucketSlug}/${dbId}/${path}`;
+  }
+
+  private static getSharedByMeLookupKey(bucketSlug: string, dbId: string, path: string): string {
+    return `sharedByMe/${bucketSlug}/${dbId}/${path}`;
+  }
+
+  private static getRecentSharedLookupKey(publicKey: string): string {
+    return `recentlySharedWith/${publicKey}`;
   }
 
   private static getFilesUuidLookupKey(uuid: string): string {
