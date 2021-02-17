@@ -57,8 +57,6 @@ export class Mailbox {
       seek, limit,
     });
 
-    console.log('raw inbox:', JSON.stringify(res, null, 2));
-
     const inbox:DecryptedUserMessage[] = [];
     // eslint-disable-next-line no-restricted-syntax
     for (const msg of res) {
@@ -67,7 +65,6 @@ export class Mailbox {
       inbox.push(decryptedMsg);
     }
 
-    console.log('returnin inbox: ', JSON.stringify(inbox, null, 2));
     return inbox;
   }
 
@@ -82,7 +79,6 @@ export class Mailbox {
    */
   public async sendMessage(to: string, body:Uint8Array): Promise<UserMessage> {
     const toKey = tryParsePublicKey(to);
-    console.log('sending message to txl key: ', toKey.toString());
     const res = await this.getUsersClient().sendMessage(this.user.identity, toKey, body);
     return res;
   }
