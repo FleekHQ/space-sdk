@@ -41,7 +41,10 @@ import { AcceptInvitationResponse,
   SharePublicKeyOutput,
   ShareViaPublicKeyRequest,
   ShareViaPublicKeyResponse,
-  TxlSubscribeResponse } from './types';
+  TxlSubscribeResponse,
+  NotificationType,
+  Notification,
+  GetNotificationsResponse } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { filePathFromIpfsPath,
@@ -748,6 +751,44 @@ export class UserStorage {
    * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
    *
    */
+  public async getNotifications(seek?: string, limit?:number): Promise<GetNotificationsResponse> {
+    const msgs = await this.mailbox?.listInboxMessages(seek, limit);
+
+    const notifs:Notification[] = [];
+    let lastId;
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const msg of msgs) {
+      const notif = {
+        ...msg,
+        body: msg.decryptedBody,
+      };
+
+      const body = JSON.parse(new TextDecoder().decode(Buffer.from(msg.decryptedBody)));
+
+      switch (body.type) {
+        case NotificationType.INVITATION:
+          notif.relatedObject = body.body;
+      }
+
+      notifs.push(notif);
+      lastId = msg.id;
+    }
+
+    // set lastoffset to id of last msg
+    return {
+      notifications: notifs,
+      nextOffset: lastId,
+      lastSeenAt: new Date().getMilliseconds(),
+    };
+  }
+
+  /**
+   * Return the list of shared files accepted by user
+   *
+   * @param offset - optional offset value for pagination. Can be gotten from the nextOffset field of a response
+   *
+   */
   public async getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse> {
     const metadataStore = await this.getMetadataStore();
     const client = this.getUserBucketsClient();
@@ -896,7 +937,11 @@ export class UserStorage {
 
     // eslint-disable-next-line no-restricted-syntax
     for (const inv of invitations) {
-      const body = new TextEncoder().encode(JSON.stringify(inv));
+      const msg = {
+        type: NotificationType.INVITATION,
+        body: inv,
+      };
+      const body = new TextEncoder().encode(JSON.stringify(msg));
       await this.mailbox?.sendMessage(inv.inviteePublicKey, body);
     }
 

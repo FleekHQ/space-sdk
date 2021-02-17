@@ -340,3 +340,27 @@ export interface SharePublicKeyOutput {
 export interface ShareViaPublicKeyResponse {
   publicKeys: SharePublicKeyOutput[];
 }
+
+export enum NotificationType {
+  UNKNOWN = 0,
+  INVITATION = 1,
+  USAGEALERT = 2,
+  INVITATION_REPLY = 3,
+  REVOKED_INVITATION = 4,
+}
+
+export interface Notification {
+  id: string;
+  subject: string;
+  body: string;
+  type: NotificationType;
+  createdAt: number;
+  readAt: number;
+  relatedObject: Invitation;
+}
+
+export interface GetNotificationsResponse {
+  notifications: Notification[];
+  nextOffset: string;
+  lastSeenAt: number;
+}

@@ -27,5 +27,8 @@ describe('Mailbox interactions', () => {
     expect(sentmsg.body).not.to.be.null;
     expect(sentmsg.to).to.eq(tryParsePublicKey(Buffer.from(user2.identity.public.pubKey).toString('hex')).toString());
     expect(sentmsg.from).to.eq(tryParsePublicKey(Buffer.from(user1.identity.public.pubKey).toString('hex')).toString());
+
+    const msgs = await mb2.listInboxMessages();
+    console.log('msgs: ', msgs);
   }).timeout(TestsDefaultTimeout);
 });

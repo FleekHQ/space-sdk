@@ -1,10 +1,14 @@
 import { SpaceUser } from '@spacehq/users';
 import { tryParsePublicKey } from '@spacehq/utils';
-import { Users, UserAuth, UserMessage } from '@textile/hub';
+import { Users, UserAuth, UserMessage, PrivateKey } from '@textile/hub';
 
 export interface MailboxConfig {
   textileHubAddress?: string;
   usersInit?: (auth: UserAuth) => Users;
+}
+
+export interface DecryptedUserMessage extends UserMessage {
+  decryptedBody:Uint8Array;
 }
 
 const DefaultTextileHubAddress = 'https://webapi.hub.textile.io';
@@ -38,14 +42,28 @@ export class Mailbox {
     return mb;
   }
 
-  //   public async ListInboxMessages(opts: InboxListOptions):[]UserMessage {
-  //     const messages = await this.client.listInboxMessages();
-  //     const inbox = [];
-  //     messages.forEach(async (msg) => {
-  //       inbox.push(await this.messageDecoder(msg));
-  //     });
-  // PrivateKey.fromString
-  //   };
+  /**
+   * Get messages from a mailbox
+   *
+   * @example
+   * ```typescript
+   * const mb = await Mailbox.createMailbox(user);
+   * // seek is a cursor to start the messages from
+   * const msgs = await mb.ListInboxMessages(seek, limit);
+   * ```
+   */
+  public async listInboxMessages(seek?:string, limit?:number):Promise<UserMessage[]> {
+    const res = await this.getUsersClient().listInboxMessages({
+      seek, limit,
+    });
+
+    const inbox:UserMessage[] = [];
+    res.forEach(async (msg) => {
+      inbox.push(await this.messageDecoder(this.user, msg));
+    });
+
+    return inbox;
+  }
 
   /**
    * Send a message using mailbox
@@ -98,14 +116,10 @@ export class Mailbox {
   /**
    * Decrypts a user's inbox messages using their PrivateKey
    */
-  // messageDecoder = async (message: UserMessage): Promise<DecryptedInbox> => {
-  //   const identity = PrivateKey.fromString(PrivateKeyIdentity);
-  //   const bytes = await identity.decrypt(message.body);
-  //   const body = new TextDecoder().decode(bytes);
-  //   const { from } = message;
-  //   const { readAt } = message;
-  //   const { createdAt } = message;
-  //   const { id } = message;
-  //   return { body, from, readAt, sent: createdAt, id };
-  // }
+  messageDecoder = async (user: SpaceUser, message: UserMessage): Promise<DecryptedUserMessage> => {
+    const identity = new PrivateKey(user.identity.privKey.slice(0, 32));
+    const decryptedBody = await identity.decrypt(message.body);
+    console.log('decrypted body: ', decryptedBody);
+    return { decryptedBody, ...message };
+  }
 }
