@@ -309,6 +309,13 @@ export class GundbMetadataStore implements UserMetadataStore {
     const encryptedMetadata = await this.encrypt(JSON.stringify(updatedMetadata));
     const nodeRef = this.lookupUser.get(lookupKey).put({ data: encryptedMetadata });
 
+    // track via invitationId
+    if (updatedMetadata.invitationId) {
+      this.lookupUser
+        .get(GundbMetadataStore.getFilesInvitationLookupKey(updatedMetadata.invitationId))
+        .put({ data: encryptedMetadata });
+    }
+
     if (updatedMetadata.uuid) {
       this.lookupUser.get(GundbMetadataStore.getFilesUuidLookupKey(updatedMetadata.uuid))
         .put({ data: encryptedMetadata });
@@ -320,11 +327,20 @@ export class GundbMetadataStore implements UserMetadataStore {
   }
 
   /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.findSharedFilesByInvitation}
+   */
+  async findSharedFilesByInvitation(invitationId: string): Promise<SharedFileMetadata | undefined> {
+    this.logger?.info({ invitationId }, 'Store.findSharedFilesByInvitation');
+    const lookupKey = GundbMetadataStore.getFilesInvitationLookupKey(invitationId);
+    return this.lookupUserData(lookupKey);
+  }
+
+  /**
    * {@inheritDoc @spacehq/sdk#UserMetadataStore.listSharedWithMeFiles}
    */
   public async listSharedWithMeFiles(): Promise<SharedFileMetadata[]> {
     return new Promise((resolve) => {
-      setImmediate(() => { resolve(this.sharedFilesListCache); });
+      setTimeout(() => { resolve(this.sharedFilesListCache); }, 1000);
     });
   }
 
@@ -387,7 +403,7 @@ export class GundbMetadataStore implements UserMetadataStore {
    */
   public async listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]> {
     return new Promise((resolve) => {
-      setImmediate(() => { resolve(this.recentlySharedWithListCache); });
+      setTimeout(() => { resolve(this.recentlySharedWithListCache); }, 1000);
     });
   }
 
@@ -468,6 +484,10 @@ export class GundbMetadataStore implements UserMetadataStore {
 
   private static getFilesLookupKey(bucketSlug: string, dbId: string, path: string): string {
     return `fileMetadata/${bucketSlug}/${dbId}/${path}`;
+  }
+
+  private static getFilesInvitationLookupKey(invitationId: string): string {
+    return `sharedFileIv/${invitationId}`;
   }
 
   private static getSharedByMeLookupKey(bucketSlug: string, dbId: string, path: string): string {

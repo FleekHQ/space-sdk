@@ -105,6 +105,9 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
           async upsertSharedByMeFile(data: SharedFileMetadata): Promise<SharedFileMetadata> {
             return data;
           },
+          async findSharedFilesByInvitation(id: string): Promise<SharedFileMetadata | undefined> {
+            return undefined;
+          },
           async listSharedByMeFiles(): Promise<SharedFileMetadata[]> {
             return [];
           },

@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop */
-import { Mailbox, DecryptedUserMessage } from '@spacehq/mailbox';
-import { tryParsePublicKey } from '@spacehq/utils';
+import { DecryptedUserMessage, Mailbox } from '@spacehq/mailbox';
 import { GetAddressFromPublicKey, Identity, SpaceUser } from '@spacehq/users';
+import { tryParsePublicKey } from '@spacehq/utils';
 import { PrivateKey } from '@textile/crypto';
 import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth, Users, UserMessage } from '@textile/hub';
 import dayjs from 'dayjs';
@@ -54,7 +54,6 @@ import { filePathFromIpfsPath,
   reOrderPathByParents,
   sanitizePath } from './utils/pathUtils';
 import { consumeStream } from './utils/streamUtils';
-import { getStubFileEntry } from './utils/stubUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
 
 export interface UserStorageConfig {
@@ -713,18 +712,41 @@ export class UserStorage {
   }
 
   /*
-   * Accepts an invitation to access a file.
+   * Accepts or reject an invitation to access files from another space user.
    *
-   * Typically the invitation is gotten from a Space Mailbox for the user.
+   * Typically the invitation id is gotten from a Space Mailbox for the user.
    *
+   * @param invitationId - Invitation notification id
+   * @param accept - set to 'true' to accept file
    */
-  public async acceptFileInvitation(invitation: Invitation): Promise<AcceptInvitationResponse> {
-    if (invitation.status !== InvitationStatus.ACCEPTED) {
-      throw new Error('Cannot add files with Invitation not accepted');
+  public async handleFileInvitation(
+    invitationId: string,
+    accept: boolean,
+  ): Promise<AcceptInvitationResponse | undefined> {
+    const inbox = await this.getNotifications(invitationId, 1);
+    if (inbox.notifications.length === 0) {
+      throw new Error(`invitation [${invitationId}] not found.`);
     }
 
-    const metadataStore = await this.getMetadataStore();
+    const [notification] = inbox.notifications;
+    if (notification.type !== NotificationType.INVITATION) {
+      throw new Error(`invitation [${invitationId}] is not valid`);
+    }
+
+    return this.upsertInvitation(notification.id, notification.relatedObject as Invitation, accept);
+  }
+
+  private async upsertInvitation(
+    invitationId: string,
+    invitation: Invitation,
+    accept: boolean,
+  ): Promise<AcceptInvitationResponse | undefined> {
+    if (invitation.status !== InvitationStatus.PENDING) {
+      throw new Error(`invitation [${invitation.invitationID}] is no more pending`);
+    }
+
     const client = this.getUserBucketsClient();
+    const metadataStore = await this.getMetadataStore();
 
     const filesPaths = await Promise.all(invitation.itemPaths.map(async (fullPath) => {
       const fileMetadata = await metadataStore.upsertSharedWithMeFile({
@@ -735,6 +757,8 @@ export class UserStorage {
         mimeType: '', // TODO: Update invitation to include mimeType from sender
         sharedBy: invitation.inviterPublicKey,
         uuid: v4(),
+        accepted: accept,
+        invitationId,
       });
 
       return this.buildSharedFileFromMetadata(client, fileMetadata);
@@ -816,8 +840,8 @@ export class UserStorage {
       await this.initMailbox();
     }
 
-    const msgs = await this.mailbox?.listInboxMessages(seek, limit);
-    const notifs:Notification[] = [];
+    const msgs: DecryptedUserMessage[] | undefined = await this.mailbox?.listInboxMessages(seek, limit);
+    const notifs :Notification[] = [];
     const lastSeenAt = new Date().getTime();
     let lastId = '';
 
@@ -829,6 +853,8 @@ export class UserStorage {
       };
     }
 
+    const existingStatusbyId = await this.getExistingSharedFilesStatuses(msgs.map((msg) => msg.id));
+
     // eslint-disable-next-line no-restricted-syntax
     for (const msg of msgs) {
       const notif = await UserStorage.parseMsg(msg);
@@ -836,12 +862,36 @@ export class UserStorage {
       lastId = msg.id;
     }
 
-    // set lastoffset to id of last msg
+    const augmentedNotifs = notifs.map((notif) => {
+      const augMotif = notif;
+      switch (augMotif.type) {
+        case NotificationType.INVITATION:
+          (augMotif.relatedObject as Invitation).status = existingStatusbyId.get(notif.id) || InvitationStatus.PENDING;
+      }
+      return augMotif;
+    });
+
     return {
-      notifications: notifs,
+      notifications: augmentedNotifs,
       nextOffset: lastId,
       lastSeenAt,
     };
+  }
+
+  private async getExistingSharedFilesStatuses(notificationIds: string[]) {
+    const metadataStore = await this.getMetadataStore();
+    const existingStatusbyId = new Map<string, InvitationStatus>();
+    const existingSharedFiles = await Promise.all(notificationIds.map(async (notifId) => {
+      const existingSharedFile = await metadataStore.findSharedFilesByInvitation(notifId);
+      if (existingSharedFile?.accepted === true) {
+        existingStatusbyId.set(notifId, InvitationStatus.ACCEPTED);
+      } else if (existingSharedFile?.accepted === false) {
+        existingStatusbyId.set(notifId, InvitationStatus.REJECTED);
+      } else {
+        existingStatusbyId.set(notifId, InvitationStatus.PENDING);
+      }
+    }));
+    return existingStatusbyId;
   }
 
   /**
@@ -1013,8 +1063,10 @@ export class UserStorage {
     this.addPathToRecentlyShared(paths, store)
       .catch((err) => this.logger?.error({ err }, 'Unable to successfully track recently shared paths'));
 
-    UserStorage.addUsersToRecentlyShared(filteredRecipients, store)
-      .catch((err) => this.logger?.error({ err }, 'Unable to successfully track recently shared users'));
+    UserStorage.addUsersToRecentlyShared(
+      userKeys.filter((key) => key.type === ShareKeyType.Existing).map((key) => key.pk),
+      store,
+    ).catch((err) => this.logger?.error({ err }, 'Unable to successfully track recently shared users'));
 
     return {
       publicKeys: userKeys.map((keys) => ({
