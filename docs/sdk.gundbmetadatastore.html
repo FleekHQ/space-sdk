@@ -13,15 +13,19 @@
 <tr><th>Method</th><th>Modifiers</th><th>Description</th></tr>
 </thead>
 <tbody>
+<tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.adduserrecentlysharedwith">addUserRecentlySharedWith(user)</a></td><td></td><td>Add user to set of users current user has recently shared files with.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.createbucket">createBucket(bucketSlug, dbId, bucketKey)</a></td><td></td><td>Create a BucketSchema record with dbId belonging to the current user.<!-- -->It should fail if a bucketSlug with similar dbId already exists.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.findbucket">findBucket(bucketSlug)</a></td><td></td><td>Find bucket metadata with slug belonging to the current user matching</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.findfilemetadata">findFileMetadata(bucketSlug, dbId, path)</a></td><td></td><td>Find existing metadata information about the file at path.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.findfilemetadatabyuuid">findFileMetadataByUuid(uuid)</a></td><td></td><td>Find existing metadata information about the file with uuid</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.fromidentity">fromIdentity(username, userpass, gunOrServer, logger)</a></td><td><code>static</code></td><td>Creates a new instance of this metadata store for users identity.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.listbuckets">listBuckets()</a></td><td></td><td>Returns a list of all bucket schemas belonging to the current user</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.listsharedbymefiles">listSharedByMeFiles()</a></td><td></td><td>List all shared files current user has shared with other users.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.listsharedwithmefiles">listSharedWithMeFiles()</a></td><td></td><td>List all shared with me files for the existing user</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.listusersrecentlysharedwith">listUsersRecentlySharedWith()</a></td><td></td><td>List set of users the current user has recently shared files with</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.setfilepublic">setFilePublic(metadata)</a></td><td></td><td>Make the file with uuid publicly accessible by storing in a datastore domain that is public.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.upsertfilemetadata">upsertFileMetadata(metadata)</a></td><td></td><td>Updates the metadata information about a specific file.</td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.upsertsharedbymefile">upsertSharedByMeFile(fileData)</a></td><td></td><td>Inserts a new file. If a file with the same dbId, path and bucket slug exists, the existing record would be updated and returned.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.gundbmetadatastore.upsertsharedwithmefile">upsertSharedWithMeFile(fileData)</a></td><td></td><td>Inserts a new shared with me file. If a file with the same dbId, path and bucket slug exists, the existing record would be updated and returned.</td></tr>
 </tbody>
 </table>
