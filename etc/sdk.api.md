@@ -213,6 +213,16 @@ export interface GetFilesSharedWithMeResponse {
 }
 
 // @public (undocumented)
+export interface GetNotificationsResponse {
+    // (undocumented)
+    lastSeenAt: number;
+    // (undocumented)
+    nextOffset: string;
+    // (undocumented)
+    notifications: Notification_2[];
+}
+
+// @public (undocumented)
 export interface GetRecentlySharedWithResponse {
     // (undocumented)
     members: FileMember[];
@@ -312,6 +322,44 @@ export interface MakeFilePublicRequest {
     bucket: string;
     // (undocumented)
     path: string;
+}
+
+// @public (undocumented)
+interface Notification_2 {
+    // (undocumented)
+    body: Uint8Array;
+    // (undocumented)
+    createdAt: number;
+    // (undocumented)
+    decryptedBody: Uint8Array;
+    // (undocumented)
+    from: string;
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    readAt?: number;
+    // (undocumented)
+    relatedObject?: Invitation;
+    // (undocumented)
+    to: string;
+    // (undocumented)
+    type: NotificationType;
+}
+
+export { Notification_2 as Notification }
+
+// @public (undocumented)
+export enum NotificationType {
+    // (undocumented)
+    INVITATION = 1,
+    // (undocumented)
+    INVITATION_REPLY = 3,
+    // (undocumented)
+    REVOKED_INVITATION = 4,
+    // (undocumented)
+    UNKNOWN = 0,
+    // (undocumented)
+    USAGEALERT = 2
 }
 
 // @public (undocumented)
@@ -522,6 +570,7 @@ export class UserStorage {
     createFolder(request: CreateFolderRequest): Promise<void>;
     getFilesSharedByMe(offset?: string): Promise<GetFilesSharedByMeResponse>;
     getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse>;
+    getNotifications(seek?: string, limit?: number): Promise<GetNotificationsResponse>;
     getRecentlySharedWith(offset?: string): Promise<GetRecentlySharedWithResponse>;
     initListener(): Promise<void>;
     initMailbox(): Promise<void>;
