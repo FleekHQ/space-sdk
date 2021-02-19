@@ -7,7 +7,7 @@ import { tryParsePublicKey } from '@spacehq/utils';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
-import { TestsDefaultTimeout } from './fixtures/configs';
+import { TestsDefaultTimeout, TestStorageConfig } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
 
 use(chaiAsPromised.default);
@@ -18,7 +18,7 @@ describe('Users sharing data', () => {
     const { user } = await authenticateAnonymousUser();
     const txtContent = 'Some manual text should be in the file';
 
-    const storage = new UserStorage(user);
+    const storage = new UserStorage(user, TestStorageConfig);
     const uploadResponse = await storage.addItems({
       bucket: 'personal',
       files: [
@@ -54,9 +54,11 @@ describe('Users sharing data', () => {
 
   it('users can share file using public key', async () => {
     const { user } = await authenticateAnonymousUser();
+    const { user: receiver } = await authenticateAnonymousUser();
+    const receiverPk = Buffer.from(receiver.identity.public.pubKey).toString('hex');
     const txtContent = 'Some manual text should be in the file';
 
-    const storage = new UserStorage(user);
+    const storage = new UserStorage(user, TestStorageConfig);
     const uploadResponse = await storage.addItems({
       bucket: 'personal',
       files: [
@@ -74,12 +76,14 @@ describe('Users sharing data', () => {
 
     // init mailbox
     await storage.initMailbox();
+    const receiverStorage = new UserStorage(receiver, TestStorageConfig);
+    await receiverStorage.initMailbox();
 
     // share with new user
     const shareResult = await storage.shareViaPublicKey({
       publicKeys: [{
         id: 'new-space-user@fleek.co',
-        pk: '0bd979c7bde259b28643189de755d71a41be87fe2c4b6b7113f38e852cc9a584',
+        pk: receiverPk,
       }],
       paths: [{
         bucket: 'personal',
@@ -100,7 +104,7 @@ describe('Users sharing data', () => {
 
     const txtContent = 'Some manual text should be in the file';
 
-    const storage1 = new UserStorage(user1);
+    const storage1 = new UserStorage(user1, TestStorageConfig);
     const uploadResponse = await storage1.addItems({
       bucket: 'personal',
       files: [
@@ -118,7 +122,7 @@ describe('Users sharing data', () => {
 
     await storage1.initMailbox();
 
-    const storage2 = new UserStorage(user2);
+    const storage2 = new UserStorage(user2, TestStorageConfig);
     await storage2.initMailbox();
 
     // share with new user

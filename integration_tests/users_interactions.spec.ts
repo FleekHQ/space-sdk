@@ -1,7 +1,7 @@
 import { BrowserStorage, Users, UserStorage, VaultBackupType } from '@spacehq/sdk';
 import { expect, use } from 'chai';
 import * as chaiSubset from 'chai-subset';
-import { TestsDefaultTimeout, TestUsersConfig } from './fixtures/configs';
+import { TestsDefaultTimeout, TestUsersConfig, TestStorageConfig } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
 
 use(chaiSubset.default);
@@ -60,7 +60,7 @@ describe('Users interactions', () => {
       const backupType = VaultBackupType.Twitter;
 
       // Perform some data storage with user
-      const storage = new UserStorage(user);
+      const storage = new UserStorage(user, TestStorageConfig);
       await storage.createFolder({
         bucket: 'personal',
         path: '/newFolder',
@@ -74,7 +74,7 @@ describe('Users interactions', () => {
       expect(recoveredUser.identity.public.toString()).to.equal(user.identity.public.toString());
 
       // verify recovered user still has existing storage data
-      const recoveredUsersStorage = new UserStorage(recoveredUser);
+      const recoveredUsersStorage = new UserStorage(recoveredUser, TestStorageConfig);
       const directories = await recoveredUsersStorage.listDirectory({
         bucket: 'personal',
         path: '',
