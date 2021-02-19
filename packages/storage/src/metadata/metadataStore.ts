@@ -79,6 +79,12 @@ export interface UserMetadataStore {
   upsertSharedByMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
 
   /**
+   * Lookup a received shared file by invitation id.
+   *
+   */
+  findSharedFilesByInvitation: (invitationId: string) => Promise<SharedFileMetadata | undefined>;
+
+  /**
    * List all shared files current user has shared with other users.
    *
    */
@@ -148,6 +154,17 @@ export interface SharedFileMetadata extends FileMetadata {
    *
    */
   sharedBy: string;
+  /**
+   * Specifies if a shared file is accepted or rejected.
+   *
+   * Note: accepted can also be undefined, in situation where it is not required.
+   */
+  accepted?: boolean;
+  /**
+   * Invitation Id
+   *
+   */
+  invitationId?: string;
 }
 
 export interface ShareUserMetadata {

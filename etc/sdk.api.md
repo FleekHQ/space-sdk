@@ -237,6 +237,7 @@ export class GundbMetadataStore implements UserMetadataStore {
     findBucket(bucketSlug: string): Promise<BucketMetadata | undefined>;
     findFileMetadata(bucketSlug: string, dbId: string, path: string): Promise<FileMetadata | undefined>;
     findFileMetadataByUuid(uuid: string): Promise<FileMetadata | undefined>;
+    findSharedFilesByInvitation(invitationId: string): Promise<SharedFileMetadata | undefined>;
     // Warning: (ae-forgotten-export) The symbol "GunInit" needs to be exported by the entry point index.d.ts
     static fromIdentity(username: string, userpass: string, gunOrServer?: GunInit | string | string[], logger?: Pino.Logger | boolean): Promise<GundbMetadataStore>;
     listBuckets(): Promise<BucketMetadata[]>;
@@ -349,6 +350,34 @@ interface Notification_2 {
 export { Notification_2 as Notification }
 
 // @public (undocumented)
+export interface NotificationSubscribeEvent {
+    // (undocumented)
+    error?: Error;
+    // (undocumented)
+    notification: Notification_2;
+    // (undocumented)
+    status: 'success' | 'error';
+}
+
+// @public (undocumented)
+export type NotificationSubscribeEventData = NotificationSubscribeEvent;
+
+// @public (undocumented)
+export type NotificationSubscribeEventType = 'data' | 'error' | 'done';
+
+// @public (undocumented)
+export type NotificationSubscribeListener = (data: NotificationSubscribeEventData) => void;
+
+// @public (undocumented)
+export interface NotificationSubscribeResponse {
+    // (undocumented)
+    off: (type: NotificationSubscribeEventType, listener: NotificationSubscribeListener) => void;
+    // (undocumented)
+    on: (type: NotificationSubscribeEventType, listener: NotificationSubscribeListener) => void;
+    once: (type: NotificationSubscribeEventType, listener: NotificationSubscribeListener) => void;
+}
+
+// @public (undocumented)
 export enum NotificationType {
     // (undocumented)
     INVITATION = 1,
@@ -406,6 +435,8 @@ export interface Public {
 
 // @public
 export interface SharedFileMetadata extends FileMetadata {
+    accepted?: boolean;
+    invitationId?: string;
     sharedBy: string;
 }
 
@@ -528,6 +559,7 @@ export interface UserMetadataStore {
     findBucket: (bucketSlug: string) => Promise<BucketMetadata | undefined>;
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
     findFileMetadataByUuid: (uuid: string) => Promise<FileMetadata | undefined>;
+    findSharedFilesByInvitation: (invitationId: string) => Promise<SharedFileMetadata | undefined>;
     listBuckets: () => Promise<BucketMetadata[]>;
     listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
     listSharedWithMeFiles: () => Promise<SharedFileMetadata[]>;
@@ -564,17 +596,18 @@ export interface UsersConfig {
 // @public
 export class UserStorage {
     constructor(user: SpaceUser, config?: UserStorageConfig);
-    // (undocumented)
-    acceptFileInvitation(invitation: Invitation): Promise<AcceptInvitationResponse>;
     addItems(request: AddItemsRequest): Promise<AddItemsResponse>;
     createFolder(request: CreateFolderRequest): Promise<void>;
     getFilesSharedByMe(offset?: string): Promise<GetFilesSharedByMeResponse>;
     getFilesSharedWithMe(offset?: string): Promise<GetFilesSharedWithMeResponse>;
     getNotifications(seek?: string, limit?: number): Promise<GetNotificationsResponse>;
     getRecentlySharedWith(offset?: string): Promise<GetRecentlySharedWithResponse>;
+    // (undocumented)
+    handleFileInvitation(invitationId: string, accept: boolean): Promise<AcceptInvitationResponse | undefined>;
     initListener(): Promise<void>;
     initMailbox(): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
+    notificationSubscribe(): Promise<NotificationSubscribeResponse>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse>;
     setFilePublicAccess(request: MakeFilePublicRequest): Promise<void>;
