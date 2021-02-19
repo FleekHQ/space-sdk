@@ -235,6 +235,26 @@ export interface TxlSubscribeResponse {
   off: (type: TxlSubscribeEventType, listener: TxlSubscribeListener) => void;
 }
 
+export interface NotificationSubscribeEvent {
+  notification: Notification;
+  status: 'success' | 'error';
+  error?: Error;
+}
+
+export type NotificationSubscribeEventData = NotificationSubscribeEvent;
+export type NotificationSubscribeEventType = 'data' | 'error' | 'done';
+export type NotificationSubscribeListener = (data: NotificationSubscribeEventData) => void;
+
+export interface NotificationSubscribeResponse {
+  on: (type: NotificationSubscribeEventType, listener: NotificationSubscribeListener) => void;
+  /**
+   * this function should only be used to listen for the `'done'` event, since the listener would only be called once.
+   * or else you could end up having functions leaking (unless you explicitly call the `off()` function).
+   */
+  once: (type: NotificationSubscribeEventType, listener: NotificationSubscribeListener) => void;
+  off: (type: NotificationSubscribeEventType, listener: NotificationSubscribeListener) => void;
+}
+
 /**
  * FullPath represents full path information to a file.
  * `dbId` is optional and only required for when re-sharing files in another db.
