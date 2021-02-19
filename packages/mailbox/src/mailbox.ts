@@ -43,7 +43,7 @@ export class Mailbox {
    * const mb = await MailBox.createMailbox(user);
    * ```
    */
-  public static async createMailbox(user: SpaceUser, config: MailboxConfig = {}):Promise<Mailbox> {
+  public static async createMailbox(user: SpaceUser, config: MailboxConfig = {}, parser: (dec:DecryptedUserMessage)=>{}):Promise<Mailbox> {
     const mb = new Mailbox(user, config);
     const mid = await mb.getUsersClient().setupMailbox();
 
@@ -51,8 +51,12 @@ export class Mailbox {
       if (!reply || !reply.message) return console.log('no message');
       console.log('reply: ', JSON.stringify(reply, null, 2));
 
-      mb.emitters.forEach((emitter) => {
-        emitter.emit('data', reply);
+      mb.emitters.forEach(async (emitter) => {
+        if (reply.message) {
+          const dec = await mb.messageDecoder(mb.user, reply.message);
+          const parsed = await parser(dec);
+          emitter.emit('data', parsed);
+        }
       });
 
       return reply;

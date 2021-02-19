@@ -141,7 +141,7 @@ export class UserStorage {
   public async initMailbox():Promise<void> {
     this.mailbox = await Mailbox.createMailbox(this.user, {
       textileHubAddress: this.config.textileHubAddress,
-    });
+    }, UserStorage.parseMsg);
   }
 
   /**
