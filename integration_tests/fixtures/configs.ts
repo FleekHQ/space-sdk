@@ -19,7 +19,7 @@ export const TestUsersConfig: UsersConfig = {
 
 export const TestsDefaultTimeout = 500000; // 500s
 
-const textileHubAddress = process.env.TXL_HUB_URL;
+const textileHubAddress = process.env.TXL_HUB_URL || '';
 
 export const TestStorageConfig: UserStorageConfig = {
   textileHubAddress,
