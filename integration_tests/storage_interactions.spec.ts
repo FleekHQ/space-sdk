@@ -12,7 +12,7 @@ import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
 import path from 'path';
-import { TestsDefaultTimeout } from './fixtures/configs';
+import { TestsDefaultTimeout, TestStorageConfig } from './fixtures/configs';
 import { authenticateAnonymousUser } from './helpers/userHelper';
 
 use(chaiAsPromised.default);
@@ -22,7 +22,7 @@ describe('Users storing data', () => {
   it('user should create an empty folder successfully', async () => {
     const { user } = await authenticateAnonymousUser();
 
-    const storage = new UserStorage(user);
+    const storage = new UserStorage(user, TestStorageConfig);
     await storage.createFolder({ bucket: 'personal', path: 'topFolder' });
 
     // verify folder is added
@@ -47,7 +47,7 @@ describe('Users storing data', () => {
     const { user } = await authenticateAnonymousUser();
     const txtContent = 'Some manual text should be in the file';
 
-    const storage = new UserStorage(user);
+    const storage = new UserStorage(user, TestStorageConfig);
     const uploadResponse = await storage.addItems({
       bucket: 'personal',
       files: [
@@ -167,7 +167,7 @@ describe('Users storing data', () => {
 
     const { user } = await authenticateAnonymousUser();
     const imageBytes = fs.readFileSync(path.join(__dirname, 'test_data', 'image.jpg'));
-    const storage = new UserStorage(user);
+    const storage = new UserStorage(user, TestStorageConfig);
     const uploadResponse = await storage.addItems({
       bucket: 'personal',
       files: [
@@ -196,7 +196,7 @@ describe('Users storing data', () => {
     const { user } = await authenticateAnonymousUser();
     const txtContent = 'Some manual text should be in the file';
 
-    const storage = new UserStorage(user);
+    const storage = new UserStorage(user, TestStorageConfig);
     const uploadResponse = await storage.addItems({
       bucket: 'personal',
       files: [
@@ -229,7 +229,7 @@ describe('Users storing data', () => {
 
     // ensure file is not accessible from outside of owners file
     const { user: unauthorizedUser } = await authenticateAnonymousUser();
-    const unauthorizedStorage = new UserStorage(unauthorizedUser);
+    const unauthorizedStorage = new UserStorage(unauthorizedUser, TestStorageConfig);
 
     await expect(unauthorizedStorage.openFileByUuid({ uuid: file?.uuid || '' }))
       .to.eventually.be.rejectedWith(FileNotFoundError);
@@ -249,7 +249,7 @@ describe('Users storing data', () => {
     const { user } = await authenticateAnonymousUser();
     const txtContent = 'Some manual text should be in the file';
 
-    const storage = new UserStorage(user);
+    const storage = new UserStorage(user, TestStorageConfig);
     await storage.initListener();
 
     const ee = await storage.txlSubscribe();

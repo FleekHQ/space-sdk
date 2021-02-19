@@ -756,6 +756,10 @@ export class UserStorage {
    *
    */
   public async getNotifications(seek?: string, limit?:number): Promise<GetNotificationsResponse> {
+    if (!this.mailbox) {
+      await this.initMailbox();
+    }
+
     const msgs = await this.mailbox?.listInboxMessages(seek, limit);
     const notifs:Notification[] = [];
     const lastSeenAt = new Date().getTime();
@@ -947,6 +951,10 @@ export class UserStorage {
       filteredRecipients,
       store,
     );
+
+    if (!this.mailbox) {
+      await this.initMailbox();
+    }
 
     // eslint-disable-next-line no-restricted-syntax
     for (const inv of invitations) {

@@ -1,4 +1,4 @@
-import { UsersConfig } from '@spacehq/sdk';
+import { UsersConfig, UserStorageConfig } from '@spacehq/sdk';
 
 // eslint-disable-next-line import/no-extraneous-dependencies
 require('dotenv').config({
@@ -18,3 +18,9 @@ export const TestUsersConfig: UsersConfig = {
 };
 
 export const TestsDefaultTimeout = 500000; // 500s
+
+const textileHubAddress = process.env.TXL_HUB_URL;
+
+export const TestStorageConfig: UserStorageConfig = {
+  textileHubAddress,
+};
