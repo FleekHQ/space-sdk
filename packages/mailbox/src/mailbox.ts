@@ -49,13 +49,12 @@ export class Mailbox {
 
     const callback = (reply?: MailboxEvent, err?: Error) => {
       if (!reply || !reply.message) return console.log('no message');
-      console.log('reply: ', JSON.stringify(reply, null, 2));
 
       mb.emitters.forEach(async (emitter) => {
         if (reply.message) {
           const dec = await mb.messageDecoder(mb.user, reply.message);
           const parsed = await parser(dec);
-          emitter.emit('data', parsed);
+          emitter.emit('data', { notification: parsed });
         }
       });
 
