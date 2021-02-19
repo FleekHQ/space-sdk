@@ -1,9 +1,9 @@
 /* eslint-disable no-await-in-loop */
-import { Mailbox } from '@spacehq/mailbox';
+import { Mailbox, DecryptedUserMessage } from '@spacehq/mailbox';
 import { tryParsePublicKey } from '@spacehq/utils';
 import { GetAddressFromPublicKey, Identity, SpaceUser } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
-import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth, Users } from '@textile/hub';
+import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth, Users, UserMessage } from '@textile/hub';
 import dayjs from 'dayjs';
 import ee from 'event-emitter';
 import { flattenDeep } from 'lodash';
@@ -25,12 +25,16 @@ import { AcceptInvitationResponse,
   FullPath,
   GetFilesSharedByMeResponse,
   GetFilesSharedWithMeResponse,
+  GetNotificationsResponse,
   GetRecentlySharedWithResponse,
   Invitation,
   InvitationStatus,
   ListDirectoryRequest,
   ListDirectoryResponse,
   MakeFilePublicRequest,
+  Notification,
+  NotificationSubscribeResponse,
+  NotificationType,
   OpenFileRequest,
   OpenFileResponse,
   OpenUuidFileRequest,
@@ -41,10 +45,7 @@ import { AcceptInvitationResponse,
   SharePublicKeyOutput,
   ShareViaPublicKeyRequest,
   ShareViaPublicKeyResponse,
-  TxlSubscribeResponse,
-  NotificationType,
-  Notification,
-  GetNotificationsResponse } from './types';
+  TxlSubscribeResponse } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
 import { isMetaFileName } from './utils/fsUtils';
 import { filePathFromIpfsPath,
@@ -139,7 +140,7 @@ export class UserStorage {
   public async initMailbox():Promise<void> {
     this.mailbox = await Mailbox.createMailbox(this.user, {
       textileHubAddress: this.config.textileHubAddress,
-    });
+    }, UserStorage.parseMsg);
   }
 
   /**
@@ -298,6 +299,44 @@ export class UserStorage {
     // miss an early data or error event
     // setImmediate(() => {
     this.listener?.subscribe(emitter);
+    // });
+
+    return emitter;
+  }
+
+  /**
+   * NotificationSubscribe is used to listen for Mailbox events.
+   *
+   * It listens to the users mailbox events, enriches the message with Space specific data.
+   *
+   *
+   * @example
+   * ```typescript
+   * const spaceStorage = new UserStorage(spaceUser);
+   * await spaceStorage.initListener();
+   *
+   * const response = await spaceStorage.NotificationSubscribe();
+   *
+   * response.on('data', (data: NotificationSubscribeEvent) => {
+   *  const { relatedObject } = data as Notification;
+   *  console.log('file invitation: ', relatedObject);
+   * });
+   * ```
+   */
+  public async notificationSubscribe(): Promise<NotificationSubscribeResponse> {
+    const client = this.getUserBucketsClient();
+    // const bucket = await this.(client, request.bucket);
+    const emitter = ee();
+
+    if (!this.mailbox) {
+      await this.initMailbox();
+    }
+
+    // using setImmediate here to ensure a cycle is skipped
+    // giving the caller a chance to listen to emitter in time to not
+    // miss an early data or error event
+    // setImmediate(() => {
+    this.mailbox?.subscribe(emitter);
     // });
 
     return emitter;
@@ -747,6 +786,23 @@ export class UserStorage {
     };
   }
 
+  private static async parseMsg(msg: DecryptedUserMessage):Promise<Notification> {
+    const body = JSON.parse(new TextDecoder().decode(Buffer.from(msg.decryptedBody)));
+
+    const notif:Notification = {
+      ...msg,
+      decryptedBody: msg.decryptedBody,
+      type: body.type as NotificationType,
+    };
+
+    switch (body.type) {
+      case NotificationType.INVITATION:
+        notif.relatedObject = body.body as Invitation;
+    }
+
+    return notif;
+  }
+
   /**
    * Returns notifications for the user. If the notification is detected to be a supported
    * type, it is enhanced with additional information stored in the relatedObject field.
@@ -775,19 +831,7 @@ export class UserStorage {
 
     // eslint-disable-next-line no-restricted-syntax
     for (const msg of msgs) {
-      const body = JSON.parse(new TextDecoder().decode(Buffer.from(msg.decryptedBody)));
-
-      const notif:Notification = {
-        ...msg,
-        decryptedBody: msg.decryptedBody,
-        type: body.type as NotificationType,
-      };
-
-      switch (body.type) {
-        case NotificationType.INVITATION:
-          notif.relatedObject = body.body as Invitation;
-      }
-
+      const notif = await UserStorage.parseMsg(msg);
       notifs.push(notif);
       lastId = msg.id;
     }

@@ -1,6 +1,8 @@
 import { SpaceUser } from '@spacehq/users';
 import { tryParsePublicKey } from '@spacehq/utils';
-import { Users, UserAuth, UserMessage, PrivateKey } from '@textile/hub';
+import { Users, UserAuth, UserMessage, PrivateKey, MailboxEvent } from '@textile/hub';
+import { grpc } from '@improbable-eng/grpc-web';
+import ee from 'event-emitter';
 
 export interface MailboxConfig {
   textileHubAddress?: string;
@@ -24,8 +26,13 @@ const DefaultTextileHubAddress = 'https://webapi.hub.textile.io';
  * ```
  */
 export class Mailbox {
+  private listener?:grpc.Request;
+
+  private emitters:ee.Emitter[];
+
   private constructor(private readonly user: SpaceUser, private readonly config: MailboxConfig = {}) {
     this.config.textileHubAddress = config.textileHubAddress ?? DefaultTextileHubAddress;
+    this.emitters = [];
   }
 
   /**
@@ -36,10 +43,32 @@ export class Mailbox {
    * const mb = await MailBox.createMailbox(user);
    * ```
    */
-  public static async createMailbox(user: SpaceUser, config: MailboxConfig = {}):Promise<Mailbox> {
+  public static async createMailbox(
+    user: SpaceUser,
+    config: MailboxConfig = {},
+    parser: (dec:DecryptedUserMessage) => {},
+  ):Promise<Mailbox> {
     const mb = new Mailbox(user, config);
-    await mb.getUsersClient().setupMailbox();
+    const mid = await mb.getUsersClient().setupMailbox();
+
+    const callback = (reply?: MailboxEvent, err?: Error) => {
+      if (!reply || !reply.message) return;
+
+      mb.emitters.forEach(async (emitter) => {
+        if (reply.message) {
+          const dec = await mb.messageDecoder(mb.user, reply.message);
+          const parsed = await parser(dec);
+          emitter.emit('data', { notification: parsed });
+        }
+      });
+    };
+
+    mb.listener = await mb.getUsersClient().watchInbox(mid, callback);
     return mb;
+  }
+
+  public subscribe(emitter: ee.Emitter):void {
+    this.emitters.push(emitter);
   }
 
   /**
@@ -105,14 +134,6 @@ export class Mailbox {
   }
 
   // public WatchInbox():ee {
-
-  // }
-
-  // public Identity():PrivateKey {
-
-  // }
-
-  // private parseMessage(msgs:UserMessage[]) {
 
   // }
 
