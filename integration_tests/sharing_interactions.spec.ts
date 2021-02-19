@@ -209,8 +209,6 @@ describe('Users sharing data', () => {
     expect(shareResult.publicKeys).not.to.be.empty;
     expect(shareResult.publicKeys[0].type).to.equal(ShareKeyType.Existing);
     expect(shareResult.publicKeys[0].pk).not.to.be.empty;
-
-    const received = await storage2.getNotifications();
     expect(data.notification).not.to.be.null;
     expect(data.notification.from).to.equal(tryParsePublicKey(user1Pk).toString());
     expect(data.notification.to).to.equal(tryParsePublicKey(user2Pk).toString());
