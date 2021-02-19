@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { Mailbox } from '@spacehq/mailbox';
+import { Mailbox, DecryptedUserMessage } from '@spacehq/mailbox';
 import { tryParsePublicKey } from '@spacehq/utils';
 import { GetAddressFromPublicKey, Identity, SpaceUser } from '@spacehq/users';
 import { PrivateKey } from '@textile/crypto';
@@ -56,7 +56,6 @@ import { filePathFromIpfsPath,
 import { consumeStream } from './utils/streamUtils';
 import { getStubFileEntry } from './utils/stubUtils';
 import { getDeterministicThreadID } from './utils/threadsUtils';
-import { DecryptedUserMessage } from '../../mailbox/dist';
 
 export interface UserStorageConfig {
   textileHubAddress?: string;
