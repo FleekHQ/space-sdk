@@ -1,6 +1,6 @@
 {
   "name": "@spacehq/utils",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Space Common Utils",
   "main": "dist/index",
   "types": "dist/index",
@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@improbable-eng/grpc-web": "^0.14.0",
-    "@spacehq/users": "^0.0.20",
+    "@spacehq/users": "^0.0.21",
     "@textile/crypto": "^2.0.0",
     "@types/lodash": "^4.14.165",
     "axios": "^0.21.1",

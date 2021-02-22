@@ -245,7 +245,6 @@ export class GundbMetadataStore implements UserMetadataStore {
     listSharedWithMeFiles(): Promise<SharedFileMetadata[]>;
     listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]>;
     setFilePublic(metadata: FileMetadata): Promise<void>;
-    static syncFromTempKey(key: string): Promise<void>;
     upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
     upsertSharedByMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
     upsertSharedWithMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
@@ -613,6 +612,7 @@ export class UserStorage {
     openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse>;
     setFilePublicAccess(request: MakeFilePublicRequest): Promise<void>;
     shareViaPublicKey(request: ShareViaPublicKeyRequest): Promise<ShareViaPublicKeyResponse>;
+    static syncFromTempKey(key: string): Promise<void>;
     txlSubscribe(): Promise<TxlSubscribeResponse>;
     }
 
