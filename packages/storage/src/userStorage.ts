@@ -143,6 +143,21 @@ export class UserStorage {
   }
 
   /**
+   * Sync the notifications from the temp key with the current space user of this storage.
+   *
+   * This is useful for new users who have some pending invitation assigned to the notification.
+   *
+   * @param key - temp key gotten from ShareViaPublicKey
+   */
+  static async syncFromTempKey(key: string): Promise<void> {
+    // ensure current user will have access to invitations in notifications
+
+    // move notifications for temp key to current users notifications
+
+    // delete notification from temp key
+  }
+
+  /**
    * Creates an empty folder at the requested path and bucket.
    *
    * @remarks

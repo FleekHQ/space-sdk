@@ -156,21 +156,6 @@ export class GundbMetadataStore implements UserMetadataStore {
   }
 
   /**
-   * Sync the notifications from the temp key with the current space user of this storage.
-   *
-   * This is useful for new users who have some pending invitation assigned to the notification.
-   *
-   * @param key - temp key gotten from ShareViaPublicKey
-   */
-  static async syncFromTempKey(key: string): Promise<void> {
-    // enusre current user will have access to invitations in notifications
-
-    // move notifications for temp key to current users notifications
-
-    // delete notification from temp key
-  }
-
-  /**
    * {@inheritDoc @spacehq/sdk#UserMetadataStore.createBucket}
    */
   public async createBucket(bucketSlug: string, dbId: string, bucketKey: string): Promise<BucketMetadata> {
