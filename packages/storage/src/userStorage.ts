@@ -332,7 +332,7 @@ export class UserStorage {
    * const response = await spaceStorage.notificationSubscribe();
    *
    * response.on('data', (data: NotificationSubscribeEvent) => {
-   *  const { relatedObject } = data as Notification;
+   *  const { notification: { relatedObject } } = data as Notification;
    *  console.log('file invitation: ', relatedObject);
    * });
    * ```
