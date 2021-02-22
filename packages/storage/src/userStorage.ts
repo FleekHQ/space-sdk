@@ -329,7 +329,7 @@ export class UserStorage {
    * const spaceStorage = new UserStorage(spaceUser);
    * await spaceStorage.initListener();
    *
-   * const response = await spaceStorage.NotificationSubscribe();
+   * const response = await spaceStorage.notificationSubscribe();
    *
    * response.on('data', (data: NotificationSubscribeEvent) => {
    *  const { relatedObject } = data as Notification;
