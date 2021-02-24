@@ -32,6 +32,7 @@ const BucketMetadataCollection = 'BucketMetadata';
 const SharedFileMetadataCollection = 'SharedFileMetadata';
 const SharedByMeFileMetadataCollection = 'SharedByMeFileMetadata';
 const RecentlySharedWithMetadataCollection = 'RecentlySharedWithMetadata';
+const NotificationsLastSeenAtCollection = 'NotificationsLastSeenAtMetadata';
 const PublicStoreUsername = '66f47ce32570335085b39bdf';
 const PublicStorePassword = '830a20694358651ef14e472fd71c4f9f843ecd50784b241a6c9999dba4c6fced0f90c686bdee28edc';
 
@@ -180,6 +181,26 @@ export class GundbMetadataStore implements UserMetadataStore {
     this.listUser.get(BucketMetadataCollection).set(nodeRef as unknown as EncryptedMetadata);
 
     return schema;
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.setNotificationsLastSeenAt}
+   */
+  public async setNotificationsLastSeenAt(timestamp: number): Promise<void> {
+    const encryptedTimestamp = await this.encrypt(timestamp.toString());
+    const lookupKey = this.getNotificationsLastSeenAtLookupKey();
+    const nodeRef = this.lookupUser.get(lookupKey).put({ data: encryptedTimestamp });
+    this.listUser.get(NotificationsLastSeenAtCollection).set(nodeRef as unknown as EncryptedMetadata);
+  }
+
+  /**
+   * {@inheritDoc @spacehq/sdk#UserMetadataStore.getNotificationsLastSeenAt}
+   */
+  public async getNotificationsLastSeenAt(): Promise<number> {
+    this.logger?.info({ username: this.username }, 'Store.getNotificationsLastSeenAt');
+    const lookupKey = this.getNotificationsLastSeenAtLookupKey();
+    const res:number|undefined = await this.lookupUserData(lookupKey);
+    return res || 0;
   }
 
   /**
@@ -476,6 +497,10 @@ export class GundbMetadataStore implements UserMetadataStore {
         }
       }
     });
+  }
+
+  private getNotificationsLastSeenAtLookupKey(): string {
+    return `notifications/lastSeenAt/${this.username}`;
   }
 
   private getBucketsLookupKey(bucketSlug: string): string {

@@ -70,6 +70,9 @@ describe('Users sharing data', () => {
       // ... // verify address and role too
     }]);
 
+    const ts = Date.now();
+    await storage2.setNotificationsLastSeenAt(ts);
+
     // verify user2 get notification
     const received = await storage2.getNotifications();
     expect(received.notifications[0]).not.to.be.null;
@@ -86,6 +89,7 @@ describe('Users sharing data', () => {
     expect(received.notifications[0].relatedObject?.itemPaths[0].dbId).not.to.be.null;
     expect(received.notifications[0].relatedObject?.itemPaths[0].bucketKey).not.to.be.null;
     expect(received.notifications[0].relatedObject?.keys[0]).not.to.be.null;
+    expect(received.lastSeenAt).to.equal(ts);
 
     // accept the notification
     await storage2.handleFileInvitation(received.notifications[0].id, true);

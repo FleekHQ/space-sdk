@@ -851,13 +851,15 @@ export class UserStorage {
    *
    */
   public async getNotifications(seek?: string, limit?:number): Promise<GetNotificationsResponse> {
+    const metadataStore = await this.getMetadataStore();
+
     if (!this.mailbox) {
       await this.initMailbox();
     }
 
     const msgs: DecryptedUserMessage[] | undefined = await this.mailbox?.listInboxMessages(seek, limit);
     const notifs :Notification[] = [];
-    const lastSeenAt = new Date().getTime();
+    const lastSeenAt = await metadataStore.getNotificationsLastSeenAt();
     let lastId = '';
 
     if (!msgs) {
@@ -1011,6 +1013,19 @@ export class UserStorage {
     this.listener?.addListener(metadata.dbId);
 
     return { ...metadata, ...getOrCreateResponse };
+  }
+
+  /**
+   * setNotificationsLastSeenAt sets the field so that .
+   *
+   * @example
+   * ```typescript
+   * const result = await spaceStorage.setNotificationsLastSeenAt(Date.now());
+   * ```
+   */
+  public async setNotificationsLastSeenAt(timestamp:number):Promise<void> {
+    const metadataStore = await this.getMetadataStore();
+    await metadataStore.setNotificationsLastSeenAt(timestamp);
   }
 
   /**
