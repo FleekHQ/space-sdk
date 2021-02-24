@@ -177,4 +177,40 @@ describe('Users sharing data', () => {
     expect(data.notification.relatedObject?.itemPaths[0].bucketKey).not.to.be.null;
     expect(data.notification.relatedObject?.keys[0]).not.to.be.null;
   }).timeout(TestsDefaultTimeout);
+
+  it('empty pk should not fail share', async () => {
+    const { user: user1 } = await authenticateAnonymousUser();
+    const user1Pk = Buffer.from(user1.identity.public.pubKey).toString('hex');
+    const txtContent = 'Some manual text should be in the file';
+
+    const storage1 = new UserStorage(user1, TestStorageConfig);
+    const uploadResponse = await storage1.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'top.txt',
+          data: txtContent,
+          mimeType: 'plain/text',
+        },
+      ],
+    });
+
+    await storage1.initMailbox();
+
+    // share with new user
+    const shareResult = await storage1.shareViaPublicKey({
+      publicKeys: [{
+        id: 'new-space-user@fleek.co',
+        pk: '',
+      }],
+      paths: [{
+        bucket: 'personal',
+        path: '/top.txt',
+      }],
+    });
+
+    expect(shareResult.publicKeys).not.to.be.empty;
+    expect(shareResult.publicKeys[0].type).to.equal(ShareKeyType.Temp);
+    expect(shareResult.publicKeys[0].pk).not.to.be.empty;
+  }).timeout(TestsDefaultTimeout);
 });

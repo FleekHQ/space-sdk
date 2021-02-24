@@ -1051,7 +1051,7 @@ export class UserStorage {
     const idString = Buffer.from(this.user.identity.public.pubKey).toString('hex');
     const filteredRecipients: string[] = request.publicKeys
       .map((key) => key.pk)
-      .filter((key) => key !== null && key !== undefined) as string[];
+      .filter((key) => !!key) as string[];
     const store = await this.getMetadataStore();
 
     const invitations = await createFileInvitations(
