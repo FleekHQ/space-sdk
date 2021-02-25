@@ -190,7 +190,6 @@ export class GundbMetadataStore implements UserMetadataStore {
     const encryptedTimestamp = await this.encrypt(timestamp.toString());
     const lookupKey = this.getNotificationsLastSeenAtLookupKey();
     const nodeRef = this.lookupUser.get(lookupKey).put({ data: encryptedTimestamp });
-    this.listUser.get(NotificationsLastSeenAtCollection).set(nodeRef as unknown as EncryptedMetadata);
   }
 
   /**
@@ -500,7 +499,7 @@ export class GundbMetadataStore implements UserMetadataStore {
   }
 
   private getNotificationsLastSeenAtLookupKey(): string {
-    return `notifications/lastSeenAt/${this.username}`;
+    return `notifications/lastSeenAt`;
   }
 
   private getBucketsLookupKey(bucketSlug: string): string {
