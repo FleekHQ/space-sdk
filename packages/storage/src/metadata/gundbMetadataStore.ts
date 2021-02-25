@@ -188,7 +188,7 @@ export class GundbMetadataStore implements UserMetadataStore {
    */
   public async setNotificationsLastSeenAt(timestamp: number): Promise<void> {
     const encryptedTimestamp = await this.encrypt(timestamp.toString());
-    const lookupKey = this.getNotificationsLastSeenAtLookupKey();
+    const lookupKey = GundbMetadataStore.getNotificationsLastSeenAtLookupKey();
     const nodeRef = this.lookupUser.get(lookupKey).put({ data: encryptedTimestamp });
   }
 
@@ -197,7 +197,7 @@ export class GundbMetadataStore implements UserMetadataStore {
    */
   public async getNotificationsLastSeenAt(): Promise<number> {
     this.logger?.info({ username: this.username }, 'Store.getNotificationsLastSeenAt');
-    const lookupKey = this.getNotificationsLastSeenAtLookupKey();
+    const lookupKey = GundbMetadataStore.getNotificationsLastSeenAtLookupKey();
     const res:number|undefined = await this.lookupUserData(lookupKey);
     return res || 0;
   }
@@ -498,8 +498,8 @@ export class GundbMetadataStore implements UserMetadataStore {
     });
   }
 
-  private getNotificationsLastSeenAtLookupKey(): string {
-    return `notifications/lastSeenAt`;
+  private static getNotificationsLastSeenAtLookupKey(): string {
+    return 'notifications/lastSeenAt';
   }
 
   private getBucketsLookupKey(bucketSlug: string): string {
