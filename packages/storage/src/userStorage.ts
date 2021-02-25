@@ -3,7 +3,7 @@ import { DecryptedUserMessage, Mailbox } from '@spacehq/mailbox';
 import { GetAddressFromPublicKey, Identity, SpaceUser } from '@spacehq/users';
 import { tryParsePublicKey } from '@spacehq/utils';
 import { PrivateKey } from '@textile/crypto';
-import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth, Users, UserMessage } from '@textile/hub';
+import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth } from '@textile/hub';
 import dayjs from 'dayjs';
 import ee from 'event-emitter';
 import { flattenDeep } from 'lodash';
@@ -1058,7 +1058,9 @@ export class UserStorage {
       // eslint-disable-next-line no-restricted-syntax
       for (const path of paths) {
         const roles = new Map();
-        roles.set(userKey.pk, PathAccessRole.PATH_ACCESS_ROLE_WRITER);
+        const role = (userKey.type === ShareKeyType.Temp)
+          ? PathAccessRole.PATH_ACCESS_ROLE_ADMIN : PathAccessRole.PATH_ACCESS_ROLE_WRITER;
+        roles.set(userKey.pk, role);
         await client.pushPathAccessRoles(path.key, path.fullPath.path, roles);
       }
     }
