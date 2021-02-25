@@ -301,6 +301,14 @@ describe('Users storing data', () => {
       ],
     });
 
+    let uploadSummary: AddItemsResultSummary | undefined;
+    await new Promise((resolve) => {
+      uploadResponse.once('done', (data: AddItemsEventData) => {
+        uploadSummary = data as AddItemsResultSummary;
+        resolve();
+      });
+    });
+
     await storage.createFolder({ bucket: 'personal', path: 'moveDestination' });
 
     const moveResponse = await storage.movePaths('personal', [

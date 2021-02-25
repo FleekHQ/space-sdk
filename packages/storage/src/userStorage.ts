@@ -1047,14 +1047,14 @@ export class UserStorage {
     client: Buckets,
     bucket: BucketMetadataWithThreads,
     emitter: ee.Emitter,
-  ) {
+  ): Promise<MovePathsResultSummary> {
     const metadataStore = await this.getMetadataStore();
     const rootKey = bucket.root?.key || '';
     const summary: MovePathsResultSummary = {
       count: 0,
     };
 
-    const movePs = sourcePaths.forEach((sourcePath, index) => {
+    const movePs = sourcePaths.map((sourcePath, index) => new Promise<void>((resolve) => {
       const destPath = destPaths[index];
 
       const status: MovePathsStatus = {
@@ -1072,8 +1072,12 @@ export class UserStorage {
         status.error = err;
         emitter.emit('error', status);
       }
+
       emitter.emit('data');
-    });
+      resolve();
+    }));
+
+    await Promise.all(movePs);
 
     return summary;
   }
