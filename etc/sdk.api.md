@@ -240,11 +240,13 @@ export class GundbMetadataStore implements UserMetadataStore {
     findSharedFilesByInvitation(invitationId: string): Promise<SharedFileMetadata | undefined>;
     // Warning: (ae-forgotten-export) The symbol "GunInit" needs to be exported by the entry point index.d.ts
     static fromIdentity(username: string, userpass: string, gunOrServer?: GunInit | string | string[], logger?: Pino.Logger | boolean): Promise<GundbMetadataStore>;
+    getNotificationsLastSeenAt(): Promise<number>;
     listBuckets(): Promise<BucketMetadata[]>;
     listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
     listSharedWithMeFiles(): Promise<SharedFileMetadata[]>;
     listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]>;
     setFilePublic(metadata: FileMetadata): Promise<void>;
+    setNotificationsLastSeenAt(timestamp: number): Promise<void>;
     upsertFileMetadata(metadata: FileMetadata): Promise<FileMetadata>;
     upsertSharedByMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
     upsertSharedWithMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
@@ -560,11 +562,13 @@ export interface UserMetadataStore {
     findFileMetadata: (bucketSlug: string, dbId: string, path: string) => Promise<FileMetadata | undefined>;
     findFileMetadataByUuid: (uuid: string) => Promise<FileMetadata | undefined>;
     findSharedFilesByInvitation: (invitationId: string) => Promise<SharedFileMetadata | undefined>;
+    getNotificationsLastSeenAt(): Promise<number>;
     listBuckets: () => Promise<BucketMetadata[]>;
     listSharedByMeFiles(): Promise<SharedFileMetadata[]>;
     listSharedWithMeFiles: () => Promise<SharedFileMetadata[]>;
     listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]>;
     setFilePublic: (metadata: FileMetadata) => Promise<void>;
+    setNotificationsLastSeenAt(timestamp: number): Promise<void>;
     upsertFileMetadata: (data: FileMetadata) => Promise<FileMetadata>;
     upsertSharedByMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
     upsertSharedWithMeFile: (data: SharedFileMetadata) => Promise<SharedFileMetadata>;
@@ -611,6 +615,7 @@ export class UserStorage {
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse>;
     setFilePublicAccess(request: MakeFilePublicRequest): Promise<void>;
+    setNotificationsLastSeenAt(timestamp: number): Promise<void>;
     shareViaPublicKey(request: ShareViaPublicKeyRequest): Promise<ShareViaPublicKeyResponse>;
     static syncFromTempKey(key: string): Promise<void>;
     txlSubscribe(): Promise<TxlSubscribeResponse>;
