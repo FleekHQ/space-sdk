@@ -119,4 +119,15 @@ describe('GunsdbMetadataStore', () => {
     expect(sharedWithMeFiles).to.have.length(1);
     expect(sharedWithMeFiles[0]).to.deep.equal(sharedFileMetadata);
   }).timeout(TestTimeout);
+
+  it('should insert and retrieve last notifications seen at', async () => {
+    const store = await GundbMetadataStore.fromIdentity(username, password, undefined, false);
+
+    const ts = Date.now();
+    await store.setNotificationsLastSeenAt(ts);
+
+    const fetchedTs = await store.getNotificationsLastSeenAt();
+
+    expect(fetchedTs).to.equal(ts);
+  }).timeout(TestTimeout);
 });

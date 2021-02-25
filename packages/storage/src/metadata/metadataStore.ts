@@ -101,6 +101,18 @@ export interface UserMetadataStore {
    *
    */
   listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]>;
+
+  /**
+   * Set the notifications last seen at
+   *
+   */
+  setNotificationsLastSeenAt(timestamp: number): Promise<void>;
+
+    /**
+   * Get the notifications last seen at
+   *
+   */
+  getNotificationsLastSeenAt(): Promise<number>;
 }
 
 /**

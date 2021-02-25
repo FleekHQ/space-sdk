@@ -5,6 +5,7 @@ import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
 import * as chaiSubset from 'chai-subset';
 import dayjs from 'dayjs';
+import { noop } from 'lodash';
 import { anyString, anything, deepEqual, instance, mock, verify, when } from 'ts-mockito';
 import { v4 } from 'uuid';
 import { DirEntryNotFoundError, UnauthenticatedError } from './errors';
@@ -116,6 +117,12 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
           },
           async listUsersRecentlySharedWith(): Promise<ShareUserMetadata[]> {
             return [];
+          },
+          async getNotificationsLastSeenAt():Promise<number> {
+            return Date.now();
+          },
+          async setNotificationsLastSeenAt(timestamp:number):Promise<void> {
+            noop;
           },
         }),
     },
