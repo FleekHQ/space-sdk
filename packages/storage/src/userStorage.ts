@@ -203,7 +203,7 @@ export class UserStorage {
       // swap access roles to new user
       await Promise.all(invitation.itemPaths.map(async (ivPaths) => {
         const roles = new Map<string, PathAccessRole>();
-        roles.set(currentUsersPublicKey, PathAccessRole.PATH_ACCESS_ROLE_WRITER);
+        roles.set(currentUsersPublicKey, PathAccessRole.PATH_ACCESS_ROLE_ADMIN);
         roles.set(tempUsersPublicKey, PathAccessRole.PATH_ACCESS_ROLE_UNSPECIFIED);
 
         tempUserClient.withThread(ivPaths.dbId);
