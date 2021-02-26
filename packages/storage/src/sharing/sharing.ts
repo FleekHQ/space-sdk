@@ -24,7 +24,7 @@ export const createFileInvitations = async (
       throw new Error('Unable to find bucket metadata');
     }
 
-    const f = await store.findFileMetadata(b.slug, b.dbId, path.path);
+    const f = await store.findFileMetadata(path.bucket, path.dbId || b.dbId, path.path);
     return [b, {
       ...path,
       uuid: f?.uuid,
