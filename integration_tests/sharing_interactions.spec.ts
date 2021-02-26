@@ -44,7 +44,7 @@ async function acceptNotification(inviteeStorage: UserStorage, notification: Not
 }
 
 describe('Users sharing data', () => {
-  it('users can share, accept and view shared files', async () => {
+  it.only('users can share, accept and view shared files', async () => {
     const { user: user1 } = await authenticateAnonymousUser();
     const { user: user2 } = await authenticateAnonymousUser();
     const { user: user3 } = await authenticateAnonymousUser();
@@ -128,6 +128,10 @@ describe('Users sharing data', () => {
     await acceptNotification(storage2, received.notifications[0], user1);
 
     // reshare file
+    const storage3 = new UserStorage(user3, TestStorageConfig);
+    await storage3.initMailbox();
+
+    console.log('Resharing second time');
     const share2Result = await storage2.shareViaPublicKey({
       publicKeys: [{
         id: 'new-space-user-2@fleek.co',
@@ -141,6 +145,9 @@ describe('Users sharing data', () => {
     });
 
     console.log('second share result: ', share2Result);
+    const secondReceivedNotifs = await storage3.getNotifications();
+    // accept the notification
+    await acceptNotification(storage3, secondReceivedNotifs.notifications[0], user2);
   }).timeout(TestsDefaultTimeout);
 
   it('users can receive sharing notifications subscription events', async () => {

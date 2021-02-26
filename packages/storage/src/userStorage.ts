@@ -1240,34 +1240,30 @@ export class UserStorage {
     const bucketCache = new Map<string, BucketMetadataWithThreads>();
     const store = await this.getMetadataStore();
     return Promise.all(fullPaths.map(async (fullPath) => {
-      let rootKey:string;
-      if (fullPath.dbId) {
-        // THIS IS NOT WORKING
-        client.withThread(fullPath.dbId);
-        const bucket = await client.getOrCreate(fullPath.bucket, { threadID: fullPath.dbId });
-
-        if (!bucket.root) {
-          throw new Error('Bucket root not found');
+      let rootKey: string;
+      let { dbId } = fullPath;
+      if (dbId) {
+        const metadata = await store.findFileMetadata(fullPath.bucket, dbId, fullPath.path);
+        if (!metadata) {
+          throw new Error('Full Paths Bucket root not found');
         }
-        rootKey = bucket.root?.key;
+
+        rootKey = metadata.bucketKey || '';
       } else {
         const bucket = await this.getOrCreateBucket(client, fullPath.bucket);
-
         if (!bucket.root) {
           throw new Error('Bucket root not found');
         }
 
         rootKey = bucket.root.key;
+        dbId = bucket.dbId;
       }
 
-      // const bucket = bucketCache.get(fullPath.bucket) || await this.getOrCreateBucket(client, fullPath.bucket);
-      // const bucket = await this.getOrCreateBucket(client, fullPath.bucket);
-      // /console.log('got random bucket fine: ', bucket);
-      // bucketCache.set(fullPath.bucket, bucket);
       return {
         key: rootKey || '',
         fullPath: {
           ...fullPath,
+          dbId,
           path: sanitizePath(fullPath.path),
         },
       };
