@@ -85,6 +85,9 @@ describe('Users sharing data', () => {
       }],
     });
 
+    const ld = await storage1.listDirectory({ bucket: 'personal', path: '' });
+    expect(ld.items[0].members[0].publicKey).to.equal(user2Pk);
+
     expect(shareResult.publicKeys).not.to.be.empty;
     expect(shareResult.publicKeys[0].type).to.equal(ShareKeyType.Existing);
     expect(shareResult.publicKeys[0].pk).not.to.be.empty;
