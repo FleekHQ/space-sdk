@@ -1,4 +1,5 @@
 import { Identity, GetAddressFromPublicKey } from '@spacehq/users';
+import { tryParsePublicKey } from '@spacehq/utils';
 import { PrivateKey } from '@textile/crypto';
 import { Buckets, PathAccessRole, PathItem, PushPathResult, Root } from '@textile/hub';
 import { expect, use } from 'chai';
@@ -221,7 +222,7 @@ describe('UserStorage', () => {
       expect(result.items[0].isLocallyAvailable).to.equal(false);
       expect(result.items[0].backupCount).to.equal(1);
       expect(result.items[0].members).to.deep.equal([{
-        publicKey: pubkey,
+        publicKey: Buffer.from(tryParsePublicKey(pubkey).pubKey).toString('hex'),
         role: PathAccessRole.PATH_ACCESS_ROLE_WRITER,
         address: GetAddressFromPublicKey(pubkey),
       }]);
