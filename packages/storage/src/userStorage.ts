@@ -1126,6 +1126,7 @@ export class UserStorage {
         const roles = new Map();
         const role = PathAccessRole.PATH_ACCESS_ROLE_ADMIN;
         roles.set(userKey.pk, role);
+        client.withThread(path.fullPath.dbId);
         await client.pushPathAccessRoles(path.key, path.fullPath.path, roles);
       }
     }
@@ -1237,13 +1238,32 @@ export class UserStorage {
     fullPaths: FullPath[],
   ): Promise<{ key: string; fullPath: FullPath; }[]> {
     const bucketCache = new Map<string, BucketMetadataWithThreads>();
+    const store = await this.getMetadataStore();
     return Promise.all(fullPaths.map(async (fullPath) => {
-      const bucket = bucketCache.get(fullPath.bucket) || await this.getOrCreateBucket(client, fullPath.bucket);
-      bucketCache.set(fullPath.bucket, bucket);
+      let rootKey: string;
+      let { dbId } = fullPath;
+      if (dbId) {
+        const metadata = await store.findFileMetadata(fullPath.bucket, dbId, fullPath.path);
+        if (!metadata) {
+          throw new Error('Full Paths Bucket root not found');
+        }
+
+        rootKey = metadata.bucketKey || '';
+      } else {
+        const bucket = await this.getOrCreateBucket(client, fullPath.bucket);
+        if (!bucket.root) {
+          throw new Error('Bucket root not found');
+        }
+
+        rootKey = bucket.root.key;
+        dbId = bucket.dbId;
+      }
+
       return {
-        key: bucket.root?.key || '',
+        key: rootKey || '',
         fullPath: {
           ...fullPath,
+          dbId,
           path: sanitizePath(fullPath.path),
         },
       };

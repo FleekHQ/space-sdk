@@ -47,8 +47,10 @@ describe('Users sharing data', () => {
   it('users can share, accept and view shared files', async () => {
     const { user: user1 } = await authenticateAnonymousUser();
     const { user: user2 } = await authenticateAnonymousUser();
+    const { user: user3 } = await authenticateAnonymousUser();
     const user1Pk = Buffer.from(user1.identity.public.pubKey).toString('hex');
     const user2Pk = Buffer.from(user2.identity.public.pubKey).toString('hex');
+    const user3Pk = Buffer.from(user3.identity.public.pubKey).toString('hex');
 
     const txtContent = 'Some manual text should be in the file';
 
@@ -115,6 +117,7 @@ describe('Users sharing data', () => {
     expect(received.notifications[0].relatedObject?.inviterPublicKey).to.equal(user1Pk);
     expect(received.notifications[0].relatedObject?.itemPaths[0].bucket).to.equal('personal');
     expect(received.notifications[0].relatedObject?.itemPaths[0].path).to.equal('/top.txt');
+    console.log('dbid: ', received.notifications[0].relatedObject?.itemPaths[0].dbId);
     expect(received.notifications[0].relatedObject?.itemPaths[0].dbId).not.to.be.null;
     expect(received.notifications[0].relatedObject?.itemPaths[0].uuid).to.equal(ld.items[0].uuid);
     expect(received.notifications[0].relatedObject?.itemPaths[0].bucketKey).not.to.be.null;
@@ -123,6 +126,28 @@ describe('Users sharing data', () => {
 
     // accept the notification
     await acceptNotification(storage2, received.notifications[0], user1);
+
+    // reshare file
+    const storage3 = new UserStorage(user3, TestStorageConfig);
+    await storage3.initMailbox();
+
+    console.log('Resharing second time');
+    const share2Result = await storage2.shareViaPublicKey({
+      publicKeys: [{
+        id: 'new-space-user-2@fleek.co',
+        pk: user3Pk,
+      }],
+      paths: [{
+        bucket: 'personal',
+        path: '/top.txt',
+        dbId: received.notifications[0].relatedObject?.itemPaths[0].dbId,
+      }],
+    });
+
+    console.log('second share result: ', share2Result);
+    const secondReceivedNotifs = await storage3.getNotifications();
+    // accept the notification
+    await acceptNotification(storage3, secondReceivedNotifs.notifications[0], user2);
   }).timeout(TestsDefaultTimeout);
 
   it('users can receive sharing notifications subscription events', async () => {

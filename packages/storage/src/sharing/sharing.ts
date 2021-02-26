@@ -18,29 +18,28 @@ export const createFileInvitations = async (
   const enhancedPaths:FullPath[] = [];
 
   const bucketsAndEnhancedPaths = await Promise.all(paths.map(async (path) => {
-    const b = await store.findBucket(path.bucket);
+    // const b = await store.findBucket(path.bucket);
+    //
+    // if (!b) {
+    //   throw new Error('Unable to find bucket metadata');
+    // }
 
-    if (!b) {
-      throw new Error('Unable to find bucket metadata');
-    }
-
-    const f = await store.findFileMetadata(path.bucket, path.dbId || b.dbId, path.path);
-    return [b, {
+    const f = await store.findFileMetadata(path.bucket, path.dbId || '', path.path);
+    const encryptionKey = f?.bucketKey;
+    return [encryptionKey, {
       ...path,
       uuid: f?.uuid,
-      dbId: b?.dbId,
-      bucketKey: b?.bucketKey,
+      dbId: f?.dbId,
+      bucketKey: f?.bucketKey,
     }];
   }));
 
-  const keysP = bucketsAndEnhancedPaths.map((o) => (o[0] as BucketMetadata).encryptionKey);
-  const keys = await Promise.all(keysP);
-
+  const keys = bucketsAndEnhancedPaths.map((o) => o[0] as string);
   const keysCleaned: Uint8Array[] = keys.map((k) => {
     if (!k) {
       throw new Error('Required encryption key not found');
     }
-    return k;
+    return new TextEncoder().encode(k);
   });
 
   pubkeys.forEach((pubkey) => {
