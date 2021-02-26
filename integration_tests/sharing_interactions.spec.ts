@@ -116,6 +116,7 @@ describe('Users sharing data', () => {
     expect(received.notifications[0].relatedObject?.itemPaths[0].bucket).to.equal('personal');
     expect(received.notifications[0].relatedObject?.itemPaths[0].path).to.equal('/top.txt');
     expect(received.notifications[0].relatedObject?.itemPaths[0].dbId).not.to.be.null;
+    expect(received.notifications[0].relatedObject?.itemPaths[0].uuid).to.equal(ld.items[0].uuid);
     expect(received.notifications[0].relatedObject?.itemPaths[0].bucketKey).not.to.be.null;
     expect(received.notifications[0].relatedObject?.keys[0]).not.to.be.null;
     expect(received.lastSeenAt).to.equal(ts);

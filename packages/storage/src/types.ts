@@ -264,6 +264,7 @@ export interface FullPath {
   bucket: string;
   bucketKey?: string;
   dbId?: string;
+  uuid?: string;
 }
 
 /**

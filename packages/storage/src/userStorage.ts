@@ -203,7 +203,7 @@ export class UserStorage {
       // swap access roles to new user
       await Promise.all(invitation.itemPaths.map(async (ivPaths) => {
         const roles = new Map<string, PathAccessRole>();
-        roles.set(currentUsersPublicKey, PathAccessRole.PATH_ACCESS_ROLE_WRITER);
+        roles.set(currentUsersPublicKey, PathAccessRole.PATH_ACCESS_ROLE_ADMIN);
         roles.set(tempUsersPublicKey, PathAccessRole.PATH_ACCESS_ROLE_UNSPECIFIED);
 
         tempUserClient.withThread(ivPaths.dbId);
@@ -837,7 +837,7 @@ export class UserStorage {
         dbId: fullPath.dbId || '',
         mimeType: '', // TODO: Update invitation to include mimeType from sender
         sharedBy: invitation.inviterPublicKey,
-        uuid: v4(),
+        uuid: fullPath.uuid,
         accepted: accept,
         invitationId,
       });
@@ -1124,8 +1124,7 @@ export class UserStorage {
       // eslint-disable-next-line no-restricted-syntax
       for (const path of paths) {
         const roles = new Map();
-        const role = (userKey.type === ShareKeyType.Temp)
-          ? PathAccessRole.PATH_ACCESS_ROLE_ADMIN : PathAccessRole.PATH_ACCESS_ROLE_WRITER;
+        const role = PathAccessRole.PATH_ACCESS_ROLE_ADMIN;
         roles.set(userKey.pk, role);
         await client.pushPathAccessRoles(path.key, path.fullPath.path, roles);
       }
