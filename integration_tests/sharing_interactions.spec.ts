@@ -43,6 +43,31 @@ async function acceptNotification(inviteeStorage: UserStorage, notification: Not
   });
 }
 
+const uploadTxtContent = async (
+  storage: UserStorage,
+  txtContent = 'Some manual text should be in the file',
+  fileName = 'top.txt'): Promise<{ txtContent: string; response: AddItemsEventData; }> => {
+  const uploadResponse = await storage.addItems({
+    bucket: 'personal',
+    files: [
+      {
+        path: fileName,
+        data: txtContent,
+        mimeType: 'plain/text',
+      },
+    ],
+  });
+
+  const response = await new Promise<AddItemsEventData>((resolve) => {
+    uploadResponse.once('done', resolve);
+  });
+
+  return {
+    txtContent,
+    response,
+  };
+};
+
 describe('Users sharing data', () => {
   it('users can share, accept and view shared files', async () => {
     const { user: user1 } = await authenticateAnonymousUser();
@@ -52,25 +77,10 @@ describe('Users sharing data', () => {
     const user2Pk = Buffer.from(user2.identity.public.pubKey).toString('hex');
     const user3Pk = Buffer.from(user3.identity.public.pubKey).toString('hex');
 
-    const txtContent = 'Some manual text should be in the file';
-
     const storage1 = new UserStorage(user1, TestStorageConfig);
-    const uploadResponse = await storage1.addItems({
-      bucket: 'personal',
-      files: [
-        {
-          path: 'top.txt',
-          data: txtContent,
-          mimeType: 'plain/text',
-        },
-      ],
-    });
-
-    await new Promise<AddItemsEventData>((resolve) => {
-      uploadResponse.once('done', resolve);
-    });
-
     await storage1.initMailbox();
+
+    await uploadTxtContent(storage1);
 
     const storage2 = new UserStorage(user2, TestStorageConfig);
     await storage2.initMailbox();
@@ -117,7 +127,7 @@ describe('Users sharing data', () => {
     expect(received.notifications[0].relatedObject?.inviterPublicKey).to.equal(user1Pk);
     expect(received.notifications[0].relatedObject?.itemPaths[0].bucket).to.equal('personal');
     expect(received.notifications[0].relatedObject?.itemPaths[0].path).to.equal('/top.txt');
-    console.log('dbid: ', received.notifications[0].relatedObject?.itemPaths[0].dbId);
+    // console.log('dbid: ', received.notifications[0].relatedObject?.itemPaths[0].dbId);
     expect(received.notifications[0].relatedObject?.itemPaths[0].dbId).not.to.be.null;
     expect(received.notifications[0].relatedObject?.itemPaths[0].uuid).to.equal(ld.items[0].uuid);
     expect(received.notifications[0].relatedObject?.itemPaths[0].bucketKey).not.to.be.null;
@@ -131,7 +141,6 @@ describe('Users sharing data', () => {
     const storage3 = new UserStorage(user3, TestStorageConfig);
     await storage3.initMailbox();
 
-    console.log('Resharing second time');
     const share2Result = await storage2.shareViaPublicKey({
       publicKeys: [{
         id: 'new-space-user-2@fleek.co',
@@ -144,10 +153,56 @@ describe('Users sharing data', () => {
       }],
     });
 
-    console.log('second share result: ', share2Result);
     const secondReceivedNotifs = await storage3.getNotifications();
     // accept the notification
     await acceptNotification(storage3, secondReceivedNotifs.notifications[0], user2);
+  }).timeout(TestsDefaultTimeout);
+
+  it('should allow invited users to make file publicly accessible', async () => {
+    const { user: user1 } = await authenticateAnonymousUser();
+    const { user: user2 } = await authenticateAnonymousUser();
+    const user2Pk = Buffer.from(user2.identity.public.pubKey).toString('hex');
+    const storage1 = new UserStorage(user1, TestStorageConfig);
+    await storage1.initMailbox();
+    const storage2 = new UserStorage(user2, { ...TestStorageConfig, debugMode: true });
+    await storage2.initMailbox();
+
+    const { txtContent } = await uploadTxtContent(storage1);
+    await storage1.shareViaPublicKey({
+      publicKeys: [{
+        id: 'new-space-user@fleek.co',
+        pk: user2Pk,
+      }],
+      paths: [{
+        bucket: 'personal',
+        path: '/top.txt',
+      }],
+    });
+
+    const received = await storage2.getNotifications();
+    await acceptNotification(storage2, received.notifications[0], user1);
+    // console.log('Accepted notification', { notif: received.notifications[0] });
+
+    // make shared file public
+    await storage2.setFilePublicAccess({
+      bucket: 'personal',
+      path: '/top.txt',
+      dbId: received.notifications[0].relatedObject?.itemPaths[0].dbId,
+      allowAccess: true,
+    });
+    // console.log('Made file publicly accessible');
+
+    // verify anonymous user can access file
+    const { user: anonymousUser } = await authenticateAnonymousUser();
+    const anonymousStorage = new UserStorage(anonymousUser, TestStorageConfig);
+
+    // console.log('Opening public file by uuid');
+    const fileResponse = await anonymousStorage.openFileByUuid({
+      uuid: received.notifications[0].relatedObject?.itemPaths[0].uuid || '',
+    });
+
+    const actualTxtContent = await fileResponse.consumeStream();
+    expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
   }).timeout(TestsDefaultTimeout);
 
   it('users can receive sharing notifications subscription events', async () => {

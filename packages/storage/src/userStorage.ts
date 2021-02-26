@@ -538,6 +538,7 @@ export class UserStorage {
       throw new FileNotFoundError();
     }
 
+    this.logger.info({ fileMetadata }, 'Opening file by uuid');
     try {
       client.withThread(fileMetadata.dbId);
       const bucketKey = fileMetadata.bucketKey || '';
@@ -595,24 +596,30 @@ export class UserStorage {
   public async setFilePublicAccess(request: MakeFilePublicRequest): Promise<void> {
     const metadataStore = await this.getMetadataStore();
     const client = this.getUserBucketsClient();
-    const bucket = await this.getOrCreateBucket(client, request.bucket);
     const path = sanitizePath(request.path);
+    let metadata: FileMetadata | undefined;
+    if (request.dbId) {
+      metadata = await metadataStore.findFileMetadata(request.bucket, request.dbId, path);
+      client.withThread(request.dbId);
+    } else {
+      const bucket = await this.getOrCreateBucket(client, request.bucket);
+      metadata = await metadataStore.findFileMetadata(request.bucket, bucket.dbId, path);
+    }
 
-    const metadata = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, path);
+    this.logger.info({ metadata, request }, 'Request setFilePublicAccess');
     if (metadata === undefined) {
-      throw new DirEntryNotFoundError(path, bucket.slug);
+      throw new DirEntryNotFoundError(path, request.bucket);
     }
 
     const roles = new Map();
     if (request.allowAccess) {
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      await metadataStore.setFilePublic(metadata!);
+      await metadataStore.setFilePublic(metadata);
       roles.set('*', PathAccessRole.PATH_ACCESS_ROLE_WRITER);
     } else {
       roles.set('*', PathAccessRole.PATH_ACCESS_ROLE_UNSPECIFIED);
     }
 
-    await client.pushPathAccessRoles(bucket.root?.key || '', path, roles);
+    await client.pushPathAccessRoles(metadata.bucketKey || '', path, roles);
   }
 
   /**

@@ -88,6 +88,11 @@ export interface MakeFilePublicRequest {
   path: string;
   bucket: string;
   /**
+   * DbId where file is location, optional but required for instances where the file is a shared file.
+   *
+   */
+  dbId?: string;
+  /**
    * Specifies if public access to file should be accessible.
    *
    */
