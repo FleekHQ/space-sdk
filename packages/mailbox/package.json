@@ -1,6 +1,6 @@
 {
   "name": "@spacehq/mailbox",
-  "version": "0.0.24",
+  "version": "0.0.25",
   "description": "Space Mailbox implementation",
   "main": "dist/index",
   "types": "dist/index",
@@ -37,7 +37,7 @@
   "dependencies": {
     "@improbable-eng/grpc-web": "^0.14.0",
     "@spacehq/users": "^0.0.13",
-    "@spacehq/utils": "^0.0.24",
+    "@spacehq/utils": "^0.0.25",
     "@textile/crypto": "^2.0.0",
     "@types/lodash": "^4.14.165",
     "axios": "^0.21.1",
