@@ -44,7 +44,7 @@ async function acceptNotification(inviteeStorage: UserStorage, notification: Not
 }
 
 describe('Users sharing data', () => {
-  it.only('users can share, accept and view shared files', async () => {
+  it('users can share, accept and view shared files', async () => {
     const { user: user1 } = await authenticateAnonymousUser();
     const { user: user2 } = await authenticateAnonymousUser();
     const { user: user3 } = await authenticateAnonymousUser();
