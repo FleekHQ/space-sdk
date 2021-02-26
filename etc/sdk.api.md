@@ -317,6 +317,7 @@ export interface MakeFilePublicRequest {
     allowAccess: boolean;
     // (undocumented)
     bucket: string;
+    dbId?: string;
     // (undocumented)
     path: string;
 }
