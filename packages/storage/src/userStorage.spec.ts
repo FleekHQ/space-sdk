@@ -419,6 +419,7 @@ describe('UserStorage', () => {
             {
               bucket: 'personal',
               path: '/randomPath',
+              uuid: v4(),
             },
           ],
         }),
@@ -436,6 +437,7 @@ describe('UserStorage', () => {
             {
               bucket: 'personal',
               path: '/randomPath',
+              uuid: v4(),
             },
           ],
         }),
