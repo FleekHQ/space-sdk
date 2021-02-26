@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import { DecryptedUserMessage, Mailbox } from '@spacehq/mailbox';
 import { GetAddressFromPublicKey, Identity, SpaceUser } from '@spacehq/users';
-import { tryParsePublicKey } from '@spacehq/utils';
+import { authenticateSpaceIdentity, tryParsePublicKey } from '@spacehq/utils';
 import { PrivateKey } from '@textile/crypto';
 import { Buckets, Client, PathAccessRole, PathItem, Root, ThreadID, UserAuth } from '@textile/hub';
 import dayjs from 'dayjs';
@@ -137,7 +137,11 @@ export class UserStorage {
    * - This should be called after the constructor if sharing functionalities are to be used
    */
   public async initMailbox():Promise<void> {
-    this.mailbox = await Mailbox.createMailbox(this.user, {
+    this.mailbox = await this.initMailboxForUser(this.user);
+  }
+
+  private async initMailboxForUser(user: SpaceUser): Promise<Mailbox> {
+    return Mailbox.createMailbox(user, {
       textileHubAddress: this.config.textileHubAddress,
     }, UserStorage.parseMsg);
   }
@@ -149,12 +153,74 @@ export class UserStorage {
    *
    * @param key - temp key gotten from ShareViaPublicKey
    */
-  static async syncFromTempKey(key: string): Promise<void> {
-    // ensure current user will have access to invitations in notifications
+  async syncFromTempKey(key: string): Promise<void> {
+    const { tempSpaceUser, tempUserMailbox } = await this.authenticateTempUser(key);
 
-    // move notifications for temp key to current users notifications
+    const msgs: DecryptedUserMessage[] | undefined = await tempUserMailbox.listInboxMessages();
+    if (!msgs) {
+      this.logger.info('TempKey\'s inbox is empty no syncing necessary');
+      return;
+    }
+    this.logger.info({ msgs }, 'TempKey\'s existing inboxes');
 
-    // delete notification from temp key
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const tempUserClient = this.initBucket(tempSpaceUser.storageAuth!);
+    if (!this.mailbox) {
+      await this.initMailbox();
+    }
+
+    await Promise.all(msgs.map(async (msg) => {
+      await this.syncTempUsersMessageWithUser(msg, tempSpaceUser, tempUserClient, tempUserMailbox);
+    }));
+  }
+
+  private async authenticateTempUser(key: string) {
+    const tempKeyIdentity = PrivateKey.fromString(key);
+    const tempUserAuth = await authenticateSpaceIdentity(this.user.endpoint, tempKeyIdentity);
+    const tempSpaceUser = {
+      ...tempUserAuth,
+      endpoint: this.user.endpoint,
+      identity: tempKeyIdentity,
+    };
+    const tempUserMailbox = await this.initMailboxForUser(tempSpaceUser);
+    return { tempSpaceUser, tempUserMailbox };
+  }
+
+  private async syncTempUsersMessageWithUser(
+    msg: DecryptedUserMessage,
+    tempSpaceUser: SpaceUser,
+    tempUserClient: Buckets,
+    tempUserMailbox: Mailbox,
+  ) {
+    const tempUsersPublicKey = tempSpaceUser.identity.public.toString();
+    const currentUsersPublicKey = this.user.identity.public.toString();
+    let bodyToBeForwarded = msg.body;
+    const notification = await UserStorage.parseMsg(msg);
+
+    if (notification.type === NotificationType.INVITATION) {
+      const invitation = notification.relatedObject as Invitation;
+
+      // swap access roles to new user
+      await Promise.all(invitation.itemPaths.map(async (ivPaths) => {
+        const roles = new Map<string, PathAccessRole>();
+        roles.set(currentUsersPublicKey, PathAccessRole.PATH_ACCESS_ROLE_WRITER);
+        roles.set(tempUsersPublicKey, PathAccessRole.PATH_ACCESS_ROLE_UNSPECIFIED);
+
+        tempUserClient.withThread(ivPaths.dbId);
+        await tempUserClient.pushPathAccessRoles(ivPaths.bucketKey || '', ivPaths.path, roles);
+      }));
+
+      // re-map relevant parameters
+      invitation.inviteePublicKey = currentUsersPublicKey;
+      bodyToBeForwarded = new TextEncoder().encode(JSON.stringify({
+        type: notification.type,
+        body: invitation,
+      }));
+    }
+
+    // forwarding message to user
+    await tempUserMailbox.sendMessage(currentUsersPublicKey, bodyToBeForwarded);
+    await tempUserMailbox.deleteMessage(msg.id);
   }
 
   /**
@@ -1066,7 +1132,7 @@ export class UserStorage {
     }
 
     const idString = Buffer.from(this.user.identity.public.pubKey).toString('hex');
-    const filteredRecipients: string[] = request.publicKeys
+    const filteredRecipients: string[] = userKeys
       .map((key) => key.pk)
       .filter((key) => !!key) as string[];
     const store = await this.getMetadataStore();
@@ -1153,6 +1219,9 @@ export class UserStorage {
         const key = PrivateKey.fromRandom();
         tempKey = key.toString();
         validPk = key.public.toString();
+
+        // ensures temp user is register to allow receipt of inbox
+        await this.authenticateTempUser(tempKey);
       }
 
       return {
