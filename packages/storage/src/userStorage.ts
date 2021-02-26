@@ -204,7 +204,7 @@ export class UserStorage {
 
         ms.forEach((v, k) => {
           members.push({
-            publicKey: k,
+            publicKey: Buffer.from(tryParsePublicKey(k).pubKey).toString('hex'),
             address: k === '*' ? '' : GetAddressFromPublicKey(k),
             role: v,
           });
