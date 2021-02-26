@@ -1,6 +1,6 @@
 {
   "name": "@spacehq/users",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "description": "Space users implementation",
   "main": "dist/index",
   "types": "dist/index",
@@ -35,7 +35,7 @@
     "websocket-polyfill": "^0.0.3"
   },
   "dependencies": {
-    "@spacehq/utils": "^0.0.25",
+    "@spacehq/utils": "^0.0.26",
     "@textile/crypto": "^2.0.0",
     "@types/lodash": "^4.14.165",
     "axios": "^0.21.1",

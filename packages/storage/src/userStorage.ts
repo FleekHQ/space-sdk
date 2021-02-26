@@ -1137,6 +1137,7 @@ export class UserStorage {
       .filter((key) => !!key) as string[];
     const store = await this.getMetadataStore();
 
+    this.logger.info('Creating share files invitations');
     const invitations = await createFileInvitations(
       idString,
       paths.map((path) => path.fullPath),
@@ -1237,6 +1238,7 @@ export class UserStorage {
     client: Buckets,
     fullPaths: FullPath[],
   ): Promise<{ key: string; fullPath: FullPath; }[]> {
+    this.logger.info({ fullPaths }, 'Normalizing full path');
     const bucketCache = new Map<string, BucketMetadataWithThreads>();
     const store = await this.getMetadataStore();
     return Promise.all(fullPaths.map(async (fullPath) => {
