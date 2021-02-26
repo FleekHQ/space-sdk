@@ -6,9 +6,11 @@
 
 import { Buckets } from '@textile/hub';
 import { Client } from '@textile/hub';
+import { HubAuthResponse } from '@spacehq/utils';
 import { IGunChainReference } from 'gun/types/chain';
 import { PathAccessRole } from '@textile/hub';
 import Pino from 'pino';
+import { TextileStorageAuth } from '@spacehq/utils';
 import { UserAuth } from '@textile/hub';
 
 // @public (undocumented)
@@ -252,16 +254,6 @@ export class GundbMetadataStore implements UserMetadataStore {
     upsertSharedWithMeFile(fileData: SharedFileMetadata): Promise<SharedFileMetadata>;
     }
 
-// Warning: (ae-internal-missing-underscore) The name "HubAuthResponse" should be prefixed with an underscore because the declaration is marked as @internal
-//
-// @internal
-export interface HubAuthResponse {
-    // (undocumented)
-    storageAuth?: TextileStorageAuth;
-    // (undocumented)
-    token: string;
-}
-
 // @public
 export interface Identity {
     privKey: Uint8Array;
@@ -494,6 +486,7 @@ export interface ShareViaPublicKeyResponse {
 
 // @public
 export interface SpaceUser {
+    endpoint: string;
     // (undocumented)
     identity: Identity;
     // (undocumented)
@@ -507,18 +500,6 @@ export class SpaceVaultService implements Vault {
     // (undocumented)
     retrieve(uuid: string, passphrase: string, backupType: VaultBackupType): Promise<VaultItem[]>;
     store(uuid: string, passphrase: string, backupType: VaultBackupType, items: VaultItem[], metadata: Record<string, string>): Promise<void>;
-}
-
-// @public (undocumented)
-export interface TextileStorageAuth {
-    // (undocumented)
-    key: string;
-    // (undocumented)
-    msg: string;
-    // (undocumented)
-    sig: string;
-    // (undocumented)
-    token: string;
 }
 
 // @public (undocumented)
@@ -588,8 +569,6 @@ export class Users {
 
 // @public
 export interface UsersConfig {
-    // Warning: (ae-incompatible-release-tags) The symbol "authChallengeSolver" is marked as @public, but its signature references "HubAuthResponse" which is marked as @internal
-    //
     // (undocumented)
     authChallengeSolver?: (identity: Identity) => Promise<HubAuthResponse>;
     endpoint: string;
@@ -617,7 +596,7 @@ export class UserStorage {
     setFilePublicAccess(request: MakeFilePublicRequest): Promise<void>;
     setNotificationsLastSeenAt(timestamp: number): Promise<void>;
     shareViaPublicKey(request: ShareViaPublicKeyRequest): Promise<ShareViaPublicKeyResponse>;
-    static syncFromTempKey(key: string): Promise<void>;
+    syncFromTempKey(key: string): Promise<void>;
     txlSubscribe(): Promise<TxlSubscribeResponse>;
     }
 

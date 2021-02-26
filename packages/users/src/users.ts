@@ -1,3 +1,4 @@
+import { authenticateSpaceIdentity, HubAuthResponse, TextileStorageAuth } from '@spacehq/utils';
 import { PrivateKey } from '@textile/crypto';
 import _ from 'lodash';
 import 'websocket-polyfill';
@@ -5,29 +6,16 @@ import { Identity } from './types';
 import { getPrivateKeyFromVaultItem, getVaultItemFromPrivateKey } from './utils/vaultUtils';
 import { SpaceVaultService, Vault, VaultBackupType, VaultServiceConfig } from './vault';
 
-export interface TextileStorageAuth {
-  key: string;
-  token: string;
-  sig: string;
-  msg: string;
-}
-
-/**
- * Space service Hub Auth challenge response
- *
- * @internal
- */
-export interface HubAuthResponse {
-  token: string;
-  storageAuth?: TextileStorageAuth;
-}
-
 /**
  * Represents an authenticated KeyPair identity with valid API session token.
  *
  */
 export interface SpaceUser {
   identity: Identity;
+  /**
+   * Auth endpoint used to authenticate this user
+   */
+  endpoint: string;
   /**
    * token is the service token. It can be used to interact with the identity service.
    *
@@ -188,67 +176,13 @@ export class Users {
     if (this.config.authChallengeSolver) {
       storageAuth = await this.config.authChallengeSolver(identity);
     } else {
-      storageAuth = await this.spaceAuthChallengeSolver(identity);
+      storageAuth = await authenticateSpaceIdentity(this.config.endpoint, identity as PrivateKey);
     }
 
-    const spaceUser = { ...storageAuth, identity };
+    const spaceUser = { ...storageAuth, identity, endpoint: this.config.endpoint };
     this.users[identity.public.toString()] = spaceUser;
 
     return spaceUser;
-  }
-
-  private spaceAuthChallengeSolver(identity: Identity): Promise<HubAuthResponse> {
-    return new Promise((resolve, reject) => {
-      const socket = new WebSocket(this.config.endpoint);
-
-      /** Wait for our socket to open successfully */
-      socket.onopen = () => {
-        const publicKey = identity.public.toString();
-
-        /** Send a new token request */
-        socket.send(
-          JSON.stringify({
-            data: { pubkey: publicKey, version: 2 },
-            action: 'token',
-          }),
-        );
-
-        /** Listen for messages from the server */
-        socket.onmessage = async (event) => {
-          const data = JSON.parse(event.data);
-
-          switch (data.type) {
-            /** Error never happen :) */
-            case 'error': {
-              reject(data.value);
-              break;
-            }
-            /** The server issued a new challenge */
-            case 'challenge': {
-              /** Convert the challenge json to a Buffer */
-              const buf = Buffer.from(data.value.data);
-              /** Use local identity to sign the challenge */
-              const signed = await identity.sign(buf);
-
-              /** Send the signed challenge back to the server */
-              socket.send(
-                JSON.stringify({
-                  action: 'challenge',
-                  data: { pubkey: publicKey, sig: Buffer.from(signed).toJSON() },
-                }),
-              );
-              break;
-            }
-            /** New token generated */
-            case 'token': {
-              socket.close();
-              resolve(data.value);
-              break;
-            }
-          }
-        };
-      };
-    });
   }
 
   /**

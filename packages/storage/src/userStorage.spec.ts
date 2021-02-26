@@ -46,6 +46,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
     {
       identity: mockIdentity,
       token: '',
+      endpoint: 'http://space-auth-endpoint.com',
       storageAuth: {
         key: 'random-key',
         token: 'token',
@@ -134,7 +135,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
 describe('UserStorage', () => {
   describe('createFolder()', () => {
     it('should throw error if user is not authenticated', async () => {
-      const storage = new UserStorage({ identity: mockIdentity, token: '' });
+      const storage = new UserStorage({ identity: mockIdentity, token: '', endpoint: '' });
       await expect(storage.createFolder({ bucket: '', path: '' })).to.eventually.be.rejectedWith(UnauthenticatedError);
     });
 
@@ -159,7 +160,7 @@ describe('UserStorage', () => {
 
   describe('listDirectory()', () => {
     it('should throw error if user is not authenticated', async () => {
-      const storage = new UserStorage({ identity: mockIdentity, token: '' });
+      const storage = new UserStorage({ identity: mockIdentity, token: '', endpoint: '' });
       await expect(storage.listDirectory({ bucket: 'bucket', path: '' })).to.eventually.be.rejectedWith(
         UnauthenticatedError,
       );

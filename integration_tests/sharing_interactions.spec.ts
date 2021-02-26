@@ -6,7 +6,8 @@ import { AddItemsEventData,
   Notification,
   NotificationType,
   NotificationSubscribeEventData,
-  InvitationStatus } from '@spacehq/sdk';
+  InvitationStatus,
+  SpaceUser } from '@spacehq/sdk';
 import { tryParsePublicKey } from '@spacehq/utils';
 import { expect, use } from 'chai';
 import * as chaiAsPromised from 'chai-as-promised';
@@ -16,6 +17,31 @@ import { authenticateAnonymousUser } from './helpers/userHelper';
 
 use(chaiAsPromised.default);
 use(chaiSubset.default);
+
+async function acceptNotification(inviteeStorage: UserStorage, notification: Notification, inviter: SpaceUser) {
+  // accept the notification
+  await inviteeStorage.handleFileInvitation(notification.id, true);
+
+  // verify notification status is now accepted
+  const updatedNotification = await inviteeStorage.getNotifications();
+  expect(updatedNotification.notifications, 'updatedNotification').to.containSubset([{
+    id: notification.id,
+    relatedObject: {
+      status: InvitationStatus.ACCEPTED,
+    },
+  }]);
+
+  // verify get recently shared contains accepted file
+  const recentlyAccepted = await inviteeStorage.getFilesSharedWithMe();
+  expect(recentlyAccepted.files).not.to.be.empty;
+  expect(recentlyAccepted.files[0], 'recentlyAcceptedFiles[0]').to.containSubset({
+    sharedBy: Buffer.from(inviter.identity.public.pubKey).toString('hex'),
+    entry: {
+      name: 'top.txt',
+      path: '/top.txt',
+    },
+  });
+}
 
 describe('Users sharing data', () => {
   it('users can share, accept and view shared files', async () => {
@@ -82,7 +108,7 @@ describe('Users sharing data', () => {
     expect(received.notifications[0].createdAt).not.to.be.null;
     expect(received.notifications[0].type).to.equal(NotificationType.INVITATION);
     expect(received.notifications[0].relatedObject).not.to.be.null;
-    expect(received.notifications[0].relatedObject?.inviteePublicKey).to.equal(user2Pk);
+    expect(received.notifications[0].relatedObject?.inviteePublicKey).to.equal(user2.identity.public.toString());
     expect(received.notifications[0].relatedObject?.inviterPublicKey).to.equal(user1Pk);
     expect(received.notifications[0].relatedObject?.itemPaths[0].bucket).to.equal('personal');
     expect(received.notifications[0].relatedObject?.itemPaths[0].path).to.equal('/top.txt');
@@ -92,27 +118,7 @@ describe('Users sharing data', () => {
     expect(received.lastSeenAt).to.equal(ts);
 
     // accept the notification
-    await storage2.handleFileInvitation(received.notifications[0].id, true);
-
-    // verify notification status is now accepted
-    const updatedNotification = await storage2.getNotifications();
-    expect(updatedNotification.notifications, 'updatedNotification').to.containSubset([{
-      id: received.notifications[0].id,
-      relatedObject: {
-        status: InvitationStatus.ACCEPTED,
-      },
-    }]);
-
-    // verify get recently shared contains accepted file
-    const recentlyAccepted = await storage2.getFilesSharedWithMe();
-    expect(recentlyAccepted.files).not.to.be.empty;
-    expect(recentlyAccepted.files[0], 'recentlyAcceptedFiles[0]').to.containSubset({
-      sharedBy: Buffer.from(user1.identity.public.pubKey).toString('hex'),
-      entry: {
-        name: 'top.txt',
-        path: '/top.txt',
-      },
-    });
+    await acceptNotification(storage2, received.notifications[0], user1);
   }).timeout(TestsDefaultTimeout);
 
   it('users can receive sharing notifications subscription events', async () => {
@@ -173,7 +179,7 @@ describe('Users sharing data', () => {
     expect(data.notification.createdAt).not.to.be.null;
     expect(data.notification.type).to.equal(NotificationType.INVITATION);
     expect(data.notification.relatedObject).not.to.be.null;
-    expect(data.notification.relatedObject?.inviteePublicKey).to.equal(user2Pk);
+    expect(data.notification.relatedObject?.inviteePublicKey).to.equal(user2.identity.public.toString());
     expect(data.notification.relatedObject?.inviterPublicKey).to.equal(user1Pk);
     expect(data.notification.relatedObject?.itemPaths[0].bucket).to.equal('personal');
     expect(data.notification.relatedObject?.itemPaths[0].path).to.equal('/top.txt');
@@ -182,13 +188,13 @@ describe('Users sharing data', () => {
     expect(data.notification.relatedObject?.keys[0]).not.to.be.null;
   }).timeout(TestsDefaultTimeout);
 
-  it('empty pk should not fail share', async () => {
+  it('sharing empty pk (temp key) should work', async () => {
     const { user: user1 } = await authenticateAnonymousUser();
     const user1Pk = Buffer.from(user1.identity.public.pubKey).toString('hex');
     const txtContent = 'Some manual text should be in the file';
 
     const storage1 = new UserStorage(user1, TestStorageConfig);
-    const uploadResponse = await storage1.addItems({
+    await storage1.addItems({
       bucket: 'personal',
       files: [
         {
@@ -216,5 +222,24 @@ describe('Users sharing data', () => {
     expect(shareResult.publicKeys).not.to.be.empty;
     expect(shareResult.publicKeys[0].type).to.equal(ShareKeyType.Temp);
     expect(shareResult.publicKeys[0].pk).not.to.be.empty;
+
+    // authenticate new user to sync notifications
+    const { user: user2 } = await authenticateAnonymousUser();
+    const storage2 = new UserStorage(user2, { ...TestStorageConfig, debugMode: false });
+    await storage2.syncFromTempKey(shareResult.publicKeys[0].tempKey || '');
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // verify notification now contains invite to `top.txt`
+    const received = await storage2.getNotifications();
+    expect(received.notifications).to.containSubset([{
+      relatedObject: {
+        inviterPublicKey: Buffer.from(user1.identity.public.pubKey).toString('hex'),
+        inviteePublicKey: user2.identity.public.toString(),
+      },
+      type: NotificationType.INVITATION,
+    }]);
+
+    await acceptNotification(storage2, received.notifications[0], user1);
   }).timeout(TestsDefaultTimeout);
 });

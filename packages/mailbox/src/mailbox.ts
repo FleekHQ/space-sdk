@@ -112,6 +112,15 @@ export class Mailbox {
     return res;
   }
 
+  /**
+   * Deletes the specified message from inbox
+   *
+   * @param id - UserMessage id gotten from list inbox message
+   */
+  public async deleteMessage(id: string): Promise<void> {
+    await this.getUsersClient().deleteInboxMessage(id);
+  }
+
   private getUserAuth(): UserAuth {
     if (this.user.storageAuth === undefined) {
       // TODO: move this error to common package so it can be
