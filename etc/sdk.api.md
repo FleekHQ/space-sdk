@@ -193,6 +193,8 @@ export interface FullPath {
     dbId?: string;
     // (undocumented)
     path: string;
+    // (undocumented)
+    uuid?: string;
 }
 
 // @public (undocumented)
