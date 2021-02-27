@@ -849,7 +849,7 @@ export class UserStorage {
         invitationId,
       });
 
-      return this.buildSharedFileFromMetadata(client, fileMetadata);
+      return this.buildSharedFileFromMetadata(client, fileMetadata, metadataStore);
     }));
 
     return {
@@ -870,7 +870,7 @@ export class UserStorage {
     const sharedFilesMetadata = await metadataStore.listSharedByMeFiles();
 
     const filePaths = await Promise.all(
-      sharedFilesMetadata.map(async (metadata) => this.buildSharedFileFromMetadata(client, metadata)),
+      sharedFilesMetadata.map(async (metadata) => this.buildSharedFileFromMetadata(client, metadata, metadataStore)),
     );
 
     return {
@@ -996,7 +996,7 @@ export class UserStorage {
     const sharedFileMetadata = await metadataStore.listSharedWithMeFiles();
 
     const filesPaths = await Promise.all(sharedFileMetadata.map(
-      async (fileMetadata) => this.buildSharedFileFromMetadata(client, fileMetadata),
+      async (fileMetadata) => this.buildSharedFileFromMetadata(client, fileMetadata, metadataStore),
     ));
 
     return {
@@ -1009,6 +1009,7 @@ export class UserStorage {
   private async buildSharedFileFromMetadata(
     client: Buckets,
     fileMetadata: SharedFileMetadata,
+    store: UserMetadataStore,
   ): Promise<SharedWithMeFiles> {
     client.withThread(fileMetadata.dbId);
     const bucketKey = fileMetadata.bucketKey || '';
@@ -1026,8 +1027,10 @@ export class UserStorage {
       fileMetadata.dbId,
     );
 
+    const [fileEntryWithMembers] = await UserStorage.addMembersToPathItems([fileEntry], client, store, bucketKey);
+
     return {
-      entry: fileEntry,
+      entry: fileEntryWithMembers,
       sharedBy: fileMetadata.sharedBy,
     };
   }
