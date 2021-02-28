@@ -47,7 +47,7 @@ import { AcceptInvitationResponse,
   ShareViaPublicKeyResponse,
   TxlSubscribeResponse } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
-import { isMetaFileName } from './utils/fsUtils';
+import { encodeFileEncryptionKey, generateFileEncryptionKey, isMetaFileName } from './utils/fsUtils';
 import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
@@ -766,6 +766,7 @@ export class UserStorage {
             bucketKey: bucket.root?.key,
             bucketSlug: bucket.slug,
             dbId: bucket.dbId,
+            encryptionKey: generateFileEncryptionKey(),
             path,
           });
           await client.pushPath(rootKey, path, file.data, { progress: file.progress });
@@ -836,7 +837,7 @@ export class UserStorage {
     const client = this.getUserBucketsClient();
     const metadataStore = await this.getMetadataStore();
 
-    const filesPaths = await Promise.all(invitation.itemPaths.map(async (fullPath) => {
+    const filesPaths = await Promise.all(invitation.itemPaths.map(async (fullPath, index) => {
       const fileMetadata = await metadataStore.upsertSharedWithMeFile({
         bucketKey: fullPath.bucketKey,
         bucketSlug: fullPath.bucket,
@@ -846,6 +847,7 @@ export class UserStorage {
         sharedBy: invitation.inviterPublicKey,
         uuid: fullPath.uuid,
         accepted: accept,
+        encryptionKey: encodeFileEncryptionKey(invitation.keys[index]),
         invitationId,
       });
 
@@ -1200,6 +1202,7 @@ export class UserStorage {
         dbId: fullPath.dbId || '',
         path: fullPath.path,
         sharedBy: this.user.identity.public.toString(),
+        encryptionKey: fileMetadata?.encryptionKey || '',
         uuid: fileMetadata?.uuid,
       });
     }

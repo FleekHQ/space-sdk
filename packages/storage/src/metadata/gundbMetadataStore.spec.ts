@@ -31,14 +31,9 @@ describe('GunsdbMetadataStore', () => {
     const newSchema = await store.createBucket(bucket, dbId, bucketKey);
     expect(newSchema).to.containSubset({ dbId, slug: bucket });
 
-    // eslint-disable-next-line no-unused-expressions
-    expect(newSchema.encryptionKey).to.not.be.empty;
-
     // test find bucket data
     const foundSchema = await store.findBucket(bucket);
     expect(foundSchema).to.containSubset({ dbId, slug: bucket });
-    expect(Buffer.from(foundSchema?.encryptionKey || '').toString('hex')).to
-      .equal(Buffer.from(newSchema.encryptionKey).toString('hex'));
 
     // ensure list bucket returns all value on fresh initialization
     const newStore = await GundbMetadataStore.fromIdentity(username, password);
@@ -58,6 +53,7 @@ describe('GunsdbMetadataStore', () => {
       bucketSlug,
       dbId,
       path,
+      encryptionKey: '',
     };
 
     await store.upsertFileMetadata(fileMetadata);
@@ -78,6 +74,7 @@ describe('GunsdbMetadataStore', () => {
       bucketSlug: 'personal',
       dbId: 'something',
       path: '/home/case.png',
+      encryptionKey: '',
     };
 
     await store.upsertFileMetadata(fileMetadata);
@@ -104,6 +101,7 @@ describe('GunsdbMetadataStore', () => {
       dbId: 'something',
       path: '/home/case.png',
       sharedBy: 'sharers-pk',
+      encryptionKey: '',
     };
 
     await store.upsertSharedWithMeFile(sharedFileMetadata);

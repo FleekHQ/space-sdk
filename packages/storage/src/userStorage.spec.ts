@@ -85,7 +85,14 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
             return Promise.resolve({ ...input, bucketSlug: 'myBucket', dbId: '', path: '/' });
           },
           findFileMetadata(bucketSlug, dbId, path): Promise<FileMetadata | undefined> {
-            return Promise.resolve({ uuid: 'generated-uuid', mimeType: 'generic/type', bucketSlug, dbId, path });
+            return Promise.resolve({
+              uuid: 'generated-uuid',
+              mimeType: 'generic/type',
+              encryptionKey: '',
+              bucketSlug,
+              dbId,
+              path,
+            });
           },
           findFileMetadataByUuid(): Promise<FileMetadata | undefined> {
             return Promise.resolve({
@@ -94,6 +101,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
               bucketKey: 'myBucketKey',
               dbId: 'mockThreadId',
               path: '/',
+              encryptionKey: '',
             });
           },
           setFilePublic(_metadata: FileMetadata): Promise<void> {
