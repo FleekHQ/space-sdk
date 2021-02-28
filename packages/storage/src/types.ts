@@ -128,6 +128,8 @@ export interface OpenUuidFileResponse {
   entry: DirectoryEntry;
 }
 
+export type AddItemDataType = ReadableStream<Uint8Array> | ArrayBuffer | string | Blob;
+
 export interface AddItemFile {
   /**
    * path in the bucket where the file should be uploaded.
@@ -142,7 +144,7 @@ export interface AddItemFile {
    *
    */
   mimeType: string;
-  data: ReadableStream<Uint8Array> | ArrayBuffer | string | Blob;
+  data: AddItemDataType;
   /**
    * progress callback if provided will be called with bytes written to
    * remote while uploading the file.

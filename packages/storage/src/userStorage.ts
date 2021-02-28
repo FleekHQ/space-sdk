@@ -47,7 +47,13 @@ import { AcceptInvitationResponse,
   ShareViaPublicKeyResponse,
   TxlSubscribeResponse } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
-import { encodeFileEncryptionKey, generateFileEncryptionKey, isMetaFileName } from './utils/fsUtils';
+import {
+  decodeFileEncryptionKey,
+  encodeFileEncryptionKey,
+  generateFileEncryptionKey,
+  isMetaFileName, newDecryptedDataReader,
+  newEncryptedDataWriter,
+} from './utils/fsUtils'
 import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
@@ -490,7 +496,10 @@ export class UserStorage {
     const fileMetadata = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, path);
 
     try {
-      const fileData = client.pullPath(bucket.root?.key || '', path, { progress: request.progress });
+      const fileData = newDecryptedDataReader(
+        client.pullPath(bucket.root?.key || '', path, { progress: request.progress }),
+        decodeFileEncryptionKey(fileMetadata?.encryptionKey || ''),
+      );
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
@@ -556,7 +565,10 @@ export class UserStorage {
         fileMetadata.dbId,
       );
 
-      const fileData = client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress });
+      const fileData = newDecryptedDataReader(
+        client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress }),
+        decodeFileEncryptionKey(fileMetadata.encryptionKey || ''),
+      );
 
       const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems(
         [fileEntry],
@@ -769,7 +781,12 @@ export class UserStorage {
             encryptionKey: generateFileEncryptionKey(),
             path,
           });
-          await client.pushPath(rootKey, path, file.data, { progress: file.progress });
+
+          const encryptedDataReader = newEncryptedDataWriter(
+            file.data,
+            decodeFileEncryptionKey(metadata.encryptionKey),
+          );
+          await client.pushPath(rootKey, path, encryptedDataReader, { progress: file.progress });
           // set file entry
           const existingFile = await client.listPath(rootKey, path);
           const [fileEntry] = UserStorage.parsePathItems(
