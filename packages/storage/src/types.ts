@@ -293,7 +293,7 @@ export interface Invitation {
   invitationID?: string;
   status: InvitationStatus;
   itemPaths: FullPath[];
-  keys:Uint8Array[];
+  keys: string[];
 }
 
 /**

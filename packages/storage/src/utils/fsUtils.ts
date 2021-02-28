@@ -1,11 +1,10 @@
-import crypto from 'crypto';
 import path from 'path';
 import multibase from 'multibase';
 import { AddItemDataType } from '../types';
 import { CursorBuffer } from './CursorBuffer';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-// const crypto = require('crypto-browserify');
+const crypto = require('crypto-browserify');
 
 const metaFileNames = new Map();
 metaFileNames.set('.textileseed', true);
@@ -31,6 +30,7 @@ const AesKeyLength = 32;
 const IVBytesLength = 16;
 const HmacKeyLength = 32;
 export const FileEncryptionKeyLength = AesKeyLength + IVBytesLength + HmacKeyLength;
+const EncryptionAlgorithm = 'aes-256-ctr';
 
 export const decodeFileEncryptionKey = (key: string): Uint8Array => {
   const keyBytes: Uint8Array = multibase.decode(key);
@@ -80,7 +80,7 @@ export const newEncryptedDataWriter = (
   // TODO; Calculate streaming Hmac and append to end of file
   // const hmacKey = keyReader.readXBytes(HmacKeyLength);
 
-  const cipher = crypto.createCipheriv('aes-256-ctr', aesKey, ivBytes);
+  const cipher = crypto.createCipheriv(EncryptionAlgorithm, aesKey, ivBytes);
 
   // eslint-disable-next-line func-names
   return (async function* () {
@@ -168,7 +168,7 @@ export const newDecryptedDataReader = (
   // TODO; Calculate streaming Hmac and append to end of file
   // const hmacKey = keyReader.readXBytes(HmacKeyLength);
 
-  const decipher = crypto.createDecipheriv('aes-256-ctr', aesKey, ivBytes);
+  const decipher = crypto.createDecipheriv(EncryptionAlgorithm, aesKey, ivBytes);
   // eslint-disable-next-line require-yield,func-names
   return (async function* () {
     // eslint-disable-next-line no-restricted-syntax

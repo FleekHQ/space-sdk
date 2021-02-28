@@ -47,13 +47,11 @@ import { AcceptInvitationResponse,
   ShareViaPublicKeyResponse,
   TxlSubscribeResponse } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
-import {
-  decodeFileEncryptionKey,
+import { decodeFileEncryptionKey,
   encodeFileEncryptionKey,
   generateFileEncryptionKey,
   isMetaFileName, newDecryptedDataReader,
-  newEncryptedDataWriter,
-} from './utils/fsUtils'
+  newEncryptedDataWriter } from './utils/fsUtils';
 import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
@@ -237,6 +235,7 @@ export class UserStorage {
    */
   public async createFolder(request: CreateFolderRequest): Promise<void> {
     const client = this.getUserBucketsClient();
+    const metadataStore = await this.getMetadataStore();
 
     const bucket = await this.getOrCreateBucket(client, request.bucket);
     const file = {
@@ -244,6 +243,14 @@ export class UserStorage {
       content: Buffer.from(''),
     };
 
+    await metadataStore.upsertFileMetadata({
+      uuid: v4(),
+      bucketKey: bucket.root?.key,
+      bucketSlug: bucket.slug,
+      dbId: bucket.dbId,
+      encryptionKey: generateFileEncryptionKey(),
+      path: file.path,
+    });
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
@@ -410,8 +417,6 @@ export class UserStorage {
    * ```
    */
   public async notificationSubscribe(): Promise<NotificationSubscribeResponse> {
-    const client = this.getUserBucketsClient();
-    // const bucket = await this.(client, request.bucket);
     const emitter = ee();
 
     if (!this.mailbox) {
@@ -864,7 +869,7 @@ export class UserStorage {
         sharedBy: invitation.inviterPublicKey,
         uuid: fullPath.uuid,
         accepted: accept,
-        encryptionKey: encodeFileEncryptionKey(invitation.keys[index]),
+        encryptionKey: invitation.keys[index],
         invitationId,
       });
 
@@ -1269,7 +1274,6 @@ export class UserStorage {
     fullPaths: FullPath[],
   ): Promise<{ key: string; fullPath: FullPath; }[]> {
     this.logger.info({ fullPaths }, 'Normalizing full path');
-    const bucketCache = new Map<string, BucketMetadataWithThreads>();
     const store = await this.getMetadataStore();
     return Promise.all(fullPaths.map(async (fullPath) => {
       let rootKey: string;

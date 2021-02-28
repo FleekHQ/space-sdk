@@ -1,5 +1,6 @@
 import { FullPath, Invitation, InvitationStatus } from '../types';
-import { UserMetadataStore, BucketMetadata } from '../metadata/metadataStore';
+import { UserMetadataStore } from '../metadata/metadataStore';
+import { decodeFileEncryptionKey } from '../utils/fsUtils';
 
 /**
  * Makes invitation objects that could then be
@@ -14,18 +15,9 @@ export const createFileInvitations = async (
 ): Promise<Invitation[]> => {
   const invites:Invitation[] = [];
 
-  const buckets = [];
-  const enhancedPaths:FullPath[] = [];
-
   const bucketsAndEnhancedPaths = await Promise.all(paths.map(async (path) => {
-    // const b = await store.findBucket(path.bucket);
-    //
-    // if (!b) {
-    //   throw new Error('Unable to find bucket metadata');
-    // }
-
     const f = await store.findFileMetadata(path.bucket, path.dbId || '', path.path);
-    const encryptionKey = f?.bucketKey;
+    const encryptionKey = f?.encryptionKey;
     return [encryptionKey, {
       ...path,
       uuid: f?.uuid,
@@ -35,11 +27,11 @@ export const createFileInvitations = async (
   }));
 
   const keys = bucketsAndEnhancedPaths.map((o) => o[0] as string);
-  const keysCleaned: Uint8Array[] = keys.map((k) => {
+  const keysCleaned: string[] = keys.map((k) => {
     if (!k) {
-      throw new Error('Required encryption key not found');
+      throw new Error('Required encryption key for invitation not found');
     }
-    return new TextEncoder().encode(k);
+    return k;
   });
 
   pubkeys.forEach((pubkey) => {
