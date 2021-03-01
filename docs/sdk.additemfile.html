@@ -10,7 +10,7 @@
 <tr><th>Property</th><th>Type</th><th>Description</th></tr>
 </thead>
 <tbody>
-<tr><td><a href="/space-sdk/docs/sdk.additemfile.data">data</a></td><td>ReadableStream&lt;Uint8Array&gt; | ArrayBuffer | string | Blob</td><td></td></tr>
+<tr><td><a href="/space-sdk/docs/sdk.additemfile.data">data</a></td><td><a href="/space-sdk/docs/sdk.additemdatatype">AddItemDataType</a></td><td></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.additemfile.mimetype">mimeType</a></td><td>string</td><td>MimeType of the file being added. This value can be retrieved when opening the file later one.</td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.additemfile.path">path</a></td><td>string</td><td>path in the bucket where the file should be uploaded. filename would be determined by the last segment in the path so path folder/a_file.txt would have the name <code>a_file.txt</code></td></tr>
 <tr><td><a href="/space-sdk/docs/sdk.additemfile.progress">progress?</a></td><td>(bytesRead?: number) =&gt; void</td><td><i>(Optional)</i> progress callback if provided will be called with bytes written to remote while uploading the file.</td></tr>
