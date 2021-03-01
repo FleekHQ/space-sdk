@@ -20,9 +20,12 @@ export interface AcceptInvitationResponse {
 }
 
 // @public (undocumented)
+export type AddItemDataType = ReadableStream<Uint8Array> | ArrayBuffer | string | Blob;
+
+// @public (undocumented)
 export interface AddItemFile {
     // (undocumented)
-    data: ReadableStream<Uint8Array> | ArrayBuffer | string | Blob;
+    data: AddItemDataType;
     mimeType: string;
     path: string;
     progress?: (bytesRead?: number) => void;
@@ -88,7 +91,6 @@ export class BrowserStorage {
 export interface BucketMetadata {
     bucketKey: string;
     dbId: string;
-    encryptionKey: Uint8Array;
     slug: string;
 }
 
@@ -159,6 +161,7 @@ export interface FileMetadata {
     bucketSlug: string;
     // (undocumented)
     dbId: string;
+    encryptionKey: string;
     // (undocumented)
     mimeType?: string;
     // (undocumented)
@@ -284,7 +287,7 @@ export interface Invitation {
     // (undocumented)
     itemPaths: FullPath[];
     // (undocumented)
-    keys: Uint8Array[];
+    keys: string[];
     // (undocumented)
     status: InvitationStatus;
 }
