@@ -130,12 +130,6 @@ export interface BucketMetadata {
    */
   slug: string;
   /**
-   * An 80 bytes encryption key used to encrypt and decrypt buckets storage content.
-   *
-   * 32 bytes aes key + 16 bytes salt/IV + 32 bytes HMAC key
-   */
-  encryptionKey: Uint8Array;
-  /**
    * Unique dbId provided by the user storage
    */
   dbId: string;
@@ -154,6 +148,13 @@ export interface FileMetadata {
   bucketSlug: string;
   dbId: string;
   path: string;
+  /**
+   * An 80 bytes encryption key used to encrypt and decrypt files content.
+   *
+   * 32 bytes aes key + 16 bytes salt/IV + 32 bytes HMAC key
+   * It stored as a base32 multibase encoded string
+   */
+  encryptionKey: string;
 }
 
 /**

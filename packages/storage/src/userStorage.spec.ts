@@ -18,11 +18,13 @@ import { BucketMetadata,
 import { makeAsyncIterableString } from './testHelpers';
 import { AddItemsEventData } from './types';
 import { UserStorage } from './userStorage';
+import { decodeFileEncryptionKey, generateFileEncryptionKey, newEncryptedDataWriter } from './utils/fsUtils';
 
 use(chaiAsPromised.default);
 use(chaiSubset.default);
 
 const mockIdentity: Identity = PrivateKey.fromRandom();
+const encryptionKey = generateFileEncryptionKey();
 
 const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } => {
   const mockBuckets: Buckets = mock();
@@ -85,7 +87,14 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
             return Promise.resolve({ ...input, bucketSlug: 'myBucket', dbId: '', path: '/' });
           },
           findFileMetadata(bucketSlug, dbId, path): Promise<FileMetadata | undefined> {
-            return Promise.resolve({ uuid: 'generated-uuid', mimeType: 'generic/type', bucketSlug, dbId, path });
+            return Promise.resolve({
+              uuid: 'generated-uuid',
+              mimeType: 'generic/type',
+              encryptionKey,
+              bucketSlug,
+              dbId,
+              path,
+            });
           },
           findFileMetadataByUuid(): Promise<FileMetadata | undefined> {
             return Promise.resolve({
@@ -94,6 +103,7 @@ const initStubbedStorage = (): { storage: UserStorage; mockBuckets: Buckets } =>
               bucketKey: 'myBucketKey',
               dbId: 'mockThreadId',
               path: '/',
+              encryptionKey,
             });
           },
           setFilePublic(_metadata: FileMetadata): Promise<void> {
@@ -255,8 +265,11 @@ describe('UserStorage', () => {
     it('should return a valid stream of files data', async () => {
       const { storage, mockBuckets } = initStubbedStorage();
       const actualFileContent = "file.txt's file content";
+
       when(mockBuckets.pullPath('myBucketKey', '/file.txt', anything())).thenReturn(
-        makeAsyncIterableString(actualFileContent) as AsyncIterableIterator<Uint8Array>,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+        // @ts-ignore
+        newEncryptedDataWriter(actualFileContent, decodeFileEncryptionKey(encryptionKey)),
       );
 
       const result = await storage.openFile({ bucket: 'personal', path: '/file.txt' });
@@ -297,7 +310,9 @@ describe('UserStorage', () => {
       });
 
       when(mockBuckets.pullPath('myBucketKey', anyString(), anything())).thenReturn(
-        makeAsyncIterableString(actualFileContent) as AsyncIterableIterator<Uint8Array>,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
+        // @ts-ignore
+        newEncryptedDataWriter(actualFileContent, decodeFileEncryptionKey(encryptionKey)),
       );
 
       const mockMembers = new Map<string, PathAccessRole>();

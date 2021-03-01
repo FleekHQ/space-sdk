@@ -164,7 +164,7 @@ describe('Users sharing data', () => {
     const user2Pk = Buffer.from(user2.identity.public.pubKey).toString('hex');
     const storage1 = new UserStorage(user1, TestStorageConfig);
     await storage1.initMailbox();
-    const storage2 = new UserStorage(user2, { ...TestStorageConfig, debugMode: true });
+    const storage2 = new UserStorage(user2, TestStorageConfig);
     await storage2.initMailbox();
 
     const { txtContent } = await uploadTxtContent(storage1);
@@ -309,7 +309,7 @@ describe('Users sharing data', () => {
 
     // authenticate new user to sync notifications
     const { user: user2 } = await authenticateAnonymousUser();
-    const storage2 = new UserStorage(user2, { ...TestStorageConfig, debugMode: false });
+    const storage2 = new UserStorage(user2, TestStorageConfig);
     await storage2.syncFromTempKey(shareResult.publicKeys[0].tempKey || '');
 
     await new Promise((resolve) => setTimeout(resolve, 1000));

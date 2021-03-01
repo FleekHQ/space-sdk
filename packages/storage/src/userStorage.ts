@@ -47,7 +47,11 @@ import { AcceptInvitationResponse,
   ShareViaPublicKeyResponse,
   TxlSubscribeResponse } from './types';
 import { validateNonEmptyArray } from './utils/assertUtils';
-import { isMetaFileName } from './utils/fsUtils';
+import { decodeFileEncryptionKey,
+  encodeFileEncryptionKey,
+  generateFileEncryptionKey,
+  isMetaFileName, newDecryptedDataReader,
+  newEncryptedDataWriter } from './utils/fsUtils';
 import { filePathFromIpfsPath,
   getParentPath,
   isTopLevelPath,
@@ -231,6 +235,7 @@ export class UserStorage {
    */
   public async createFolder(request: CreateFolderRequest): Promise<void> {
     const client = this.getUserBucketsClient();
+    const metadataStore = await this.getMetadataStore();
 
     const bucket = await this.getOrCreateBucket(client, request.bucket);
     const file = {
@@ -238,6 +243,14 @@ export class UserStorage {
       content: Buffer.from(''),
     };
 
+    await metadataStore.upsertFileMetadata({
+      uuid: v4(),
+      bucketKey: bucket.root?.key,
+      bucketSlug: bucket.slug,
+      dbId: bucket.dbId,
+      encryptionKey: generateFileEncryptionKey(),
+      path: file.path,
+    });
     await client.pushPath(bucket.root?.key || '', '.keep', file);
   }
 
@@ -404,8 +417,6 @@ export class UserStorage {
    * ```
    */
   public async notificationSubscribe(): Promise<NotificationSubscribeResponse> {
-    const client = this.getUserBucketsClient();
-    // const bucket = await this.(client, request.bucket);
     const emitter = ee();
 
     if (!this.mailbox) {
@@ -490,7 +501,10 @@ export class UserStorage {
     const fileMetadata = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, path);
 
     try {
-      const fileData = client.pullPath(bucket.root?.key || '', path, { progress: request.progress });
+      const fileData = newDecryptedDataReader(
+        client.pullPath(bucket.root?.key || '', path, { progress: request.progress }),
+        decodeFileEncryptionKey(fileMetadata?.encryptionKey || ''),
+      );
       return {
         stream: fileData,
         consumeStream: () => consumeStream(fileData),
@@ -556,7 +570,10 @@ export class UserStorage {
         fileMetadata.dbId,
       );
 
-      const fileData = client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress });
+      const fileData = newDecryptedDataReader(
+        client.pullPath(bucketKey, fileMetadata.path, { progress: request.progress }),
+        decodeFileEncryptionKey(fileMetadata.encryptionKey || ''),
+      );
 
       const [fileEntryWithmembers] = await UserStorage.addMembersToPathItems(
         [fileEntry],
@@ -766,9 +783,15 @@ export class UserStorage {
             bucketKey: bucket.root?.key,
             bucketSlug: bucket.slug,
             dbId: bucket.dbId,
+            encryptionKey: generateFileEncryptionKey(),
             path,
           });
-          await client.pushPath(rootKey, path, file.data, { progress: file.progress });
+
+          const encryptedDataReader = newEncryptedDataWriter(
+            file.data,
+            decodeFileEncryptionKey(metadata.encryptionKey),
+          );
+          await client.pushPath(rootKey, path, encryptedDataReader, { progress: file.progress });
           // set file entry
           const existingFile = await client.listPath(rootKey, path);
           const [fileEntry] = UserStorage.parsePathItems(
@@ -836,7 +859,7 @@ export class UserStorage {
     const client = this.getUserBucketsClient();
     const metadataStore = await this.getMetadataStore();
 
-    const filesPaths = await Promise.all(invitation.itemPaths.map(async (fullPath) => {
+    const filesPaths = await Promise.all(invitation.itemPaths.map(async (fullPath, index) => {
       const fileMetadata = await metadataStore.upsertSharedWithMeFile({
         bucketKey: fullPath.bucketKey,
         bucketSlug: fullPath.bucket,
@@ -846,6 +869,7 @@ export class UserStorage {
         sharedBy: invitation.inviterPublicKey,
         uuid: fullPath.uuid,
         accepted: accept,
+        encryptionKey: invitation.keys[index],
         invitationId,
       });
 
@@ -1200,6 +1224,7 @@ export class UserStorage {
         dbId: fullPath.dbId || '',
         path: fullPath.path,
         sharedBy: this.user.identity.public.toString(),
+        encryptionKey: fileMetadata?.encryptionKey || '',
         uuid: fileMetadata?.uuid,
       });
     }
@@ -1249,7 +1274,6 @@ export class UserStorage {
     fullPaths: FullPath[],
   ): Promise<{ key: string; fullPath: FullPath; }[]> {
     this.logger.info({ fullPaths }, 'Normalizing full path');
-    const bucketCache = new Map<string, BucketMetadataWithThreads>();
     const store = await this.getMetadataStore();
     return Promise.all(fullPaths.map(async (fullPath) => {
       let rootKey: string;

@@ -21,13 +21,9 @@ if (isNode) {
   require('gun/lib/rindexed');
 }
 
-const crypto = require('crypto-browserify');
-
 // this is an hack to enable using IGunChainReference in async functions
 export type GunChainReference<Data> = Omit<IGunChainReference<Data>, 'then'>;
 
-// 32 bytes aes key + 16 bytes salt/IV + 32 bytes HMAC key
-const BucketEncryptionKeyLength = 32 + 16 + 32;
 const BucketMetadataCollection = 'BucketMetadata';
 const SharedFileMetadataCollection = 'SharedFileMetadata';
 const SharedByMeFileMetadataCollection = 'SharedByMeFileMetadata';
@@ -168,7 +164,6 @@ export class GundbMetadataStore implements UserMetadataStore {
 
     const schema: BucketMetadata = {
       dbId,
-      encryptionKey: crypto.randomBytes(BucketEncryptionKeyLength),
       slug: bucketSlug,
       bucketKey,
     };
@@ -601,10 +596,7 @@ export class GundbMetadataStore implements UserMetadataStore {
 
   private async encryptBucketSchema(schema: BucketMetadata): Promise<EncryptedMetadata> {
     return {
-      data: await this.encrypt(JSON.stringify({
-        ...schema,
-        encryptionKey: Buffer.from(schema.encryptionKey).toString('hex'),
-      })),
+      data: await this.encrypt(JSON.stringify(schema)),
     };
   }
 
@@ -614,9 +606,6 @@ export class GundbMetadataStore implements UserMetadataStore {
       throw new Error('Unknown bucket metadata');
     }
 
-    return {
-      ...gunschema,
-      encryptionKey: Buffer.from(gunschema.encryptionKey, 'hex'),
-    };
+    return gunschema;
   }
 }
