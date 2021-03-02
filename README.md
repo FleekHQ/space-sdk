@@ -28,7 +28,7 @@ The Space SDK is modular and protocol agnostic. You can use the APIs and interfa
 | Users 	|  Key-pair based identity creation, and challenge authentication.	| Textile Users API
 | Storage 	|  File, directory, and bucket creation/listing.	| IPFS / Textile 
 | Metadata 	|  Secure Bucket/directory schema storage	| GunDB
-| Sharing 	|  **Coming soon!**	| Textile |
+| Sharing 	|  Private and public file sharing	| Textile |
 
 ----
  
