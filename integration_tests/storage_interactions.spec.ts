@@ -329,24 +329,23 @@ describe('Users storing data', () => {
 
     expect(summary?.count).to.equal(2);
 
-    // TODO: uncomment after Textile pkg is updated
     // validate files are in the directory
-    // const listFolder = await storage.listDirectory({ bucket: 'personal', path: 'moveDestination' });
-    // expect(listFolder.items).to.containSubset([
-    //   {
-    //     name: 'top.txt',
-    //     isDir: false,
-    //   },
-    //   {
-    //     name: 'inner.txt',
-    //     isDir: false,
-    //   },
-    // ]);
+    const listFolder = await storage.listDirectory({ bucket: 'personal', path: 'moveDestination' });
+    expect(listFolder.items).to.containSubset([
+      {
+        name: 'top.txt',
+        isDir: false,
+      },
+      {
+        name: 'inner.txt',
+        isDir: false,
+      },
+    ]);
 
-    // // validate content of top.txt file
-    // const fileResponse = await storage.openFile({ bucket: 'personal', path: '/moveDestination/top.txt' });
-    // const actualTxtContent = await fileResponse.consumeStream();
-    // expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
-    // expect(fileResponse.mimeType).to.equal('plain/text');
+    // validate content of top.txt file
+    const fileResponse = await storage.openFile({ bucket: 'personal', path: '/moveDestination/top.txt' });
+    const actualTxtContent = await fileResponse.consumeStream();
+    expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
+    expect(fileResponse.mimeType).to.equal('plain/text');
   }).timeout(TestsDefaultTimeout);
 });

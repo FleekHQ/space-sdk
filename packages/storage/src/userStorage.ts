@@ -1054,7 +1054,8 @@ export class UserStorage {
       count: 0,
     };
 
-    const movePs = sourcePaths.map((sourcePath, index) => new Promise<void>((resolve) => {
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [index, sourcePath] of sourcePaths.entries()) {
       const destPath = destPaths[index];
 
       const status: MovePathsStatus = {
@@ -1064,20 +1065,24 @@ export class UserStorage {
       };
 
       try {
-        // TODO: uncomment when releasedon Textile
-        // await client.movePath(rootKey, source, destPath);
+        await client.movePath(rootKey, sourcePath, destPath);
         summary.count += 1;
+
+        const fileMd = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, `/${sourcePath}`);
+
+        if (!fileMd) {
+          throw new Error('Unable to find file metadata when moving file');
+        }
+
+        fileMd.path = `/${destPaths[index]}`;
+        const savedFileMd = await metadataStore.upsertFileMetadata(fileMd);
       } catch (err) {
         status.status = 'error';
         status.error = err;
-        emitter.emit('error', status);
       }
 
-      emitter.emit('data');
-      resolve();
-    }));
-
-    await Promise.all(movePs);
+      emitter.emit('data', status);
+    }
 
     return summary;
   }
