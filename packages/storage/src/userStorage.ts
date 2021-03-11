@@ -1012,7 +1012,8 @@ export class UserStorage {
   }
 
   /**
-   * Return the list of shared files accepted by user
+   * Moves files in a given bucket from source to destination. Multiple moves can be
+   * requested by matching up the indices of the sourcePath and destPath arrays
    *
    * @param bucketName - name of bucket
    * @param sourcePaths - array of strings corresponding to the source paths
