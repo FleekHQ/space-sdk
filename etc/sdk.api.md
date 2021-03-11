@@ -326,6 +326,42 @@ export interface MakeFilePublicRequest {
 }
 
 // @public (undocumented)
+export type MovePathsEventData = MovePathsStatus | MovePathsResultSummary;
+
+// @public (undocumented)
+export type MovePathsEventType = 'data' | 'error' | 'done';
+
+// @public (undocumented)
+export type MovePathsListener = (data: MovePathsEventData) => void;
+
+// @public (undocumented)
+export interface MovePathsResponse {
+    // (undocumented)
+    off: (type: MovePathsEventType, listener: MovePathsListener) => void;
+    // (undocumented)
+    on: (type: MovePathsEventType, listener: MovePathsListener) => void;
+    once: (type: MovePathsEventType, listener: MovePathsListener) => void;
+}
+
+// @public (undocumented)
+export interface MovePathsResultSummary {
+    // (undocumented)
+    count: number;
+}
+
+// @public (undocumented)
+export interface MovePathsStatus {
+    // (undocumented)
+    destPath: string;
+    // (undocumented)
+    error?: Error;
+    // (undocumented)
+    sourcePath: string;
+    // (undocumented)
+    status: 'success' | 'error';
+}
+
+// @public (undocumented)
 interface Notification_2 {
     // (undocumented)
     body: Uint8Array;
@@ -596,6 +632,7 @@ export class UserStorage {
     initListener(): Promise<void>;
     initMailbox(): Promise<void>;
     listDirectory(request: ListDirectoryRequest): Promise<ListDirectoryResponse>;
+    movePaths(bucketName: string, sourcePaths: string[], destPaths: string[]): Promise<MovePathsResponse>;
     notificationSubscribe(): Promise<NotificationSubscribeResponse>;
     openFile(request: OpenFileRequest): Promise<OpenFileResponse>;
     openFileByUuid(request: OpenUuidFileRequest): Promise<OpenUuidFileResponse>;
