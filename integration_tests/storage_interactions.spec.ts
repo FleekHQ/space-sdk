@@ -5,7 +5,9 @@ import { AddItemsEventData,
   ListDirectoryResponse,
   DirectoryEntry,
   FileNotFoundError,
-  TxlSubscribeEventData } from '@spacehq/sdk';
+  TxlSubscribeEventData,
+  MovePathsResultSummary,
+  MovePathsEventData } from '@spacehq/sdk';
 import { isNode } from 'browser-or-node';
 import fs from 'fs';
 import { expect, use } from 'chai';
@@ -276,5 +278,74 @@ describe('Users storing data', () => {
 
     const data = await eventData;
     expect(data.bucketName).to.equal('personal');
+  }).timeout(TestsDefaultTimeout);
+
+  it('user should move paths successfully', async () => {
+    const { user } = await authenticateAnonymousUser();
+    const txtContent = 'Some manual text should be in the file';
+
+    const storage = new UserStorage(user, TestStorageConfig);
+    const uploadResponse = await storage.addItems({
+      bucket: 'personal',
+      files: [
+        {
+          path: 'top.txt',
+          data: txtContent,
+          mimeType: 'plain/text',
+        },
+        {
+          path: 'subfolder/inner.txt',
+          data: 'some other stuffs',
+          mimeType: 'plain/text',
+        },
+      ],
+    });
+
+    let uploadSummary: AddItemsResultSummary | undefined;
+    await new Promise((resolve) => {
+      uploadResponse.once('done', (data: AddItemsEventData) => {
+        uploadSummary = data as AddItemsResultSummary;
+        resolve();
+      });
+    });
+
+    await storage.createFolder({ bucket: 'personal', path: 'moveDestination' });
+
+    const moveResponse = await storage.movePaths('personal', [
+      'top.txt',
+      'subfolder/inner.txt',
+    ], [
+      'moveDestination/top.txt',
+      'moveDestination/inner.txt',
+    ]);
+
+    let summary: MovePathsResultSummary | undefined;
+    await new Promise((resolve) => {
+      moveResponse.once('done', (data: MovePathsEventData) => {
+        summary = data as MovePathsResultSummary;
+        resolve();
+      });
+    });
+
+    expect(summary?.count).to.equal(2);
+
+    // validate files are in the directory
+    const listFolder = await storage.listDirectory({ bucket: 'personal', path: 'moveDestination' });
+    expect(listFolder.items).to.containSubset([
+      {
+        name: 'top.txt',
+        isDir: false,
+      },
+      {
+        name: 'inner.txt',
+        isDir: false,
+      },
+    ]);
+
+    // validate content of top.txt file
+    const fileResponse = await storage.openFile({ bucket: 'personal', path: '/moveDestination/top.txt' });
+    const actualTxtContent = await fileResponse.consumeStream();
+    expect(new TextDecoder('utf8').decode(actualTxtContent)).to.equal(txtContent);
+    expect(fileResponse.mimeType).to.equal('plain/text');
   }).timeout(TestsDefaultTimeout);
 });

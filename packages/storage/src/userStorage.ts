@@ -32,6 +32,9 @@ import { AcceptInvitationResponse,
   ListDirectoryRequest,
   ListDirectoryResponse,
   MakeFilePublicRequest,
+  MovePathsResponse,
+  MovePathsResultSummary,
+  MovePathsStatus,
   Notification,
   NotificationSubscribeResponse,
   NotificationType,
@@ -1006,6 +1009,83 @@ export class UserStorage {
       }
     }));
     return existingStatusbyId;
+  }
+
+  /**
+   * Moves files in a given bucket from source to destination. Multiple moves can be
+   * requested by matching up the indices of the sourcePath and destPath arrays
+   *
+   * @param bucketName - name of bucket
+   * @param sourcePaths - array of strings corresponding to the source paths
+   * @param destPaths - array of strings corresponding to the target paths
+   *
+   */
+  public async movePaths(bucketName:string, sourcePaths: string[], destPaths: string[]): Promise<MovePathsResponse> {
+    if (sourcePaths.length !== destPaths.length) {
+      throw new Error('Source and destination array length mismatch');
+    }
+
+    const client = this.getUserBucketsClient();
+    const bucket = await this.getOrCreateBucket(client, bucketName);
+    const emitter = ee();
+
+    // using setImmediate here to ensure a cycle is skipped
+    // giving the caller a chance to listen to emitter in time to not
+    // miss an early data or error event
+    setImmediate(() => {
+      this.moveMultiplePaths(bucketName, sourcePaths, destPaths, client, bucket, emitter).then((summary) => {
+        emitter.emit('done', summary);
+      });
+    });
+
+    return emitter;
+  }
+
+  private async moveMultiplePaths(
+    bucketName:string,
+    sourcePaths: string[],
+    destPaths: string[],
+    client: Buckets,
+    bucket: BucketMetadataWithThreads,
+    emitter: ee.Emitter,
+  ): Promise<MovePathsResultSummary> {
+    const metadataStore = await this.getMetadataStore();
+    const rootKey = bucket.root?.key || '';
+    const summary: MovePathsResultSummary = {
+      count: 0,
+    };
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const [index, sourcePath] of sourcePaths.entries()) {
+      const destPath = destPaths[index];
+
+      const status: MovePathsStatus = {
+        sourcePath,
+        destPath,
+        status: 'success',
+      };
+
+      try {
+        await client.movePath(rootKey, sourcePath, destPath);
+        summary.count += 1;
+
+        const fileMd = await metadataStore.findFileMetadata(bucket.slug, bucket.dbId, `/${sourcePath}`);
+
+        if (!fileMd) {
+          throw new Error('Unable to find file metadata when moving file');
+        }
+
+        fileMd.path = `/${destPaths[index]}`;
+        const savedFileMd = await metadataStore.upsertFileMetadata(fileMd);
+      } catch (err) {
+        status.status = 'error';
+        status.error = err;
+      }
+
+      emitter.emit('data', status);
+    }
+
+    return summary;
   }
 
   /**

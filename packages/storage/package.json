@@ -46,7 +46,7 @@
     "@spacehq/users": "^0.0.29",
     "@spacehq/utils": "^0.0.29",
     "@textile/crypto": "^2.0.0",
-    "@textile/hub": "^4.1.0",
+    "@textile/hub": "^6.1.0",
     "@textile/threads-id": "^0.4.0",
     "browser-or-node": "^1.3.0",
     "cids": "^1.1.4",

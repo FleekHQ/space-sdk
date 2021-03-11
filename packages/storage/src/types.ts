@@ -190,6 +190,31 @@ export interface AddItemsResponse {
   off: (type: AddItemsEventType, listener: AddItemsListener) => void;
 }
 
+export interface MovePathsStatus {
+  sourcePath: string;
+  destPath: string;
+  status: 'success' | 'error';
+  error?: Error;
+}
+
+export interface MovePathsResultSummary {
+  count: number;
+}
+
+export type MovePathsEventData = MovePathsStatus | MovePathsResultSummary;
+export type MovePathsEventType = 'data' | 'error' | 'done';
+export type MovePathsListener = (data: MovePathsEventData) => void;
+
+export interface MovePathsResponse {
+  on: (type: MovePathsEventType, listener: MovePathsListener) => void;
+  /**
+   * this function should only be used to listen for the `'done'` event, since the listener would only be called once.
+   * or else you could end up having functions leaking (unless you explicitly call the `off()` function).
+   */
+  once: (type: MovePathsEventType, listener: MovePathsListener) => void;
+  off: (type: MovePathsEventType, listener: MovePathsListener) => void;
+}
+
 /**
  * SharedWithMeFiles Represents a file created for the user
  *
