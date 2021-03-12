@@ -119,7 +119,7 @@ uploadResponse.once('done', (data: AddItemsEventData) => {
 ```
 
 ### 3. Sharing
-This includes operations to share your storage items with existing user (identites)  
+This includes operations to share your storage items with existing user (identities)  
 
 ```typescript
 // WIP - Coming soon!
