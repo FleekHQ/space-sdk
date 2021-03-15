@@ -62,7 +62,7 @@ This involves managing users and their identities.
 ```typescript
 import { Users } from '@spacehq/sdk';
 
-const users = new Users({ endpoint: 'wss://auth-dev.space.storage' });
+const users = new Users({ endpoint: 'wss://dev.space.storage' });
 
 // createIdentity generate a random keypair identity
 const identity = await users.createIdentity();
@@ -94,7 +94,7 @@ import { UserStorage, AddItemsResultSummary } from '@spacehq/sdk';
 
 const storage = new UserStorage(user);
 await storage.createFolder({ bucket: 'personal', path: 'topFolder' });
-const result = await storage.listDirectory({ path: '' });
+const result = await storage.listDirectory({ bucket: 'personal', path: '' });
 // result contains `topFolder` items
 
 // upload a file
