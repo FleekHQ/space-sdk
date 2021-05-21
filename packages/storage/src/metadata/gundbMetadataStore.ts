@@ -101,9 +101,10 @@ export class GundbMetadataStore implements UserMetadataStore {
       }
     } else {
       this.gunInit = () => Gun({
-        localStorage: false,
+        localStorage: true,
         radisk: true,
         peers: 'https://gun.space.storage/gun',
+        axe: true,
       } as any);
     }
 

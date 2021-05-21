@@ -7,6 +7,7 @@ describe('pathUtils', () => {
       { input: '/folder', output: '/folder' },
       { input: '/folder/', output: '/folder' },
       { input: 'folder', output: '/folder' },
+      { input: '', output: '/' },
       { input: 'folder/inside/', output: '/folder/inside' },
       { input: 'folder\\inside\\', output: '/folder/inside' },
     ];
